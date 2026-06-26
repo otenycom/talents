@@ -4,7 +4,7 @@
 # not per-talent. The internal slug (bot:) and the runtime group name (routing.channel)
 # stay as-is — internal identifiers, never user-facing.
 bot: oteny-travel-talent
-display_name: Travel-talent
+display_name: Travel
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
