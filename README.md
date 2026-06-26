@@ -36,6 +36,7 @@ catalog, so a few in-bundle links resolve only once the Talent is delivered.
 1. **Read the standard** — [`skills/talent-authoring-standard/`](skills/talent-authoring-standard)
    is both the rubric a bundle must meet *and* the checks a capable model applies to
    grade one (numbered, verifiable do-lists — the "airline-pilot checklist" rule).
+   See **[TOOLS.md](TOOLS.md)** for the catalog of tools your Talent can request.
 2. **Follow the how-to** — [`skills/oteny-talent-authoring/`](skills/oteny-talent-authoring)
    walks create → edit → package → publish, with helper scripts.
 3. **Self-check before you submit** — run the same gate Oteny runs at delivery:

@@ -1,0 +1,266 @@
+{
+  "_generated": "by `python -m hermeshost tools-catalog --format public` — do not edit by hand.",
+  "tools": [
+    {
+      "name": "web_search",
+      "requestable_name": "web_search",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "x_search",
+      "requestable_name": "x_search",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "youtube_transcript",
+      "requestable_name": "youtube_transcript",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "travel",
+      "requestable_name": "travel",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "parse_document",
+      "requestable_name": "parse_document",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Read & understand what you send",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "vision_analyze",
+      "requestable_name": "vision_analyze",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Read & understand what you send",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "video_analyze",
+      "requestable_name": "video_analyze",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Read & understand what you send",
+      "status": "live",
+      "cost": "high"
+    },
+    {
+      "name": "transcribe_audio",
+      "requestable_name": "transcribe_audio",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Read & understand what you send",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "image_generate",
+      "requestable_name": "image_generate",
+      "request_via": "tools.required",
+      "kind": "media",
+      "group": "Create media",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "imagine_image",
+      "requestable_name": "imagine_image",
+      "request_via": "tools.required",
+      "kind": "media",
+      "group": "Create media",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "text_to_speech",
+      "requestable_name": "text_to_speech",
+      "request_via": "tools.required",
+      "kind": "media",
+      "group": "Create media",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "video_generate",
+      "requestable_name": "video_generate",
+      "request_via": "tools.required",
+      "kind": "media",
+      "group": "Create media",
+      "status": "live",
+      "cost": "high"
+    },
+    {
+      "name": "browser",
+      "requestable_name": "browser",
+      "request_via": "toolset_contribution",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "browser_request_human",
+      "requestable_name": "browser_request_human",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "browser_download",
+      "requestable_name": "browser_download",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "low"
+    },
+    {
+      "name": "publish_file",
+      "requestable_name": "publish_file",
+      "request_via": "tools.required",
+      "kind": "file-drop",
+      "group": "Share a file as a link",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "unpublish_file",
+      "requestable_name": "unpublish_file",
+      "request_via": "tools.required",
+      "kind": "file-drop",
+      "group": "Share a file as a link",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "list_published_files",
+      "requestable_name": "list_published_files",
+      "request_via": "tools.required",
+      "kind": "file-drop",
+      "group": "Share a file as a link",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "connect_account",
+      "requestable_name": "connect_account",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "connect_login",
+      "requestable_name": "connect_login",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "list_logins",
+      "requestable_name": "list_logins",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "disconnect_login",
+      "requestable_name": "disconnect_login",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "cron",
+      "requestable_name": "cron",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "memory",
+      "requestable_name": "memory",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "terminal",
+      "requestable_name": "terminal",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "execute_code",
+      "requestable_name": "execute_code",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "skills",
+      "requestable_name": "skills",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "todo",
+      "requestable_name": "todo",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "send_message",
+      "requestable_name": "send_message",
+      "request_via": "toolset_contribution",
+      "kind": "builtin",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    }
+  ]
+}
