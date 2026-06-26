@@ -24,11 +24,6 @@ artifacts:
     blocking: false              # accrues over time / lazily; never a hard gate to brief
     remediation: "first-run §profile: render memory.md from profile/memory.md.template"
 
-  - kind: localized_bundle
-    profile_path: ~/.hermes/data/oteny-stock-talent/profile.yaml
-    matches_profile_field: language
-    language_marker: ~/.hermes/data/oteny-stock-talent/.bundle_lang
-
   - kind: routing                      # DM-first: the native skill index routes DMs
     config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). A
     platform: telegram                 #   group-bound Talent would add requires_channel_prompt:

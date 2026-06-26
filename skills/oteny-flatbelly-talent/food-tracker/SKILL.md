@@ -1,7 +1,7 @@
 ---
 name: food-tracker
 description: "Log meals, weight, macros, sleep, workouts, waist."
-version: 1.1.0
+version: 1.2.0
 author: Oteny
 license: MIT
 metadata:
@@ -163,13 +163,40 @@ me check" and run it.
 
 ## Daily reminder role
 
-At the tenant's `profile.reminders` times (default 08:00 + 20:00 local) you proactively
-ask them to list what they ate, give best macro estimates, and report current weight;
-you then write the exact INSERT/UPSERT statements (a `leucine_g` estimate per item).
-Default reminder copy (English base, translated per tenant):
+At the tenant's `profile.reminders` times (default 08:00 + 20:00 local) the reminder
+**never opens with a blank "what did you eat?"** — you first **show the tenant where
+their day stands**, then ask only for what's still missing.
 
-> ⏰ Time to log! What have you eaten so far today, and what's your weight (morning,
-> fasted)? Send it in one message — I'll work out the macros and leucine.
+1. **Read state first (grounding).** Run `preflight.py` (triage step 1) — it returns
+   today's logged rows, the local clock and the targets. Then read today's totals
+   (`references/reports.md` §1, optionally the full join §2) and, if a morning weight is
+   in, its trend (§3). **Never vibe-serve a number** (hard rule ①) — every figure in the
+   summary comes from a query you ran this turn.
+2. **Open with the "day so far" summary — the regular layout.** One compact,
+   Telegram-friendly block (English base, translated per `profile.language`): a line per
+   metric, ✅ for what's logged, `—` for what's still open. Frame by time-of-day (hard
+   rule ③): before ~18:00 "so far today" + "X g protein to go"; after ~18:00 the **day
+   total** + any deficit / leucine miss. Show only rows that apply.
+
+   > 📊 **Your day so far — Wed 26 Jun**
+   > • ⚖️ Weight: 84.6 kg (morning) — 85.0 → 84.6, −0.4 kg/wk (7-day) ✅
+   > • 🍽️ Food: 1,240 kcal · 78 g protein — 42 g to go for 120 g · leucine 2/3 meals ✅
+   > • 🚶 Steps: 6,200 / 10,000
+   > • 💤 Sleep: 88
+   > • 🏋️ Workout: —
+   > • 📏 Waist: logged this week ✅
+
+   If the day is still empty (early-morning reminder), say so in one line and anchor on
+   yesterday's close + this morning's weight rather than printing a blank grid.
+3. **Then ask only for the gaps.** Name what's still missing and invite one message;
+   you then write the exact INSERT/UPSERT statements (a `leucine_g` estimate per item)
+   and re-state the updated totals.
+
+   > Still open today: **dinner · steps · sleep**. Send them in one message — I'll work
+   > out the calories, macros and leucine and update your totals.
+
+Keep it to two short Telegram messages (the summary, then the ask), in the tenant's
+language, macros spelled out, ending with **one** concrete lever if a target is behind.
 
 Everything beyond the hot paths above — per-intent checklists, exact write/report SQL,
 macro defaults, the jargon glossary and the full schema — is in `references/`. Pull the

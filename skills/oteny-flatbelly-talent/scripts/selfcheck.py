@@ -149,22 +149,6 @@ def check_memory(a):
               blocking=blocking)
 
 
-def check_localized_bundle(a):
-    profile = _load_yaml(expand(a["profile_path"]))
-    field = a.get("matches_profile_field", "language")
-    if profile is None or _is_empty(profile.get(field)):
-        return _r("localized_bundle", False, "profile.language unknown yet",
-                  "first-run §profile must run before localization can be judged")
-    want = str(profile[field]).strip()
-    marker = expand(a["language_marker"])
-    have = marker.read_text().strip() if marker.exists() else a.get("base_language", "")
-    if have == want:
-        return _r("localized_bundle", True, f"bundle speaks '{want}'")
-    return _r("localized_bundle", False,
-              f"bundle language '{have}' != profile.language '{want}'",
-              "first-run §localized_bundle: invoke skill-translator into profile.language")
-
-
 def check_routing(a):
     # DM routing is NATIVE: only a one-line `name: description` index sits in the
     # cached prompt and the model self-selects the matching Talent via `skill_view`, so a
@@ -227,7 +211,6 @@ CHECKERS = {
     "sqlite_db": check_sqlite_db,
     "profile": check_profile,
     "memory": check_memory,
-    "localized_bundle": check_localized_bundle,
     "routing": check_routing,
     "cron": check_cron,
     "tools": check_tools,
@@ -238,7 +221,6 @@ def run(manifest_path: Path) -> dict:
     manifest = _load_yaml(manifest_path)
     if manifest is None:
         raise SystemExit(f"manifest not found: {manifest_path}")
-    base_lang = manifest.get("base_language")
     results = []
     for a in manifest.get("artifacts", []):
         kind = a.get("kind")
@@ -247,8 +229,6 @@ def run(manifest_path: Path) -> dict:
             results.append(_r(kind or "?", False, f"unknown artifact kind '{kind}'",
                               blocking=False))
             continue
-        if kind == "localized_bundle":
-            a = {**a, "base_language": a.get("base_language", base_lang)}
         results.append(checker(a))
     missing = [r for r in results if not r["ok"] and r["blocking"]]
     return {

@@ -78,15 +78,6 @@ mkdir -p ~/.hermes/memories ~/.hermes/data/oteny-flatbelly-talent
 - render `../../profile/USER.md.template`   → `~/.hermes/memories/USER.md` (shared identity; Hermes auto-loads it into EVERY session — keep it identity-only)
 - render `../../profile/memory.md.template` → `~/.hermes/data/oteny-flatbelly-talent/memory.md` (this bot's domain memory; the triage reads it each turn)
 
-## Remediation: `localized_bundle` (translate if needed)
-
-If `profile.language` ≠ the active bundle language, localize the bundle with the
-[`skill-translator`](../../../skill-translator/SKILL.md) default skill, then mark it:
-
-```bash
-echo "<profile.language>" > ~/.hermes/data/oteny-flatbelly-talent/.bundle_lang
-```
-
 ## Remediation: `routing` (register this bot's routing)
 
 Let the [`index-reconciler`](../../../index-reconciler/SKILL.md) apply this bot's

@@ -54,12 +54,6 @@ python3 ~/.hermes/skills/talents/oteny-stock-talent/scripts/live_tape.py NVDA
 python3 ~/.hermes/skills/talents/index-reconciler/scripts/index_reconciler.py --apply
 ```
 
-## Remediation: `localized_bundle`
-
-If `profile.language` ≠ the base language, translate with
-[`skill-translator`](../../skill-translator/SKILL.md), then
-`echo "<lang>" > ~/.hermes/data/oteny-stock-talent/.bundle_lang`.
-
 ## `cron` (auto-watcher) — opt-in
 
 The All-In poll→fetch→brief watcher is **not registered at first-run** because it incurs

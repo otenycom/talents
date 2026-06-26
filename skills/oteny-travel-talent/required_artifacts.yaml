@@ -27,11 +27,6 @@ artifacts:
     blocking: false              # accrues over time / lazily; never a hard gate to plan
     remediation: "first-run §profile: render memory.md from profile/memory.md.template"
 
-  - kind: localized_bundle
-    profile_path: ~/.hermes/data/oteny-travel-talent/profile.yaml
-    matches_profile_field: language
-    language_marker: ~/.hermes/data/oteny-travel-talent/.bundle_lang
-
   - kind: routing                      # DM-first: the native skill index routes DMs
     config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). The
     platform: telegram                 #   channel_prompt is used only when a trip GROUP is

@@ -118,7 +118,6 @@ Artifact classes a manifest may declare (omit those a bot doesn't need):
 | `data` | db file exists + named tables present |
 | `profile` | profile file exists + required fields non-empty |
 | `memory` | `~/.hermes/memories/USER.md` rendered from the profile |
-| `localized_bundle` | active bundle language == `profile.language` |
 | `routing` | this bot's `channel_prompt` (+ optional DM hint) registered |
 | `cron` | named jobs registered (with `enabled_when: tool:<x>` if gated) |
 | `tools` | required tools present; absent charged tools shipped as stubs |
@@ -169,7 +168,7 @@ add **context-aware reads** (not keyword matches) — see
   `scripts/*.sql`; `.md` documents columns in prose.
 - Remediation is **idempotent**: `init.sql` is `CREATE TABLE IF NOT EXISTS`, cron
   registered list-first ("create if absent"), `ON CONFLICT … DO UPDATE` for daily rows.
-- It covers **every** manifest class it declares (create db → intake → translate →
+- It covers **every** manifest class it declares (create db → intake →
   register routing/cron) and **loops to a re-check** → READY.
 - **Cron jobs MUST pin `model` + `provider`** (live-proven footgun, D40). Hermes' cron
   resolves an un-pinned job's model from `config.yaml`'s `model.default` (not
@@ -225,13 +224,12 @@ add **context-aware reads** (not keyword matches) — see
   no invented facts about the user, and any sane hard limits. Present and wired
   into the persona, not buried.
 
-### 8. Localization-ready — author in ENGLISH, translate per tenant
-- **Author in English** (`base_language: en`) even for a non-English owner: the
-  translator localizes on delivery and the bot replies in the owner's profile language.
-  Never hardcode the owner's language. (Worked fix: `backup-odoo-sh-database`, Dutch→English.)
-- **Translatable**: SQL, column names, `scripts/` code, study URLs, technical jargon,
-  and numeric targets are quarantined (fenced code / markers) so the translator leaves
-  them byte-identical.
+### 8. Author in ENGLISH — the model localizes the reply on the fly (D147)
+- **No per-tenant translation step.** Author every bundle in English; the model reads it
+  and replies in the owner's own language, enforced every gateway AND cron turn
+  (`_SYSTEM_DISCIPLINE` + hh-tools `pre_llm_call`). Author user-facing copy as a TEMPLATE
+  the model renders, never a verbatim string; keep SQL/columns/numbers exact. (No
+  `localized_bundle`/`.bundle_lang`/`skill-translator` — retired D147.)
 
 ### 9. Tool dependencies declared; charged tools stubbed
 - External/charged tools are declared in the manifest. Absent ones ship as

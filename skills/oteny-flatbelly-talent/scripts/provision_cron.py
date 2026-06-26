@@ -121,9 +121,14 @@ def build_specs(profile: dict, ref: datetime | None = None,
             "skills": ["food-tracker", "flatbelly-coach-voice"],
             "model": model,
             "provider": provider,
-            "prompt": ("Morning log reminder. Ask the tenant (in their language) for "
-                       "their morning weight and what they have eaten/plan to eat; do "
-                       "NOT pre-fill. Load food-tracker first."),
+            "prompt": ("Morning log reminder. Load food-tracker first and run "
+                       "preflight.py to read today's logged state. OPEN with the compact "
+                       "'day so far' summary in the regular layout (Daily reminder role: "
+                       "weight+trend, food totals, steps, sleep, workout, waist — ✅ "
+                       "logged, — open), grounded in a fresh DB read; if the day is still "
+                       "empty anchor on yesterday's close. THEN ask (in their language) "
+                       "for the morning weight + plan for the day. Do NOT pre-fill or "
+                       "invent numbers."),
         },
         {
             "name": "OtenyFlatBellyTalent daily evening log",
@@ -132,9 +137,14 @@ def build_specs(profile: dict, ref: datetime | None = None,
             "skills": ["food-tracker", "flatbelly-coach-voice"],
             "model": model,
             "provider": provider,
-            "prompt": ("Evening log reminder. Ask for the full day's food + any "
-                       "sleep/steps/workout; then write the rows and give a grounded "
-                       "day total with leucine compliance. Load food-tracker first."),
+            "prompt": ("Evening log reminder. Load food-tracker first and run "
+                       "preflight.py to read today's logged state. OPEN with the compact "
+                       "'day so far' summary in the regular layout (Daily reminder role: "
+                       "weight+trend, food totals with leucine compliance, steps, sleep, "
+                       "workout, waist — ✅ logged, — open), grounded in a fresh DB read "
+                       "(no vibe-served numbers). THEN ask only for what's still missing; "
+                       "write the rows and give the grounded day total with leucine "
+                       "compliance."),
         },
         {
             "name": "OtenyFlatBellyTalent weekly dashboard",
