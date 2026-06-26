@@ -3,7 +3,7 @@
 # files + merge the routing declaration. The internal slug (bot:) and the runtime group
 # name (routing.channel) stay as-is — internal identifiers, never user-facing.
 bot: oteny-stock-talent
-display_name: Stocks-talent
+display_name: Stocks
 tagline: "Terse, numbers-first stock research grounded in live prices + All-In distillation."
 
 skills:
