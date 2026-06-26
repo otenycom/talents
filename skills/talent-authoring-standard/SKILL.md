@@ -224,12 +224,12 @@ add **context-aware reads** (not keyword matches) — see
   no invented facts about the user, and any sane hard limits. Present and wired
   into the persona, not buried.
 
-### 8. Author in ENGLISH — the model localizes the reply on the fly (D147)
+### 8. Author in ENGLISH — the model localizes the reply on the fly (D148)
 - **No per-tenant translation step.** Author every bundle in English; the model reads it
   and replies in the owner's own language, enforced every gateway AND cron turn
   (`_SYSTEM_DISCIPLINE` + hh-tools `pre_llm_call`). Author user-facing copy as a TEMPLATE
   the model renders, never a verbatim string; keep SQL/columns/numbers exact. (No
-  `localized_bundle`/`.bundle_lang`/`skill-translator` — retired D147.)
+  `localized_bundle`/`.bundle_lang`/`skill-translator` — retired D148.)
 
 ### 9. Tool dependencies declared; charged tools stubbed
 - External/charged tools are declared in the manifest. Absent ones ship as
