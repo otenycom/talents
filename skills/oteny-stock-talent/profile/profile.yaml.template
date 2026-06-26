@@ -1,0 +1,9 @@
+# ~/.hermes/data/oteny-stock-talent/profile.yaml — the per-tenant "person" for OtenyStockTalent.
+# Written by the first-run intake; editable by the tenant. "" / [] are unset sentinels.
+# Never bake a watchlist, member name, group id, or token into the shipped skill.
+watchlist: []              # e.g. [NVDA, TSM, ASML] — tickers the tenant tracks
+risk_tolerance: ""         # conservative | balanced | aggressive
+authorized_members: []     # group bots: names allowed to address the bot (addressing convention)
+brief_cadence: ""          # optional, e.g. "weekly" — only meaningful once the watcher is enabled
+language: "en"             # reply language; bundle base = en
+timezone: "Europe/Amsterdam"

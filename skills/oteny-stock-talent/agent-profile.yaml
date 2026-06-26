@@ -1,0 +1,47 @@
+# Stocks-talent — the sellable Talent spec (talent #2; proves multi-talent infra at N=2).
+# A Talent = persona + skills bundled together. Composition is config: drop the skill
+# files + merge the routing declaration. The internal slug (bot:) and the runtime group
+# name (routing.channel) stay as-is — internal identifiers, never user-facing.
+bot: oteny-stock-talent
+display_name: Stocks-talent
+tagline: "Terse, numbers-first stock research grounded in live prices + All-In distillation."
+
+skills:
+  - oteny-stock-talent          # umbrella persona + operating rules + density tiers
+  - all-in-transcripts       # ingest (transcriber stubbed v1)
+  - all-in-distill           # distill (works on pasted transcripts)
+voice_skill: oteny-stock-talent # the persona lives in the umbrella skill, NOT in SOUL
+
+base_language: en
+model_tier: assistant        # GLOBAL (flash v1, D18); briefs are heavier — a future watcher cron may override per-job
+toolset_contribution: [terminal, execute_code, cron, send_message]   # cron only used once the watcher is enabled
+delivery: baked              # M-Pilot: baked (infra-proof bot; productize after the transcriber lands, D30)
+price: free                  # infra-proof, not charged yet (thin value without the transcriber)
+
+# Charged/external tools the bot declares; absent ones ship as graceful stubs.
+tools:
+  required: [live_tape]                 # free Yahoo Finance — must work
+  stubbed: [youtube_transcription]      # D30 charged tool; degrade to paste-mode + live-tape
+
+# Routing declaration — APPLIED by the index-reconciler. Group resolved at runtime
+# from channel_directory.json (never a hardcoded id). Convention: the tenant's stock
+# group is named after the bot; onboarding may set routing.channel_chat_id explicitly.
+routing:
+  channel: "OtenyStockTalent"              # group NAME, resolved via channel_directory.json
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **Stocks-talent** in this group —
+    refer to yourself by your own bot name; the Talent is a capability you're using,
+    not your identity. For any message about stocks, tickers,
+    investing, market signals, a watchlist, a comparison, an allocation, or a pasted
+    transcript: load the oteny-stock-talent skill first (skill_view name='oteny-stock-talent')
+    and follow its persona, density tiers, operating rules and the group addressing
+    convention (answer untagged messages; stay silent on messages tagged at another
+    human unless tagged in). PULL LIVE PRICES FIRST (live_tape.py) before any
+    sizing/allocation/comparison advice; never state an IPO / 13F / M&A fact without
+    verifying it against a live source in the same turn. The YouTube transcriber is a
+    stub in this build — route podcast requests to paste-mode or live-tape Q&A.
+    Research/education, not financial advice.
+  signature: "oteny-stock-talent"
+
+seed_memory: null                              # shared identity USER.md seeded by the primary bot
+seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-stock-talent/memory.md (D34)

@@ -1,0 +1,14 @@
+# ~/.hermes/data/oteny-travel-talent/profile.yaml — the per-tenant "person" (the skill is
+# the "method"). Written by the first-run intake; editable by the tenant. "" is the unset
+# sentinel selfcheck treats as missing. Never bake a home or a trip into a shipped skill —
+# the person lives here; their trips live in trips.db; customizations in memory.md/overrides.md.
+name: ""
+home_city: ""              # the usual origin for door-to-door routing (required)
+home_timezone: ""          # IANA, e.g. "Europe/Amsterdam" — drives leave-by/departure times (required)
+language: "en"             # reply language; the bundle is translated to match (base = en)
+default_currency: ""       # ISO, e.g. "EUR" — defaults the expense ledger + settle-up (required)
+units: "metric"
+traveller_prefs: ""        # free-form: seat (aisle/window), diet, slow vs packed days, budget vs comfort
+reminders:
+  briefing: "07:30"        # daily trip-briefing local time (only fires within a trip window)
+terms_accepted: false      # set true once the tenant acknowledges "advisory, not a travel agent; I never book or pay"

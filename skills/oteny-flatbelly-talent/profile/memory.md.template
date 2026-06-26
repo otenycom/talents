@@ -1,0 +1,18 @@
+<!-- ~/.hermes/data/oteny-flatbelly-talent/memory.md — OtenyFlatBellyTalent's per-tenant DOMAIN memory.
+     NOT auto-loaded by Hermes; the food-tracker triage reads it every turn (D34). It
+     holds this tenant's coaching context plus durable learnings. Append a short line
+     when you learn a lasting preference; keep the whole file compact. Replace every
+     {{placeholder}} from profile.yaml; drop any line whose source field is unset. -->
+# OtenyFlatBellyTalent — coaching context for {{name}}
+
+- Current weight ~{{start_weight_kg}} kg → goal {{goal_weight_kg}} kg over {{goal_horizon_months}} months.
+- Primary target: **waist-to-height ratio under 0.5** (waist under half height). Weight is
+  the day-to-day tracker; the path (fat loss vs recomposition) is derived from this body.
+- Daily protein target {{protein_target_g}} g; each protein-anchored meal should clear the
+  {{leucine_threshold_g}} g leucine threshold.
+- Reminders {{reminders.morning}} / {{reminders.evening}} {{timezone}}; weekly dashboard {{reminders.weekly_dashboard}}.
+- Dietary pattern / restrictions: {{dietary_restrictions}}.
+- Health context (only if the tenant supplied one): see ~/.hermes/data/oteny-flatbelly-talent/health-baseline.md.
+
+## Durable learnings (append one short line as you discover them)
+<!-- e.g. "prefers vegetarian meal ideas" · "skips breakfast on workdays" · "motivated by waist, not the scale" -->

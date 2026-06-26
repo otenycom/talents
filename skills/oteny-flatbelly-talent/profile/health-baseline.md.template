@@ -1,0 +1,29 @@
+# Health baseline (OPTIONAL — tenant-supplied, never shipped with the skill)
+
+Paste any clinical context you want OtenyFlatBellyTalent to take into account. This file is
+**yours**: OtenyFlatBellyTalent only *reflects* what you put here and applies the safety
+boundary (`../references/safety-boundaries.md`) — it never invents a diagnosis or a
+lab value, and it never overrides your physician.
+
+Leave blank / delete any line you don't want to share. The coach reads this if it
+exists; nothing here is required to use the bot.
+
+## Diagnoses (only what your doctor told you)
+- e.g. fatty liver (NAFLD) confirmed YYYY-MM-DD
+-
+
+## Labs (value · unit · date) — for the coach to track improvement against
+- e.g. ALAT  __ U/L  (YYYY-MM-DD)
+- e.g. HDL   __ mmol/L (YYYY-MM-DD)
+-
+
+## Medications
+- name · dose · since
+-
+
+## Notes for the coach
+- e.g. "no alcohol while a liver marker is elevated", any clinician instructions
+-
+
+> Reminder: liver/cardiac markers are physician-owned. The coach frames them as
+> confirmation that the daily food work is doing its job — not as a diagnosis.

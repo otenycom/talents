@@ -1,0 +1,68 @@
+# Travel-talent — the sellable Talent spec (a Talent = persona + skills, one of several
+# loadable on a tenant's OtenyBot). Composition is config, not SOUL surgery: drop the
+# skill files + merge the routing declaration. Model tier is GLOBAL (set on the agent),
+# not per-talent. The internal slug (bot:) and the runtime group name (routing.channel)
+# stay as-is — internal identifiers, never user-facing.
+bot: oteny-travel-talent
+display_name: Travel-talent
+tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
+
+# The skills delivered together. Four child skills: engine + onboarding + voice + visual.
+skills:
+  - onboarding
+  - trip-planner
+  - travel-concierge-voice
+  - trip-dashboard
+voice_skill: travel-concierge-voice         # the persona; loaded on demand, NOT in SOUL
+
+base_language: en
+model_tier: assistant                    # GLOBAL (Gemini-Flash v1, D18) — the reason every task is a checklist
+toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
+delivery: baked                          # M-Pilot: baked into the golden image
+price: free                              # free travel on-ramp (the OV demo Talent)
+
+# First-party tools the bot relies on; HermesHost provisions these always-on in the
+# `web` toolset (see skills/tool-use). Calendar is intentionally ABSENT in v1 — the bot
+# degrades gracefully (no cron gated on it); see references/safety-boundaries.md + the
+# backlog note in skills/design/catalog-roadmap.md.
+tools:
+  required: [travel, web_search]         # travel = the Gemini-grounded route/transit/flight tool
+  stubbed: []                            # calendar absent -> degrade, not stubbed as a file
+
+# Routing declaration — APPLIED by the index-reconciler, never hand-edited into SOUL.
+# DM-FIRST: the native skill index routes DMs (auto-satisfies — no required group
+# binding). The channel_prompt below is used only WHEN the human binds the bot to a
+# Telegram trip group (a bot cannot create a group or add humans itself). The group is
+# resolved at runtime from channel_directory.json (never a hardcoded id).
+routing:
+  channel: "OtenyTravelTalent"               # group NAME, resolved via channel_directory.json
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **Travel-talent** — a private travel
+    concierge — in this group. Refer to yourself by your own bot name; the Talent is a
+    capability you're using, not your identity.
+    On the FIRST message from a new tenant (no ~/.hermes/data/oteny-travel-talent/profile.yaml
+    yet), or when asked "what can you do?" / "how does this work?" / to start a trip, load
+    the onboarding skill (skill_view name='onboarding') and run its welcome + intake.
+    For ANY message about a trip, a destination, getting somewhere (flights, trains, buses,
+    driving, transfers, routes, delays), a hotel/stay, a booking, the day's plan/schedule,
+    packing or documents, or a shared expense: load the trip-planner skill first
+    (skill_view name='trip-planner') and follow its "Every message — triage first"
+    checklist step by step (it dispatches to references/checklists.md per intent) and its
+    hard rules — no vibe-served facts (read the DB or call the `travel` tool in the same
+    turn), verify flight/train status live before any leave-by, link out (never book or
+    pay), advisory-only on visa/entry/health. Steer every "getting somewhere" question to
+    the `travel` tool, not web_search.
+    THIS IS A GROUP: map each speaker's telegram_user to a members row, greet a NEW member
+    by name when they first appear (see skills/telegram-groups), let anyone ask, claim
+    their own todos, and log expenses; requires privacy-mode-off. Load travel-concierge-voice
+    for the warm, concise, group-aware concierge voice. Reply in the tenant's language; keep
+    replies compact and Telegram-friendly.
+  signature: "oteny-travel-talent"
+
+# Shared tenant identity (name/language/timezone) + this bot's extension (home_city,
+# default_currency, traveller prefs) live in ~/.hermes/data/oteny-travel-talent/profile.yaml,
+# produced by first-run. Two seeds (D34): shared identity (small, Hermes auto-loads) +
+# per-bot domain memory. Per-tenant customizations land in the data-plane override
+# (memory.md / overrides.md), NEVER in these shipped files (D53).
+seed_memory: profile/USER.md.template          # -> ~/.hermes/memories/USER.md (identity)
+seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-travel-talent/memory.md

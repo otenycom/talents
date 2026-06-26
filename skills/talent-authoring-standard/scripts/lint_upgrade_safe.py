@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""Talent build-time lint — upgrade-safety (D53) + lean-authoring (D57).
+
+A Talent bundle is FULLY REPLACED on every converge/update-talents and is loaded by
+a small runtime model whose context fills with every body it `skill_view`s, so it
+must (a) carry ZERO per-tenant state, (b) keep `SKILL.md` lean with detail in
+`references/`, and (c) only ever run commands that DON'T trip Hermes' runtime
+approval gate. This static lint FAILS a bundle that:
+
+UPGRADE-SAFETY (D53 — applies to every bundle):
+  1. ships a tenant-state / data-plane artifact (``*.db``, ``profile.yaml``,
+     ``.bundle_lang``, ``memory.md``, ``USER.md``, ``sessions.json``) inside the
+     bundle — those belong in ``~/.hermes/data/<bot>/`` (D34), never delivered;
+  2. embeds a secret (a bot-token-shaped string, an ``sk-`` key, an api-key literal);
+  3. hardcodes a Telegram chat/user id in a routing/config ASSIGNMENT — ids are
+     resolved at runtime from ``channel_directory.json``, never baked (check 5/D53).
+
+LEAN-AUTHORING (D57 — sharp index, lean bodies, declared/approval-clean commands):
+  4. a ``SKILL.md`` ``description`` over 60 chars — the cached skill index truncates
+     it to 57+"…" (hermes ``skill_utils.extract_skill_description``), so anything
+     past 60 never reaches the router that the model self-selects on; keep it sharp;
+  5. a ``SKILL.md`` body over 20,000 chars — native authoring says split into
+     ``references/`` past ~20k (and the hard cap is 100k); a fat body sits in context
+     on every load (the food-tracker loop, D57);
+  6. (Talent only — a bundle with ``required_artifacts.yaml``) a delivered command
+     (in ``SKILL.md`` / ``references/*.md``) that would trip the runtime APPROVAL
+     gate: improvised code via ``python -c``/``-e``/heredoc, a ``bash -c`` one-off,
+     a ``curl | sh`` pipe, an unguarded ``DELETE``/``DROP``/``TRUNCATE`` — a Talent
+     Talent must use DECLARED scripts (``python3 scripts/x.py``, ``sqlite3 db <
+     scripts/init.sql``) so first-run never stalls on "Command Approval Required";
+  7. (Talent only) an inline ``CREATE TABLE`` in any ``.md`` — the schema lives in
+     ONE executable place (``scripts/*.sql``); ``.md`` documents columns, never DDL;
+  8. (Talent only) a ``## First-run setup`` section inside a ``SKILL.md`` body — it
+     belongs in ``references/first-run.md`` (pulled only when selfcheck = NOT-READY);
+  9. (Talent only) a ``required_artifacts.yaml`` with no ``agent-profile.yaml`` — a
+     publishable Talent declares its persona/routing profile.
+
+SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
+  the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
+  Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
+  day to day — is authored as a verifiable do-list, not prose. Warn a skill whose
+  SKILL.md set shows no dispatch/checklist SHAPE (a triage, a skill-map table, or a
+  numbered protocol), and (Talent only) no negative safety guardrail. Harden to FAIL
+  once the shape is crisply assertable across every shipped bundle.
+
+This is a BUILD-TIME gate over OUR catalog (CI / the offline suite is the gate; the
+deployer also lints the delivery set before shipping). Run before shipping/baking.
+
+Usage:
+    python3 lint_upgrade_safe.py <bundle_dir> [<bundle_dir> ...] [--json]
+Exits non-zero if any bundle has a violation.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+# Per-tenant state / data-plane artifacts that must NEVER ship in a delivered bundle.
+_STATE_GLOBS = (
+    "*.db", "*.sqlite", "*.sqlite3", "profile.yaml", ".bundle_lang",
+    "memory.md", "USER.md", "sessions.json",
+)
+_TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".txt", ".json", ".toml", ".sh", ".cfg"}
+_SKIP_DIRS = {"__pycache__", ".git"}
+
+_SECRET_PATTERNS = [
+    (re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{30,}\b"), "telegram-bot-token-shaped string"),
+    (re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"), "sk- API key"),
+    (re.compile(r'(?i)\bapi[_-]?key\s*[:=]\s*["\'][^"\']{16,}["\']'), "hardcoded api key"),
+]
+# A Telegram id (≥6 digits) baked into a routing/config assignment (key : value or
+# key = value). Prose mentions of the field name (comments) are skipped by the caller.
+_ID_ASSIGN = re.compile(
+    r"(?i)\b(channel_chat_id|chat_id|user_id|owner_telegram\w*|allowed_users|"
+    r"allowed_chats|home_channel|telegram_bot_token|telegram_allowed\w*|telegram_group\w*)"
+    r'\b\s*[:=]\s*["\']?[+-]?\d{6,}'
+)
+
+# D57 lean-authoring thresholds.
+_DESC_MAX = 60          # hermes skill_utils truncates a description past 60 chars
+_BODY_MAX = 20_000      # native "split into references/ past ~20k" rule
+_BODY_HARD_MAX = 100_000  # native MAX_SKILL_CONTENT_CHARS
+
+# Commands a delivered Talent must NOT tell the agent to run, because they trip
+# Hermes' runtime approval gate (tools/approval.py DANGEROUS_PATTERNS) — a Talent
+# bot then stalls on "Command Approval Required" instead of self-bootstrapping
+# (D57). The fix is always a DECLARED script. Mirrors the gate's own regexes so the
+# lint flags exactly what would stall (declared `python3 scripts/x.py`, `sqlite3 db
+# < x.sql`, `bash scripts/x.sh` and guarded `DELETE … WHERE` are clean).
+_APPROVAL_TRIPWIRES = [
+    (re.compile(r"\b(python[23]?|perl|ruby|node)\s+-[ec]\b"),
+     "improvised code via -e/-c (use a declared script: python3 scripts/x.py)"),
+    (re.compile(r"\b(python[23]?|perl|ruby|node)\s+<<"),
+     "improvised code via heredoc (use a declared script)"),
+    (re.compile(r"\b(bash|sh|zsh|ksh)\s+-[^\s]*c(\s|$)"),
+     "shell -c one-off (use a declared script: bash scripts/x.sh)"),
+    (re.compile(r"\b(curl|wget)\b.*\|\s*(?:[/\w]*/)?(?:ba)?sh\b"),
+     "pipes remote content to a shell"),
+    (re.compile(r"\bDELETE\s+FROM\b(?![^\n]*\bWHERE\b)"),
+     "unguarded SQL DELETE (add a WHERE, or use a declared reset script)"),
+    (re.compile(r"\bDROP\s+(TABLE|DATABASE)\b"), "SQL DROP"),
+    (re.compile(r"\bTRUNCATE\s+(TABLE)?\s*\w"), "SQL TRUNCATE"),
+]
+_CREATE_TABLE = re.compile(r"(?i)\bCREATE\s+TABLE\b")
+_FIRSTRUN_HEADING = re.compile(r"(?im)^#{1,6}\s+.*first-run setup")
+# A delimited fenced-code body is where the agent copies commands from; but flagging
+# only fences is brittle, so we scan whole lines and skip obvious prose (a markdown
+# table cell describing the anti-pattern, or a comment) — see _is_prose_line.
+
+# Soft checklist-first signals (D85, the airline-pilot bar). Vocabulary-INDEPENDENT on
+# purpose: Flatbelly says "triage", Stocks says "Skill map" + numbered "Operating
+# rules" — both comply, neither shares a keyword. So we assert the SHAPE (a triage, a
+# skill-map dispatch row, or a numbered protocol), never a literal word or filename (a
+# `checklists.md` requirement would false-positive Stocks). Negative-guardrail presence
+# is Talent-only: a user-facing Talent states its prohibitions in prose, but a
+# mechanical infra skill (index-reconciler) keeps its safety in code and is exempt.
+_TRIAGE = re.compile(r"(?i)\btriage\b")
+_DISPATCH_ROW = re.compile(r"(?im)^\s*\|[^\n]*\bload\b[^\n]*\|")  # a "… | Load |" routing-table row
+_ORDERED_ITEM = re.compile(r"(?m)^\s{0,3}\d+\.\s")               # a markdown ordered-list item
+_NEGATIVE = re.compile(r"(?i)\b(never|don'?t|do not|must not|avoid)\b")
+
+
+def _read_description(skill_md_text: str) -> str | None:
+    """Extract the frontmatter ``description`` (single-line, quote-stripped), or None.
+
+    Stdlib only (the lint stays import-light): grab the first ``---``…``---`` block
+    and the ``description:`` line within it. Our bundles use single-line quoted
+    descriptions, which is exactly what the cached index reads.
+    """
+    if not skill_md_text.startswith("---"):
+        return None
+    end = skill_md_text.find("\n---", 3)
+    fm = skill_md_text[3:end] if end != -1 else skill_md_text[3:]
+    m = re.search(r"(?m)^description:\s*(.+?)\s*$", fm)
+    if not m:
+        return None
+    return m.group(1).strip().strip("'").strip('"').strip()
+
+
+def _is_comment_line(line: str) -> bool:
+    """A line that documents rather than executes — a comment or a blockquote.
+
+    Command-hygiene (tripwires + CREATE TABLE) is additionally gated to ``` fenced
+    code blocks, so a runnable command belongs in a fence; put recipes there, not in a
+    table cell or inline prose, and the lint reasons about them correctly.
+    """
+    s = line.lstrip()
+    return s.startswith("#") or s.startswith(">")
+
+
+def lint_bundle(bundle: Path) -> list[str]:
+    """Return a list of build-time violations for one bundle dir ('' = clean)."""
+    findings: list[str] = []
+    is_talent = (bundle / "required_artifacts.yaml").is_file()
+
+    # (1) shipped tenant-state / data-plane artifacts.
+    for pat in _STATE_GLOBS:
+        for p in bundle.rglob(pat):
+            if _SKIP_DIRS & set(p.parts):
+                continue
+            findings.append(
+                f"ships tenant-state artifact {p.relative_to(bundle)} "
+                "(belongs in the data plane ~/.hermes/data/<bot>/, never delivered)"
+            )
+
+    # (9) a Talent declares its persona/routing profile.
+    if is_talent and not (bundle / "agent-profile.yaml").is_file():
+        findings.append(
+            "declares required_artifacts.yaml (a Talent) but has no agent-profile.yaml "
+            "(a publishable Talent needs its persona/routing profile)"
+        )
+
+    for p in sorted(bundle.rglob("*")):
+        if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):
+            continue
+        rel = p.relative_to(bundle)
+        text = p.read_text(errors="ignore")
+        is_md = p.suffix == ".md"
+        is_skill_md = p.name == "SKILL.md"
+
+        # (2) embedded secrets — every file.
+        for rx, label in _SECRET_PATTERNS:
+            if rx.search(text):
+                findings.append(f"{rel}: embeds a {label}")
+
+        # (4)+(5) SKILL.md description + body size — every bundle.
+        if is_skill_md:
+            desc = _read_description(text)
+            if desc is not None and len(desc) > _DESC_MAX:
+                findings.append(
+                    f"{rel}: description is {len(desc)} chars (>{_DESC_MAX}); the skill "
+                    "index truncates it — keep the router trigger sharp and ≤60"
+                )
+            if len(text) > _BODY_HARD_MAX:
+                findings.append(f"{rel}: {len(text)} chars exceeds the native hard cap "
+                                f"of {_BODY_HARD_MAX}")
+            elif len(text) > _BODY_MAX:
+                findings.append(
+                    f"{rel}: {len(text)} chars (>{_BODY_MAX}) — split detail into "
+                    "references/ (native authoring rule); a fat body sits in context "
+                    "on every load"
+                )
+
+        # (8) first-run must live in references/, not a SKILL.md body — Talent only.
+        if is_talent and is_skill_md and _FIRSTRUN_HEADING.search(text):
+            findings.append(
+                f"{rel}: a '## First-run setup' section in the body — move it to "
+                "references/first-run.md (pulled only when selfcheck = NOT-READY)"
+            )
+
+        in_fence = False  # command-hygiene only fires inside ``` fenced code blocks
+        for ln, line in enumerate(text.splitlines(), 1):
+            if is_md and line.lstrip().startswith("```"):
+                in_fence = not in_fence
+                continue
+            if _is_comment_line(line):  # a comment / blockquote documents, never runs
+                continue
+            # (3) hardcoded Telegram id in an assignment — every file.
+            if _ID_ASSIGN.search(line):
+                findings.append(
+                    f"{rel}:{ln}: hardcodes a Telegram id in a routing/config "
+                    "assignment (resolve ids at runtime, never bake them)"
+                )
+
+            # (6)+(7) command hygiene — Talent, only inside a fenced code block (where
+            # the agent copies commands from). An inline-backtick MENTION of an
+            # anti-pattern in prose ("never run `python3 -c`") is guidance, not a
+            # runnable command, so it is exempt.
+            if is_talent and is_md and in_fence:
+                for rx, label in _APPROVAL_TRIPWIRES:
+                    if rx.search(line):
+                        findings.append(f"{rel}:{ln}: {label}")
+                if _CREATE_TABLE.search(line):
+                    findings.append(
+                        f"{rel}:{ln}: inline CREATE TABLE — the schema lives once in "
+                        "scripts/*.sql (run via `sqlite3 db < scripts/init.sql`); "
+                        "document columns in prose, not DDL"
+                    )
+    return findings
+
+
+def _skill_md_texts(bundle: Path) -> list[str]:
+    """Every SKILL.md body in the bundle (umbrella + child skills); pycache skipped."""
+    return [
+        p.read_text(errors="ignore")
+        for p in sorted(bundle.rglob("SKILL.md"))
+        if not _SKIP_DIRS & set(p.parts)
+    ]
+
+
+def checklist_warnings(bundle: Path) -> list[str]:
+    """SOFT, non-blocking checklist-first signals (D85) — kept OUT of ``lint_bundle`` so
+    the FAIL gate is untouched. Covers every skill the weak Flash tier runs (a Talent OR
+    an infra-default operational skill); a bundle with no SKILL.md (shared assets) is
+    exempt. Returns [] for a clean bundle."""
+    texts = _skill_md_texts(bundle)
+    if not texts:
+        return []
+    blob = "\n".join(texts)
+    warnings: list[str] = []
+    has_shape = bool(
+        _TRIAGE.search(blob)
+        or _DISPATCH_ROW.search(blob)
+        or len(_ORDERED_ITEM.findall(blob)) >= 3
+    )
+    if not has_shape:
+        warnings.append(
+            "no checklist-first shape in any SKILL.md (a master triage, a skill-map "
+            "dispatch table, or a numbered protocol) — author every task as a verifiable "
+            "do-list, not prose (the airline-pilot bar, D85)"
+        )
+    # Negative guardrails: Talent-only — a mechanical infra skill keeps its safety in code.
+    if (bundle / "required_artifacts.yaml").is_file() and not _NEGATIVE.search(blob):
+        warnings.append(
+            "a Talent with no negative guardrails (never/don't/avoid) in any SKILL.md — "
+            "state the hard prohibitions, placed last so the weak model reads them most "
+            "recently (D85)"
+        )
+    return warnings
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Talent upgrade-safety lint (D53 check 12)")
+    ap.add_argument("bundles", nargs="+", help="bundle directories to lint")
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args(argv)
+
+    report: dict[str, list[str]] = {}
+    warns: dict[str, list[str]] = {}
+    ok = True
+    for b in args.bundles:
+        bp = Path(b)
+        violations = lint_bundle(bp)
+        report[bp.name] = violations
+        warns[bp.name] = checklist_warnings(bp)  # soft (D85) — does NOT affect exit code
+        if violations:
+            ok = False
+
+    if args.json:
+        print(json.dumps({"ok": ok, "violations": report, "warnings": warns}, indent=2))
+    else:
+        for name, violations in report.items():
+            if violations:
+                print(f"FAIL {name}:")
+                for v in violations:
+                    print(f"  - {v}")
+            else:
+                print(f"PASS {name}")
+            for w in warns[name]:
+                print(f"  WARN: {w}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

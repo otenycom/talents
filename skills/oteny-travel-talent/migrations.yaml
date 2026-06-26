@@ -1,0 +1,15 @@
+# In-box, forward-only state migrations for OtenyTravelTalent. The AGENT runs these on the
+# VM to reconcile a previous Talent version's live state (db rows, registered cron jobs) to
+# the current shape — a converge can't (cron jobs aren't files; only the agent holds the
+# live chat origin the `cronjob` tool needs). Runner: scripts/migrate.py. Marker:
+# ~/.hermes/data/<bot>/migrations.json (data plane — survives every converge/backup/restore,
+# D34/D62). Checklists: trip-planner/references/migrations.md. Append-only; never renumber.
+bot: oteny-travel-talent
+db: trips.db          # the bot's primary db (used by `sql`-kind migrations)
+migrations:
+  - id: 0001_windowed_trip_crons
+    kind: checklist   # needs the cronjob tool + trips.db → the agent runs it in-box
+    ref: trip-planner/references/migrations.md#0001_windowed_trip_crons
+    summary: >-
+      Replace open-interval monitor / unbounded-daily briefing crons (which fired far from
+      the trip) with day-bounded windowed crons over start-2d … end+1d, per active trip.

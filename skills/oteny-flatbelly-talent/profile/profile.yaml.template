@@ -1,0 +1,24 @@
+# ~/.hermes/data/oteny-flatbelly-talent/profile.yaml — the per-tenant "person" (the skill is the "method").
+# Written by the first-run intake; editable by the tenant. 0 / "" are unset sentinels
+# that selfcheck treats as missing. Never bake a body into a shipped skill — it lives here.
+name: ""
+sex: ""                    # m/f — for Mifflin-St Jeor BMR
+age: 0
+height_cm: 0
+start_weight_kg: 0.0
+goal_weight_kg: 0.0
+goal_horizon_months: 0     # → target rate, capped at 1.0% of body weight/week (leaner → lower)
+protein_target_g: 0        # round(1.8 * ref_weight_kg), band 1.6–2.2 g/kg; ref = current weight,
+                           # or goal weight when WHtR ≥ 0.5 with a large gap (don't overshoot); overridable
+leucine_threshold_g: 2.5   # method default; bump to 3.0 if age >= 55 (anabolic resistance)
+eating_window_pref: ""     # e.g. "12:00-20:00" — timing is NS for VAT; adherence wins
+language: "en"             # reply language; the bundle is translated to match (base = en)
+units: "metric"
+timezone: "Europe/Amsterdam"
+reminders:
+  morning: "08:00"
+  evening: "20:00"
+  weekly_dashboard: "Sun 12:00"
+milestones: []             # optional, e.g. [{label: "liver-marker check", weight_kg: 97.5}]
+terms_accepted: false      # set true once the tenant acknowledges "lifestyle, not medical advice"
+shorthands: {}             # the tenant grows their own, e.g. {fruit bowl: "300g yoghurt + 2c berries + 10g whey"}

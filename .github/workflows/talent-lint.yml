@@ -1,0 +1,34 @@
+# Talent lint — the publishable author gate (D124). Runs the SAME static
+# upgrade-safety + lean-authoring rules Oteny runs at delivery, so an outside
+# author self-checks in their PR and never hits a surprise rejection. The rules are
+# the open, self-contained script in the standard bundle — no proprietary dep.
+#
+# Copy this file into a Talent-owning repo's .github/workflows/ to gate its PRs.
+name: Talent lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint every Talent bundle
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          bundles=(skills/*-talent)
+          if [ ${#bundles[@]} -eq 0 ]; then
+            echo "No Talent bundles (skills/*-talent) to lint."
+            exit 0
+          fi
+          echo "Linting: ${bundles[*]}"
+          python skills/talent-authoring-standard/scripts/lint_upgrade_safe.py "${bundles[@]}"

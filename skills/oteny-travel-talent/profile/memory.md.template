@@ -1,0 +1,16 @@
+<!-- ~/.hermes/data/oteny-travel-talent/memory.md — OtenyTravelTalent's per-tenant DOMAIN
+     memory. NOT auto-loaded by Hermes; the trip-planner triage reads it every turn (D34).
+     It holds this tenant's travel context plus durable preferences. Append a short line
+     when you learn a lasting preference (this is the FACT half of the teach loop; the RULE
+     half goes in overrides.md). Keep the whole file compact. Replace every {{placeholder}}
+     from profile.yaml; drop any line whose source field is unset. -->
+# OtenyTravelTalent — travel context for {{name}}
+
+- Home base: {{home_city}} ({{home_timezone}}). Default currency for splits: {{default_currency}}.
+- Travel preferences: {{traveller_prefs}}.
+- Daily trip briefing at {{reminders.briefing}} (only within an active trip window).
+- This bot **links out and never books or pays**; entry/visa/health guidance is advisory —
+  always verified against an official source.
+
+## Durable learnings (append one short line as you discover them)
+<!-- e.g. "home airport is Schiphol" · "always books aisle seats" · "splits 3 ways with Anna & Tom" · "hates red-eyes" -->

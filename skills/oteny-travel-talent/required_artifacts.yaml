@@ -1,0 +1,48 @@
+# OtenyTravelTalent first-run manifest — the setup GOAL, declared (not implied).
+# selfcheck.py walks this; trip-planner/references/first-run.md drives toward READY.
+# All paths are namespaced under the bot so bots never collide. READY needs only the
+# db (6 tables) + profile + routing (+ localized for an English tenant); crons are
+# trip-scoped (none required at first-run) and memory accrues (non-blocking).
+bot: oteny-travel-talent
+base_language: en
+
+artifacts:
+  - kind: sqlite_db
+    path: ~/.hermes/data/oteny-travel-talent/trips.db
+    must_have_tables: [trips, members, bookings, itinerary, todos, expenses]
+
+  - kind: profile
+    path: ~/.hermes/data/oteny-travel-talent/profile.yaml
+    required_fields: [home_city, home_timezone, language, default_currency]
+
+  - kind: memory                 # shared cross-skill identity — small; Hermes auto-loads it
+    path: ~/.hermes/memories/USER.md
+    label: shared identity
+    blocking: false              # travel does not own identity; degrade gracefully if absent
+    remediation: "first-run §profile: render the identity USER.md from profile/USER.md.template"
+
+  - kind: memory                 # per-bot DOMAIN memory — the trip-planner triage reads it (D34)
+    path: ~/.hermes/data/oteny-travel-talent/memory.md
+    label: domain memory
+    blocking: false              # accrues over time / lazily; never a hard gate to plan
+    remediation: "first-run §profile: render memory.md from profile/memory.md.template"
+
+  - kind: localized_bundle
+    profile_path: ~/.hermes/data/oteny-travel-talent/profile.yaml
+    matches_profile_field: language
+    language_marker: ~/.hermes/data/oteny-travel-talent/.bundle_lang
+
+  - kind: routing                      # DM-first: the native skill index routes DMs (D57)
+    config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). The
+    platform: telegram                 #   channel_prompt is used only when a trip GROUP is
+    signature: "oteny-travel-talent"      #   bound; we do NOT require it (requires_channel_prompt absent).
+
+  - kind: cron                   # trip-scoped (provision_cron.py plans per-trip jobs that
+    jobs_path: ~/.hermes/cron/jobs.json   #   self-expire); NONE required at first-run, so no
+    jobs: []                     #   idle LLM cost when the tenant has no active trip.
+
+  - kind: tools
+    present_if_file:             # the bundle's own deterministic visual tool
+      dashboard: ~/.hermes/skills/talents/oteny-travel-talent/trip-dashboard/scripts/trip_card.py
+    stubbed: []                  # travel + web_search are HermesHost-provisioned (always-on web);
+                                 # calendar is absent in v1 -> the persona degrades gracefully.

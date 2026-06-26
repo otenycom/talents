@@ -1,0 +1,47 @@
+# OtenyStockTalent first-run manifest — the setup GOAL, declared. selfcheck.py walks it.
+# The transcriber is a stub in v1, so its cron is tool-gated off (non-blocking).
+bot: oteny-stock-talent
+base_language: en
+
+artifacts:
+  - kind: sqlite_db
+    path: ~/.hermes/data/oteny-stock-talent/allin_transcripts.db
+    must_have_tables: [episodes]
+
+  - kind: profile
+    path: ~/.hermes/data/oteny-stock-talent/profile.yaml
+    required_fields: [watchlist, risk_tolerance, language, timezone]
+
+  - kind: memory                 # shared cross-skill identity — seeded by the primary bot
+    path: ~/.hermes/memories/USER.md
+    label: shared identity
+    blocking: false              # stock does not own identity; degrade gracefully if absent
+    remediation: "first-run §profile: render a small identity USER.md (name/tz/language)"
+
+  - kind: memory                 # per-bot DOMAIN memory — the persona reads it (D34)
+    path: ~/.hermes/data/oteny-stock-talent/memory.md
+    label: domain memory
+    blocking: false              # accrues over time / lazily; never a hard gate to brief
+    remediation: "first-run §profile: render memory.md from profile/memory.md.template"
+
+  - kind: localized_bundle
+    profile_path: ~/.hermes/data/oteny-stock-talent/profile.yaml
+    matches_profile_field: language
+    language_marker: ~/.hermes/data/oteny-stock-talent/.bundle_lang
+
+  - kind: routing                      # DM-first: the native skill index routes DMs (D57)
+    config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). A
+    platform: telegram                 #   group-bound Talent would add requires_channel_prompt:
+    signature: "oteny-stock-talent"       #   true to assert its channel_prompt is registered.
+
+  - kind: cron
+    jobs_path: ~/.hermes/cron/jobs.json
+    jobs: []                       # none required in v1 (watcher gated off)
+    gated_jobs:
+      - name: "OtenyStockTalent All-In watcher"
+        enabled_when: "tool:youtube_transcription"
+
+  - kind: tools
+    present_if_file:
+      live_tape: ~/.hermes/skills/talents/oteny-stock-talent/scripts/live_tape.py
+    stubbed: [youtube_transcription]

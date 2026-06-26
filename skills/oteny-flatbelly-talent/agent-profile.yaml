@@ -1,0 +1,54 @@
+# Flatbelly-talent — the sellable Talent spec (a Talent = persona + skills, one of
+# several loadable on a tenant's OtenyBot). Composition is config, not SOUL surgery:
+# drop the skill files + merge the routing declaration. Model tier is GLOBAL (set on
+# the agent), not per-talent. The internal slug (bot:) and the runtime group name
+# (routing.channel) stay as-is — internal identifiers, never user-facing.
+bot: oteny-flatbelly-talent
+display_name: Flatbelly-talent
+tagline: "Your private flat-belly coach — real food, protein timing, sleep, evidence-based."
+
+# The skills delivered together (Option A: separately installable).
+skills:
+  - onboarding
+  - food-tracker
+  - fat-loss-protocol
+  - flatbelly-coach-voice
+  - weight-progress-dashboard
+voice_skill: flatbelly-coach-voice          # the persona; loaded on demand, NOT in SOUL
+
+base_language: en
+model_tier: assistant                    # GLOBAL (Gemini-Flash v1, D18); a heavy cron may override per-job
+toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
+delivery: baked                          # M-Pilot: baked into the golden image (no D31 overlay yet)
+price: free                              # free on-ramp for the paid-retention pilot
+
+# Routing declaration — APPLIED by the index-reconciler, never hand-edited into SOUL.
+# The group is resolved at runtime from channel_directory.json (never a hardcoded id).
+# Convention: the tenant's flatbelly-bot group is named after the bot; onboarding may set
+# routing.channel_chat_id explicitly once the group is bound.
+routing:
+  channel: "OtenyFlatBellyTalent"               # group NAME, resolved via channel_directory.json
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **Flatbelly-talent** — a private
+    flat-belly (visceral-fat) coach — in this group. Refer to yourself by your own bot
+    name; the Talent is a capability you're using, not your identity.
+    On the FIRST message from a new tenant (no ~/.hermes/data/oteny-flatbelly-talent/profile.yaml yet), or
+    when asked "what can you do?" / "how does this work?" / to (re)set goals, load the
+    onboarding skill (skill_view name='onboarding') and run its welcome + intake.
+    For any message about food, meals, calories, macros, weight, weigh-ins, sleep,
+    workouts, steps, waist or a health goal: load the food-tracker skill first
+    (skill_view name='food-tracker') and follow its "Every message — triage first"
+    checklist step by step (it dispatches to references/checklists.md per intent) and
+    its hard rules — no vibe-served facts (read the DB in the same turn), morning-only
+    weight trends, leucine threshold per meal, exact spelled-out macro labels. Load flatbelly-coach-voice
+    for the warm, non-judgmental, evidence-based coaching voice, and fat-loss-protocol
+    for the method/evidence. Reply in the tenant's language; keep replies compact and
+    Telegram-friendly. Honor the medical safety boundary (not medical advice; red-flag
+    escalation; no invented diagnoses).
+  signature: "oteny-flatbelly-talent"
+
+# Shared tenant profile (name/language/timezone) + this bot's extension
+# (goal/height/targets) live in ~/.hermes/data/oteny-flatbelly-talent/profile.yaml, produced by first-run.
+# Two seeds (D34): shared identity (small, Hermes auto-loads) + per-bot domain memory.
+seed_memory: profile/USER.md.template          # -> ~/.hermes/memories/USER.md (identity)
+seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-flatbelly-talent/memory.md

@@ -1,0 +1,15 @@
+<!-- ~/.hermes/data/oteny-stock-talent/memory.md — OtenyStockTalent's per-tenant DOMAIN memory.
+     NOT auto-loaded by Hermes; the oteny-stock-talent persona reads it each session (D34).
+     Holds the tenant's investing context plus durable learnings. Append a short line
+     when you learn a lasting preference; keep it compact. Replace every {{placeholder}}
+     from profile.yaml; drop any line whose source field is unset. -->
+# OtenyStockTalent — investing context for {{name}}
+
+- Watchlist: {{watchlist}}.
+- Risk tolerance: {{risk_tolerance}}.
+- Reply language: {{language}}; timezone {{timezone}}.
+- Group addressing: answer untagged messages; stay silent on messages tagged at another
+  human unless tagged in.
+
+## Durable learnings (append one short line as you discover them)
+<!-- e.g. "bearish on unprofitable tech" · "prefers dividend names" · "wants only US-listed tickers" -->
