@@ -1,0 +1,54 @@
+# Published-copy hygiene & tool accuracy (the context-aware half of checks 4 + 9)
+
+A Talent is graded by a **two-tier gate**, and these two checks live mostly in the
+second tier — keep them there, don't push them into the keyword lint.
+
+## The two-tier gate
+
+1. **The deterministic lint (`scripts/lint_upgrade_safe.py`) is a cheap CI floor.**
+   It catches only **context-free, unambiguous** failures: shipped tenant-state,
+   embedded secrets, hardcoded ids, improvised-exec, and **leaked internal
+   vocabulary** — `Dnn` decision refs, the internal product name `HermesHost`,
+   and lifecycle jargon (`M-Pilot` / `infra-proof` / `golden image`). That set is
+   small, closed, and Oteny-owned, so a regex is the right tool; a line carrying
+   `lint-ok:` is a reviewed exception. The lint judges nothing that needs context.
+2. **This rubric is the real gate** — an LLM, and before a Talent is marked verified
+   a person (the trust sign-off), grades each check PASS/FAIL/N/A while **weighing
+   the context each piece is used in**. Hardcoded keywords don't scale to safety or
+   honesty: when a check needs judgement, grow the **checklist** (and the registry /
+   end-to-end pass), never the regex.
+
+`stub`/`baked` are deliberately **not** in the keyword ban — `stubbed` is the real
+selfcheck graceful-degrade contract (a code key) and `baked` is a valid `delivery:`
+value and ordinary prose. Banning them would break working code and good copy.
+
+## Check 4 extension — published-copy hygiene (context read)
+
+A Talent ships to the owner **and** reads publicly in the open catalog repo, so the
+copy must be **plain customer English** with no internal vocabulary in any file
+(including comments and docstrings). The deterministic lint flags the closed
+vocabulary set above; the human/LLM read here catches what a regex can't — a
+confusing internal reference, off-brand tone, or a sentence only an insider would
+understand. The rationale ("why") belongs in the design library, never in a shipped
+bundle.
+
+## Check 9 extension — tool accuracy (grade against the live toolbox)
+
+Every tool the copy names must **actually exist and match what the Talent claims**,
+and a tool the bundle calls **absent/stubbed must really be absent** — not one the
+fleet now ships live.
+
+> Worked failure this rule exists to prevent: stock-talent told owners the YouTube
+> transcriber was "not configured in this build" long after the `youtube_transcript`
+> tool (the `oteny-youtube-transcript` skill) went live — a false claim the keyword
+> lint cannot see.
+
+Grade the named tools against the first-party toolbox (the always-delivered `oteny-*`
+tool skills) and the metering tool registry. A tool declared absent that the fleet
+actually ships live is a FAIL. Two catchers back the human read:
+
+- **the tool registry (`hh.tool`)** — a semi-deterministic "declared-absent but
+  live" check; and
+- **the per-Talent end-to-end test** — each Talent ships one; it runs the declared
+  capabilities for real, so the claim can't silently drift. A Talent with no green
+  end-to-end test should not be marked verified.

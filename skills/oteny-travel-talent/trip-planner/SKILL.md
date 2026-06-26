@@ -83,7 +83,7 @@ Do **not** improvise. (Skip to "Cron role" only when a monitor/briefing/review j
 
 3. **(Group only) Who is speaking?** If `preflight` shows a group-bound trip (or several
    senders): map the sender's `telegram_user` to a `members` row; if they're **new**,
-   greet them by name and insert the row (D84, `references/checklists.md` §MEMBER). DM/solo
+   greet them by name and insert the row (see `references/checklists.md` §MEMBER). DM/solo
    → skip.
 
 4. **Classify the intent(s) and handle each, in table order.** TRANSIT and ITINERARY are

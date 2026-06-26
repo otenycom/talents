@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Poll the All-In episode list, diff vs the DB, and ingest any missing ones.
+"""List new All-In episodes — poll the episode list, diff vs the local DB.
 
-Free HTTP GET + SQLite diff; ingest delegates to the (stubbed in v1) fetcher in
-``fetch_transcript.py``. With the fetcher stubbed, genuinely-new episodes surface in
-``failed[]`` with the structured "unavailable" payload — the poller NEVER stubs a row
-(skill rule 1).
+Free HTTP GET + SQLite diff. Reports the YouTube video ids that are NOT yet stored;
+the agent then fetches each transcript with the ``youtube_transcript`` tool and stores
+it via ``store_transcript.py``. This script never fetches a transcript and never stubs
+a row (skill rule 1).
 
 Usage:
-  poll_new_episodes.py [--dry-run] [--json] [--limit N] [--db PATH] [--episodes-url URL]
+  poll_new_episodes.py [--json] [--limit N] [--db PATH] [--episodes-url URL]
 """
 from __future__ import annotations
 
@@ -18,13 +18,10 @@ import os
 import re
 import sqlite3
 import sys
-import time
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fetch_transcript import DEFAULT_DB, fetch_transcript, upsert_episode  # noqa: E402
-
+DEFAULT_DB = os.path.expanduser("~/.hermes/data/oteny-stock-talent/allin_transcripts.db")
 EPISODES_URL = "https://allin.com/episodes"
 USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 OtenyStockTalent/1.0")
@@ -56,19 +53,9 @@ def existing_video_ids(db_path: str):
         conn.close()
 
 
-def ingest_one(video_id: str, db_path: str, ai_fallback=False) -> dict:
-    fetched = fetch_transcript(video_id, ai_fallback=ai_fallback)   # stubbed -> raises
-    rows = upsert_episode(db_path, fetched)
-    return {"video_id": fetched["video_id"], "title": fetched["title"],
-            "published_at": fetched["published_at"],
-            "episode_number": fetched["episode_number"],
-            "transcript_chars": len(fetched["transcript"]), "rows_changed": rows}
-
-
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description="List new All-In episodes (poll + diff vs DB)")
     p.add_argument("--db", default=DEFAULT_DB)
-    p.add_argument("--dry-run", action="store_true")
     p.add_argument("--limit", type=int, default=0)
     p.add_argument("--json", action="store_true")
     p.add_argument("--episodes-url", default=EPISODES_URL)
@@ -90,45 +77,17 @@ def main(argv=None) -> int:
     new_pairs = [(v, t) for v, t in pairs if v not in have]
     if args.limit > 0:
         new_pairs = new_pairs[: args.limit]
-
-    if not new_pairs:
-        if args.json:
-            print(json.dumps({"added": [], "failed": [], "had_new": False}))
-        return 0
-
-    if args.dry_run:
-        if args.json:
-            print(json.dumps({"dry_run": True, "added": [], "failed": [],
-                              "candidates": [{"video_id": v, "title": t} for v, t in new_pairs]},
-                             ensure_ascii=False, indent=2))
-        else:
-            print(f"🔎 {len(new_pairs)} new episode(s) (dry-run):")
-            for v, t in new_pairs:
-                print(f"  • {v}  {t or '(no title)'}")
-        return 0
-
-    added, failed = [], []
-    for vid, title in new_pairs:
-        try:
-            added.append(ingest_one(vid, args.db))
-        except Exception as e:  # transcriber stubbed -> unavailable payload lands here
-            failed.append((vid, title, str(e)))
-        time.sleep(0.2)
+    new = [{"video_id": v, "title": t} for v, t in new_pairs]
 
     if args.json:
-        print(json.dumps({"added": added,
-                          "failed": [{"video_id": v, "title": t, "error": e} for v, t, e in failed],
-                          "had_new": True}, ensure_ascii=False, indent=2))
+        print(json.dumps({"new": new, "had_new": bool(new)}, ensure_ascii=False, indent=2))
         return 0
-
-    out = []
-    if added:
-        out.append(f"📥 ingested {len(added)} new episode(s)")
-    if failed:
-        out.append(f"⚠️  {len(failed)} fetch(es) failed (transcriber not enabled in this build):")
-        for v, t, e in failed:
-            out.append(f"• `{v}` {t or '(no title)'}  {e[:200]}")
-    print("\n".join(out))
+    if not new:
+        print("no new episodes")
+        return 0
+    print(f"🔎 {len(new)} new episode(s):")
+    for e in new:
+        print(f"  • {e['video_id']}  {e['title'] or '(no title)'}")
     return 0
 
 

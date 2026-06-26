@@ -1,25 +1,24 @@
 ---
 name: all-in-transcripts
 description: "Ingest + store All-In podcast transcripts (SQLite)."
-version: 1.0.0
+version: 1.1.0
 author: Oteny
 license: MIT
 metadata:
   hermes:
     tags: [youtube, transcripts, all-in-podcast, sqlite, research, oteny-stock-talent]
-    related_skills: [oteny-stock-talent, all-in-distill]
+    related_skills: [oteny-stock-talent, all-in-distill, oteny-youtube-transcript]
 ---
 
 # all-in-transcripts (OtenyStockTalent ingest)
 
-Downloads All-In Podcast transcripts and stores them in a per-tenant SQLite DB at
-`~/.hermes/data/oteny-stock-talent/allin_transcripts.db`. The **transcriber (`fetch_transcript.py`) is
-a stub in v1** — a declared-but-absent charged tool (`youtube_transcription`, D30).
-The DB schema, the poller, and the verifier are fully functional; the distiller works
-on a **pasted** transcript without the fetcher.
+Stores All-In Podcast transcripts in a per-tenant SQLite DB at
+`~/.hermes/data/oteny-stock-talent/allin_transcripts.db`, so each episode is fetched
+once and reused for briefs and cross-episode trends. The transcription itself uses the
+always-available **`youtube_transcript`** tool (the `oteny-youtube-transcript` skill);
+this skill owns the episode list, the diff, and the store.
 
-> No API token lives in this skill. The real transcriber is brokered off-VM when D30
-> lands; only the stub file + the watcher's cron-gate flip change.
+> No API token lives in this skill — the `youtube_transcript` tool does the fetch.
 
 ## Database schema
 
@@ -29,18 +28,31 @@ below). One table, `episodes`: `id` PK · `video_id` TEXT UNIQUE · `title` TEXT
 `duration` TEXT · `transcript` TEXT · `created_at` TIMESTAMP. Never hand-write the DDL
 — `setup_db.py` owns it.
 
+## How transcription works
+
+1. **List what's new** — `poll_new_episodes.py` polls the episode list and diffs it
+   against the DB (a free GET). It returns the YouTube ids not yet stored.
+2. **Fetch each new transcript with the `youtube_transcript` tool** on the episode's
+   YouTube URL. It is a **paid scraper** (a few cents per video); if *you* chose to
+   fetch unasked, confirm the small cost with the owner first.
+3. **Store it** — `store_transcript.py` upserts on `video_id`, so re-storing the same
+   episode never double-charges.
+4. **Brief it** — hand the stored transcript to [`all-in-distill`](../all-in-distill/SKILL.md).
+
+A user who already has a transcript can **paste** it → `all-in-distill --paste` with no
+fetch at all.
+
 ## Commands
 
 ```bash
 # Setup (idempotent)
 python3 scripts/setup_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transcripts.db
 
-# Transcriber probe (STUB — prints a structured "unavailable" payload, writes nothing)
-python3 scripts/fetch_transcript.py --url <id>
-
-# Poll the episode list + diff vs DB (free GET; ingest only runs the transcriber for
-# new ids — which is stubbed, so new ids surface as 'failed' with the unavailable msg)
+# List new episodes (free GET + diff)
 python3 scripts/poll_new_episodes.py --json --db ~/.hermes/data/oteny-stock-talent/allin_transcripts.db
+
+# Store a transcript you fetched with the youtube_transcript tool
+python3 scripts/store_transcript.py --video-id <id> --title "<title>" --transcript-file /tmp/transcript.txt
 
 # Verify
 python3 scripts/verify_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transcripts.db
@@ -48,7 +60,7 @@ python3 scripts/verify_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transc
 
 ## Operating rules (user-enforced)
 
-1. **Never insert placeholder rows.** A failed fetch is surfaced, not stubbed with a
+1. **Never insert placeholder rows.** A failed fetch is surfaced, not stored with a
    guessed date / fake transcript.
 2. **Report errors verbatim.** Print the actual exception/payload before asking how to
    proceed — no silent fallbacks.
@@ -57,22 +69,9 @@ python3 scripts/verify_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transc
 4. **Don't fake distillation.** This skill stores transcripts; the brief comes from
    the orchestrator LLM reading the actual transcript (see `all-in-distill`).
 
-## v1 behaviour (transcriber stubbed)
-
-- `fetch_transcript.py` returns `{"status":"unavailable","reason":"youtube-
-  transcription tool not configured in this build","how_to_enable":"D30 charged
-  tool"}` and writes nothing — no token, no network.
-- `poll_new_episodes.py` still diffs the live episode list against the DB for free;
-  any genuinely new episode is reported in `failed[]` with the unavailable payload
-  (the poller never stubs a row).
-- The auto-watcher cron is **not registered** while the tool is absent
-  (`enabled_when: tool:youtube_transcription`). See `../references/cron-architecture.md`.
-- **What still works without the transcriber:** paste a transcript →
-  [`all-in-distill`](../all-in-distill/SKILL.md) `distill.py --paste <file>` → brief;
-  and live-tape ticker Q&A via `../scripts/live_tape.py`.
-
 ## Common pitfalls
 
-- Installing a real transcriber client is a D30 concern; do not try to wire one now.
-- Always run `verify_db.py` after any real fetch (once enabled) to confirm row count +
-  dates look sane.
+- The `youtube_transcript` tool is a paid scraper — confirm the cost before a bulk
+  backfill, and let `store_transcript.py`'s `video_id` upsert dedupe so an episode
+  already stored is never re-charged.
+- Always run `verify_db.py` after storing to confirm row count + dates look sane.

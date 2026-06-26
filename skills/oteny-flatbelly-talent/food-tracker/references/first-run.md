@@ -68,7 +68,7 @@ from the `data` step (one statement per call):
 sqlite3 ~/.hermes/data/oteny-flatbelly-talent/food.db "INSERT INTO waist (date, waist_cm, height_cm) VALUES (date('now'), <waist_cm>, <height_cm>) ON CONFLICT(date) DO UPDATE SET waist_cm=excluded.waist_cm, height_cm=excluded.height_cm;"
 ```
 
-Then render the **two** memory files (D34 — split so a second bot never clobbers the
+Then render the **two** memory files (split so a second bot never clobbers the
 shared file). Fill each template's `{{placeholders}}` from `profile.yaml`, dropping any
 line whose source field is unset, and write them with the file tool:
 

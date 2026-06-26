@@ -40,6 +40,6 @@ Ferry, walk and bike legs ride inside a `transit`/`plan` query ("…including th
 - **Door-to-door, not station-to-station.** Include the first/last mile (walk to the stop,
   the metro to the airport), because the **leave-by** the tenant cares about starts at
   *their door*.
-- **No structured Maps API** in v1 (D69) — grounding covers the whole surface; one grounded
+- **No structured Maps API** in v1 — grounding covers the whole surface; one grounded
   `travel` call is priced like a `web_search` call, so it does **not** trip the ask-first
   paid-tool rule.

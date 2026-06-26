@@ -17,9 +17,9 @@ skills:
 voice_skill: flatbelly-coach-voice          # the persona; loaded on demand, NOT in SOUL
 
 base_language: en
-model_tier: assistant                    # GLOBAL (Gemini-Flash v1, D18); a heavy cron may override per-job
+model_tier: assistant                    # GLOBAL (Gemini-Flash v1); a heavy cron may override per-job
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
-delivery: baked                          # M-Pilot: baked into the golden image (no D31 overlay yet)
+delivery: baked                          # delivered with the bot
 price: free                              # free on-ramp for the paid-retention pilot
 
 # Routing declaration — APPLIED by the index-reconciler, never hand-edited into SOUL.
@@ -49,6 +49,6 @@ routing:
 
 # Shared tenant profile (name/language/timezone) + this bot's extension
 # (goal/height/targets) live in ~/.hermes/data/oteny-flatbelly-talent/profile.yaml, produced by first-run.
-# Two seeds (D34): shared identity (small, Hermes auto-loads) + per-bot domain memory.
+# Two seeds (the per-bot memory split): shared identity (small, Hermes auto-loads) + per-bot domain memory.
 seed_memory: profile/USER.md.template          # -> ~/.hermes/memories/USER.md (identity)
 seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-flatbelly-talent/memory.md

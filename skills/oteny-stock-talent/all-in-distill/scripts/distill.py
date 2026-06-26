@@ -3,7 +3,7 @@
 
 Does NOT generate a brief — distillation is the orchestrator LLM's job; this is the
 loader. Reads from the OtenyStockTalent transcripts DB, OR from a pasted transcript file
-(``--paste``) so the bot works even while the transcriber is stubbed.
+(``--paste``) when the user already has a transcript in hand.
 
 Usage:
     distill.py --list

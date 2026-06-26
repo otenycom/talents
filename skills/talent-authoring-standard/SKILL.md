@@ -1,6 +1,6 @@
 ---
 name: talent-authoring-standard
-description: "Author or grade a HermesHost Oteny Talent bundle."
+description: "Author or grade an Oteny Talent bundle."
 version: 0.3.0
 author: Oteny
 license: Apache-2.0
@@ -25,8 +25,7 @@ It is the Talent-library counterpart to
 [`skill-writing`](../../../skills/skill-writing/SKILL.md) (which governs the
 *design* library, `skills/`). The full rationale this rubric distills lives in
 [`skill-library`](../../../skills/skill-library/SKILL.md) (the package contract,
-first-run, routing, reconciler, delivery) and decisions **D33** + **D57**
-([`decisions.md`](../../../skills/design/decisions.md)); the shipped
+first-run, routing, reconciler, delivery); the shipped
 [`oteny-flatbelly-talent`](../oteny-flatbelly-talent/) and [`oteny-stock-talent`](../oteny-stock-talent/)
 bundles are the worked examples.
 
@@ -37,8 +36,8 @@ An Oteny Talent **is** a Hermes skill bundle, so the GENERIC rules — frontmatt
 `# Title → ## Overview → ## When to Use → body → ## Common Pitfalls` structure, the
 `references/`/`scripts/`/`templates/` placement, and **sizing** — are owned by the
 native **`hermes-agent-skill-authoring`** skill (the tenant has it loaded). Read it
-first; this skill adds only the HermesHost **product deltas** below. Two facts from
-native this rubric leans on (D57):
+first; this skill adds only the Oteny **product deltas** below. Two facts from
+native this rubric leans on:
 
 - **Lean bodies via native progressive disclosure.** Only a one-line `name:
   description` index sits in the cached prompt; the agent pulls a body on demand with
@@ -65,7 +64,7 @@ both for any bundle:
    already has (`terminal`/`execute_code`/`cronjob`, …). It never requires forking
    or patching Hermes, or authoring a **new** Hermes tool/plugin to make the Talent
    run. Building **on** tools already present in the tenant's instance is fine and
-   expected — both Hermes's own built-ins **and the growing set HermesHost
+   expected — both Hermes's own built-ins **and the growing set Oteny
    provisions alongside every instance** (web search, travel/maps, and MCP servers
    such as the browser-use server being added; the menu lives in
    [`tool-use`](../../../skills/tool-use/SKILL.md)). Declare what the bundle needs
@@ -77,7 +76,7 @@ both for any bundle:
 ## The checklist-first bar (the airline-pilot rule)
 
 The bot runs on the tenant's **global model tier** — usually a small, fast model
-(Gemini-Flash, D18), reliable **only when it follows a checklist**, not when it
+(Gemini-Flash), reliable **only when it follows a checklist**, not when it
 improvises from prose. So author every task as a **numbered, verifiable checklist** — an
 airline pilot's pre-flight list, **decision = the checklist, not the model's judgement**.
 This is the durable **cost lever**: a checklist-structured skill runs correctly on the
@@ -100,7 +99,7 @@ tune against real test-VM logs**, don't over-specify up front.
 ## When to use
 
 - Writing a new `catalog/skills/<bot>/` bundle, or revising one.
-- Reviewing/grading a bundle before it is baked into the golden image or shipped.
+- Reviewing/grading a bundle before it is baked into the bot image or shipped.
 - A tenant's Hermes self-checking that a delivered bundle is well-formed.
 
 ## The setup goal is the bundle's `required_artifacts.yaml`
@@ -128,7 +127,9 @@ Artifact classes a manifest may declare (omit those a bot doesn't need):
 ## The rubric — 13 checks (each PASS / FAIL / N/A)
 
 Grade a bundle by running each check against the folder. Concrete inspection
-commands are given where they help; an LLM can run them via `terminal`.
+commands are given where they help; an LLM can run them via `terminal`. Checks 4 and 9
+add **context-aware reads** (not keyword matches) — see
+[references/copy-and-tools.md](references/copy-and-tools.md).
 
 ### 1. Package structure
 - `SKILL.md` with valid agentskills.io frontmatter (`name`, `description`,
@@ -317,7 +318,7 @@ The exact output format is in
 
 - [`skill-library`](../../../skills/skill-library/SKILL.md) — the package contract,
   first-run, routing/reconciler, delivery, and how Talents are authored,
-  priced, and delivered (with decision **D33**).
+  priced, and delivered.
 - [`../oteny-flatbelly-talent/`](../oteny-flatbelly-talent/),
   [`../oteny-stock-talent/`](../oteny-stock-talent/) — the shipped worked examples to validate against.
 - [`skill-writing`](../../../skills/skill-writing/SKILL.md) — the *design*-library

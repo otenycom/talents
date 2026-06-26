@@ -1,5 +1,5 @@
 <!-- ~/.hermes/data/oteny-stock-talent/memory.md — OtenyStockTalent's per-tenant DOMAIN memory.
-     NOT auto-loaded by Hermes; the oteny-stock-talent persona reads it each session (D34).
+     NOT auto-loaded by Hermes; the oteny-stock-talent persona reads it each session.
      Holds the tenant's investing context plus durable learnings. Append a short line
      when you learn a lasting preference; keep it compact. Replace every {{placeholder}}
      from profile.yaml; drop any line whose source field is unset. -->

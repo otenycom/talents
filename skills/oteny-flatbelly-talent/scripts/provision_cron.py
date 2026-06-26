@@ -46,7 +46,7 @@ DEFAULT_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
 #
 # The fallback model is the `assistant` PERSONA ALIAS, never the raw OpenRouter slug
 # (`~google/gemini-flash-latest`). A tenant can only request the router's persona
-# aliases (assistant/builder/researcher, D55) — the metering proxy/router rejects
+# aliases (assistant/builder/researcher) — the metering proxy/router rejects
 # anything else with HTTP 400 `unknown model '~google/gemini-flash-latest'`, which is
 # exactly how cron jobs fail when pinned to the raw slug.
 _FALLBACK_MODEL = "assistant"

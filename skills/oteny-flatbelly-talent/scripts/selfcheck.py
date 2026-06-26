@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""selfcheck — the deterministic first-run judge for a HermesHost Talent.
+"""selfcheck — the deterministic first-run judge for an Oteny Talent.
 
 ONE reusable bootstrap interpreter, keyed on each bot's
-``required_artifacts.yaml`` manifest (the first-run contract, D33; "one reusable
+``required_artifacts.yaml`` manifest (the first-run contract; "one reusable
 bootstrap workflow"). The manifest *is* the setup goal; this script walks it and
 answers the single question the mechanical first-run section opens with:
 
@@ -53,7 +53,7 @@ def _home() -> Path:
 def _hermes_home() -> Path:
     # HH_HERMES_HOME is the test override; HERMES_HOME is Hermes's own (profile-aware,
     # bridged into tool subprocesses) — honor it so per-bot data under the hermes home
-    # follows a profile relocation (D34). Falls back to $HOME/.hermes.
+    # follows a profile relocation. Falls back to $HOME/.hermes.
     env = os.environ.get("HH_HERMES_HOME") or os.environ.get("HERMES_HOME")
     return Path(env) if env else _home() / ".hermes"
 
@@ -136,7 +136,7 @@ def check_profile(a):
 
 def check_memory(a):
     # Generic file-presence check reused for BOTH the shared identity USER.md and a
-    # per-bot domain memory.md (D34 memory split). The manifest supplies label /
+    # per-bot domain memory.md (the domain-memory split). The manifest supplies label /
     # blocking / remediation, so one checker serves both kinds of memory file.
     path = expand(a["path"])
     label = a.get("label", path.name)
@@ -166,7 +166,7 @@ def check_localized_bundle(a):
 
 
 def check_routing(a):
-    # DM routing is NATIVE (D57): only a one-line `name: description` index sits in the
+    # DM routing is NATIVE: only a one-line `name: description` index sits in the
     # cached prompt and the model self-selects the matching Talent via `skill_view`, so a
     # DM-first bot needs NO SOUL signature and NO channel_prompt — it auto-satisfies.
     # Group routing is handled by the hh-group-focus-hint plugin (injects the live group
@@ -260,7 +260,7 @@ def run(manifest_path: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="HermesHost Talent first-run selfcheck")
+    ap = argparse.ArgumentParser(description="Oteny Talent first-run selfcheck")
     default_manifest = Path(__file__).resolve().parent.parent / "required_artifacts.yaml"
     ap.add_argument("--manifest", default=str(default_manifest))
     ap.add_argument("--json", action="store_true")

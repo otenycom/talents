@@ -1,5 +1,5 @@
 <!-- ~/.hermes/data/oteny-travel-talent/memory.md — OtenyTravelTalent's per-tenant DOMAIN
-     memory. NOT auto-loaded by Hermes; the trip-planner triage reads it every turn (D34).
+     memory. NOT auto-loaded by Hermes; the trip-planner triage reads it every turn.
      It holds this tenant's travel context plus durable preferences. Append a short line
      when you learn a lasting preference (this is the FACT half of the teach loop; the RULE
      half goes in overrides.md). Keep the whole file compact. Replace every {{placeholder}}

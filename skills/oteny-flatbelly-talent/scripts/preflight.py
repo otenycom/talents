@@ -17,7 +17,7 @@ It prints, in a compact parseable block:
   * PROFILE— the few fields the coach needs every turn (targets, height, language)
              so it never has to separately read profile.yaml.
   * TODAY  — what is already logged today, per table (no double-logging; grounding).
-  * MEMORY — the per-bot durable preferences (D34; not auto-loaded by Hermes).
+  * MEMORY — the per-bot durable preferences (not auto-loaded by Hermes).
 
 Pure / read-only / side-effect-free; safe to run on every turn. Exit code is
 always 0 (a non-zero would make the LLM's terminal call look failed) — readiness

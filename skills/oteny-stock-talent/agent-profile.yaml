@@ -8,20 +8,21 @@ tagline: "Terse, numbers-first stock research grounded in live prices + All-In d
 
 skills:
   - oteny-stock-talent          # umbrella persona + operating rules + density tiers
-  - all-in-transcripts       # ingest (transcriber stubbed v1)
+  - all-in-transcripts       # ingest via the youtube_transcript tool
   - all-in-distill           # distill (works on pasted transcripts)
 voice_skill: oteny-stock-talent # the persona lives in the umbrella skill, NOT in SOUL
 
 base_language: en
-model_tier: assistant        # GLOBAL (flash v1, D18); briefs are heavier — a future watcher cron may override per-job
+model_tier: assistant        # GLOBAL (Gemini-Flash v1); briefs are heavier — a future watcher cron may override per-job
 toolset_contribution: [terminal, execute_code, cron, send_message]   # cron only used once the watcher is enabled
-delivery: baked              # M-Pilot: baked (infra-proof bot; productize after the transcriber lands, D30)
-price: free                  # infra-proof, not charged yet (thin value without the transcriber)
+delivery: baked              # delivered with the bot
+price: free                  # free for now
 
-# Charged/external tools the bot declares; absent ones ship as graceful stubs.
+# Tools the bot relies on. live_tape ships in the bundle; transcription uses the
+# always-available youtube_transcript tool (no bundle stub needed).
 tools:
   required: [live_tape]                 # free Yahoo Finance — must work
-  stubbed: [youtube_transcription]      # D30 charged tool; degrade to paste-mode + live-tape
+  stubbed: []                           # transcription = the always-available youtube_transcript tool
 
 # Routing declaration — APPLIED by the index-reconciler. Group resolved at runtime
 # from channel_directory.json (never a hardcoded id). Convention: the tenant's stock
@@ -38,10 +39,11 @@ routing:
     convention (answer untagged messages; stay silent on messages tagged at another
     human unless tagged in). PULL LIVE PRICES FIRST (live_tape.py) before any
     sizing/allocation/comparison advice; never state an IPO / 13F / M&A fact without
-    verifying it against a live source in the same turn. The YouTube transcriber is a
-    stub in this build — route podcast requests to paste-mode or live-tape Q&A.
+    verifying it against a live source in the same turn. To brief a podcast episode,
+    fetch its transcript with the youtube_transcript tool (or accept a pasted transcript),
+    then distill it.
     Research/education, not financial advice.
   signature: "oteny-stock-talent"
 
 seed_memory: null                              # shared identity USER.md seeded by the primary bot
-seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-stock-talent/memory.md (D34)
+seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-stock-talent/memory.md

@@ -1,5 +1,5 @@
 <!-- ~/.hermes/data/oteny-flatbelly-talent/memory.md — OtenyFlatBellyTalent's per-tenant DOMAIN memory.
-     NOT auto-loaded by Hermes; the food-tracker triage reads it every turn (D34). It
+     NOT auto-loaded by Hermes; the food-tracker triage reads it every turn. It
      holds this tenant's coaching context plus durable learnings. Append a short line
      when you learn a lasting preference; keep the whole file compact. Replace every
      {{placeholder}} from profile.yaml; drop any line whose source field is unset. -->

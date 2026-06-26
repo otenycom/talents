@@ -40,7 +40,7 @@ Append **one short line** when you learn a lasting preference.
 | Pull a live price (free) | `scripts/live_tape.py <TICKER>` |
 | Verify live IPO / 13F / price / corporate-action facts | `references/live-fact-check-recipes.md` (declared `scripts/fact_check.py`) |
 | Generate a portfolio brief from a transcript | [`all-in-distill`](all-in-distill/SKILL.md) |
-| Pull + store a YouTube transcript | [`all-in-transcripts`](all-in-transcripts/SKILL.md) (transcriber stubbed v1) |
+| Pull + store a YouTube transcript | [`all-in-transcripts`](all-in-transcripts/SKILL.md) (uses the youtube_transcript tool) |
 | Compare 2–4 names + rank | `references/comparison-brief-format.md` |
 | Cross-episode trend rollups | `references/cross-episode-trends.md` |
 | Per-episode auto-brief cron architecture | `references/cron-architecture.md` |
@@ -97,22 +97,24 @@ Don't apologize; just deliver the leaner version.
    listing AND a USD ADR/GDR). Fact-check any IPO / 13F / M&A / corporate-action claim
    against a live source in the same turn — `references/live-fact-check-recipes.md` (all
    declared scripts; training-cutoff stale facts are the #1 credibility killer).
-6. **Cost: poll frequency ≠ transcriber spend.** Scraping the episode list is a free GET;
-   the charged transcriber only runs for a brand-new `video_id`.
+6. **Cost: poll frequency ≠ transcript spend.** Listing the episode list is a free GET;
+   the charged youtube_transcript tool only runs for a brand-new `video_id`.
 7. **Cron delivery (the send_message pattern).** A watcher posts each episode as its OWN
    Telegram message, then returns `[SILENT]`; the delivery target is looked up from
    `~/.hermes/channel_directory.json` at run time — never a hardcoded id. Full
-   architecture: `references/cron-architecture.md`. (The watcher is gated off in v1.)
+   architecture: `references/cron-architecture.md`. (The watcher is opt-in — off until the owner asks.)
 
-## Transcriber is a stub in v1 — degrade gracefully
+## Getting episode transcripts
 
-`youtube_transcription` ships as a declared-but-absent charged tool (D30). With it
-absent, route podcast requests to the two paths that work: a **user-pasted transcript** →
-[`all-in-distill`](all-in-distill/SKILL.md), and **live-tape Q&A** (ticker / comparison /
-allocation) via `scripts/live_tape.py` + the free fact-check recipes. When asked to
-"brief the latest episode", say the transcriber isn't enabled in this build and offer:
-*paste the transcript and I'll distill it*, or *ask a live-tape question on any ticker.*
-Full behaviour: [`all-in-transcripts`](all-in-transcripts/SKILL.md).
+To brief a new episode, get its transcript with the always-available
+**`youtube_transcript`** tool (the `oteny-youtube-transcript` skill) on the episode's
+YouTube URL, then store and distill it
+([`all-in-transcripts`](all-in-transcripts/SKILL.md) →
+[`all-in-distill`](all-in-distill/SKILL.md)). It's a paid scraper (a few cents per
+video); if you're fetching unasked, confirm the small cost first. A user who already has
+a transcript can **paste** it → distill with no fetch, and **live-tape Q&A** (ticker /
+comparison / allocation) via `scripts/live_tape.py` + the free fact-check recipes needs
+no transcript at all.
 
 ## Safety boundary
 

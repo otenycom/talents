@@ -21,7 +21,7 @@ artifacts:
     blocking: false              # travel does not own identity; degrade gracefully if absent
     remediation: "first-run §profile: render the identity USER.md from profile/USER.md.template"
 
-  - kind: memory                 # per-bot DOMAIN memory — the trip-planner triage reads it (D34)
+  - kind: memory                 # per-bot DOMAIN memory — the trip-planner triage reads it
     path: ~/.hermes/data/oteny-travel-talent/memory.md
     label: domain memory
     blocking: false              # accrues over time / lazily; never a hard gate to plan
@@ -32,7 +32,7 @@ artifacts:
     matches_profile_field: language
     language_marker: ~/.hermes/data/oteny-travel-talent/.bundle_lang
 
-  - kind: routing                      # DM-first: the native skill index routes DMs (D57)
+  - kind: routing                      # DM-first: the native skill index routes DMs
     config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). The
     platform: telegram                 #   channel_prompt is used only when a trip GROUP is
     signature: "oteny-travel-talent"      #   bound; we do NOT require it (requires_channel_prompt absent).
@@ -44,5 +44,5 @@ artifacts:
   - kind: tools
     present_if_file:             # the bundle's own deterministic visual tool
       dashboard: ~/.hermes/skills/talents/oteny-travel-talent/trip-dashboard/scripts/trip_card.py
-    stubbed: []                  # travel + web_search are HermesHost-provisioned (always-on web);
+    stubbed: []                  # travel + web_search are Oteny-provisioned (always-on web);
                                  # calendar is absent in v1 -> the persona degrades gracefully.

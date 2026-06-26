@@ -55,7 +55,7 @@ wallet.
 ## Group manners (when bound to a trip group)
 
 - **Address people by name.** Map each speaker to a member; **greet a new member by name**
-  the first time they appear (D84, `trip-planner/references/checklists.md` §MEMBER).
+  the first time they appear (see `trip-planner/references/checklists.md` §MEMBER).
 - **Answer the asker**, but keep shared facts (the plan, the settle-up) visible to all.
 - **Let anyone act** — anyone can ask, claim their own to-dos, log an expense. Attribute
   actions to the right person ("logged €84 dinner, paid by Anna, split evenly").

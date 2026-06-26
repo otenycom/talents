@@ -35,6 +35,19 @@ LEAN-AUTHORING (D57 — sharp index, lean bodies, declared/approval-clean comman
   9. (Talent only) a ``required_artifacts.yaml`` with no ``agent-profile.yaml`` — a
      publishable Talent declares its persona/routing profile.
 
+PUBLISHED-COPY HYGIENE (Talent only — a Talent ships to tenants AND reads publicly in
+the open catalog repo, so internal build refs are a leak):
+ 10. an internal-build artifact in ANY bundle file (incl. comments/docstrings): a
+     decision ref ``Dnn`` (e.g. ``D30``), the internal product name ``HermesHost``,
+     or internal lifecycle jargon (``M-Pilot`` / ``infra-proof`` / ``golden image``).
+     Ship plain English; the "why" lives in ``skills/design/``, never in a bundle. A
+     line carrying ``lint-ok:`` is an explicit, reviewed exception (use sparingly).
+     NOTE: ``stub``/``baked`` are deliberately NOT banned — ``stubbed`` is the real
+     selfcheck graceful-degrade contract (a code key) and ``baked`` is a valid
+     ``delivery:`` value and ordinary food prose; a *stale tool claim* (a tool called
+     absent that is in fact live in the fleet registry) is caught by the registry
+     check that ships with the ``hh.tool`` index, not by a blunt word ban.
+
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
   Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
@@ -63,7 +76,8 @@ _STATE_GLOBS = (
     "*.db", "*.sqlite", "*.sqlite3", "profile.yaml", ".bundle_lang",
     "memory.md", "USER.md", "sessions.json",
 )
-_TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".txt", ".json", ".toml", ".sh", ".cfg"}
+_TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".txt", ".json", ".toml", ".sh", ".cfg",
+                  ".template"}  # *.md.template / *.yaml.template ship too — scan them for leaks
 _SKIP_DIRS = {"__pycache__", ".git"}
 
 _SECRET_PATTERNS = [
@@ -121,6 +135,21 @@ _TRIAGE = re.compile(r"(?i)\btriage\b")
 _DISPATCH_ROW = re.compile(r"(?im)^\s*\|[^\n]*\bload\b[^\n]*\|")  # a "… | Load |" routing-table row
 _ORDERED_ITEM = re.compile(r"(?m)^\s{0,3}\d+\.\s")               # a markdown ordered-list item
 _NEGATIVE = re.compile(r"(?i)\b(never|don'?t|do not|must not|avoid)\b")
+
+# (10) Published-copy hygiene — internal-build artifacts that must never appear in a
+# PUBLISHED Talent (it ships to a tenant AND reads publicly in the open catalog repo).
+# Scanned over ALL lines incl. comments/docstrings (a `# … (D34)` ref or a "HermesHost"
+# docstring is exactly the leak). Talent-only: the author-tier bundles (the standard,
+# the how-to) legitimately name these patterns, and this rules file lives in one of
+# them — so it never lints itself. A line carrying `lint-ok:` is a reviewed exception.
+_INTERNAL_ARTIFACTS = [
+    (re.compile(r"\bD\d{2,3}\b"), "internal decision ref (Dnn) — drop it; rationale lives in skills/design/"),
+    (re.compile(r"HermesHost"), "internal product name 'HermesHost' (say 'Oteny' / 'your bot')"),
+    (re.compile(r"(?i)\bM-?Pilot\b"), "internal milestone name 'M-Pilot'"),
+    (re.compile(r"(?i)\binfra-?proof\b"), "internal jargon 'infra-proof'"),
+    (re.compile(r"(?i)\bgolden[- ]image\b"), "internal infra term 'golden image'"),
+]
+_LINT_OK = "lint-ok"
 
 
 def _read_description(skill_md_text: str) -> str | None:
@@ -203,6 +232,16 @@ def lint_bundle(bundle: Path) -> list[str]:
                     "references/ (native authoring rule); a fat body sits in context "
                     "on every load"
                 )
+
+        # (10) published-copy hygiene — Talent only; scans EVERY line (incl. comments
+        # and docstrings, where the leaks hide), with a `lint-ok:` per-line escape.
+        if is_talent:
+            for ln, line in enumerate(text.splitlines(), 1):
+                if _LINT_OK in line:
+                    continue
+                for rx, label in _INTERNAL_ARTIFACTS:
+                    if rx.search(line):
+                        findings.append(f"{rel}:{ln}: published-copy leak — {label}")
 
         # (8) first-run must live in references/, not a SKILL.md body — Talent only.
         if is_talent and is_skill_md and _FIRSTRUN_HEADING.search(text):

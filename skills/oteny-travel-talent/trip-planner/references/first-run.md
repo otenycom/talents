@@ -61,7 +61,7 @@ Write the answers to `~/.hermes/data/oteny-travel-talent/profile.yaml` (template
 - `default_currency` from the tenant (defaults the expense ledger + settle-up).
 - `language` defaults to the tenant's; `traveller_prefs` is free-form (seat, diet, pace).
 
-Then render the **two** memory files (D34 — split so a second bot never clobbers the
+Then render the **two** memory files (split so a second bot never clobbers the
 shared file). Fill each template's `{{placeholders}}` from `profile.yaml`, dropping any
 line whose source field is unset, and write them with the file tool:
 

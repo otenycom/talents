@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""migrate — the in-box, forward-only state-migration runner for a HermesHost Talent.
+"""migrate — the in-box, forward-only state-migration runner for an Oteny Talent.
 
 A converge swaps a Talent's FILES data-safely, but it never touches the live state a
 Talent owns on the box — its SQLite db, profile/memory/overrides, and (the hard one) its
@@ -12,11 +12,11 @@ This is the migration analog of ``selfcheck.py``: ONE reusable runner keyed on e
 Talent's ``migrations.yaml`` (the ordered, forward-only list). It tells the agent which
 migrations are still PENDING; runs the DETERMINISTIC ones itself (a ``sql`` migration);
 and records completion in a DATA-PLANE marker (``~/.hermes/data/<bot>/migrations.json``)
-that survives every converge/backup/restore (D34/D62). An AGENT-ASSISTED (``checklist``)
+that survives every converge/backup/restore. An AGENT-ASSISTED (``checklist``)
 migration — anything needing the LLM or the ``cronjob`` tool — is run by following the
 Talent's ``references/migrations.md`` section, then recorded with ``--mark``.
 
-Forward-only + idempotent, exactly like the sidecar migrations (D52) but run by the AGENT
+Forward-only + idempotent, exactly like the sidecar migrations but run by the AGENT
 on live state, not by the deployer on files:
   * a FRESH box ends first-run with ``--baseline`` (marks every current migration applied
     WITHOUT running it — a box born current has nothing to reconcile);
@@ -195,7 +195,7 @@ def _apply_one(manifest: dict, mig: dict) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="HermesHost Talent in-box migration runner")
+    ap = argparse.ArgumentParser(description="Oteny Talent in-box migration runner")
     ap.add_argument("--manifest", default=None, help="override migrations.yaml location")
     ap.add_argument("--status", action="store_true", help="list pending migrations (default)")
     ap.add_argument("--apply", metavar="ID", help="run a deterministic (sql) migration + mark")

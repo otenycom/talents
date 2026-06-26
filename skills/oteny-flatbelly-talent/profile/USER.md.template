@@ -1,7 +1,7 @@
 <!-- ~/.hermes/memories/USER.md — SHARED cross-skill identity, rendered from profile.yaml
      by first-run. Hermes auto-loads this into EVERY session, so keep it SMALL and
      bot-agnostic: who the user is, not what any one bot tracks. Per-bot DOMAIN memory
-     lives in ~/.hermes/data/<bot>/memory.md (D34). Replace every {{placeholder}} from
+     lives in ~/.hermes/data/<bot>/memory.md. Replace every {{placeholder}} from
      profile.yaml; drop any line whose source field is unset. -->
 {{name}} — {{age}}-year-old {{sex}}, timezone {{timezone}}. Reply language: {{language}}.
 Prefers compact, scannable, Telegram-friendly replies. Values transparency on errors

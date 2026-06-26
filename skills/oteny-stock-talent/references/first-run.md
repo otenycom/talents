@@ -32,25 +32,21 @@ Ask (in the tenant's language) and write `~/.hermes/data/oteny-stock-talent/prof
 3. (optional, group bots) the **authorized members** + the addressing convention.
 4. Reply **language** (default English) and **timezone**.
 
-Then render this bot's DOMAIN memory (D34): fill `../profile/memory.md.template`'s
+Then render this bot's DOMAIN memory: fill `../profile/memory.md.template`'s
 `{{placeholders}}` from `profile.yaml` and write it to
 `~/.hermes/data/oteny-stock-talent/memory.md` (`mkdir -p` its dir first). If
 `~/.hermes/memories/USER.md` does not exist yet, also render a small shared identity file
 there (name / timezone / language). The persona reads memory.md at the start of each
 session — honor it, and append a short line when you learn a lasting preference.
 
-## Remediation: `tools` (probe the transcriber; verify live-tape)
+## Remediation: `tools` (verify live-tape)
 
-```bash
-python3 ~/.hermes/skills/talents/oteny-stock-talent/all-in-transcripts/scripts/fetch_transcript.py --url dummy
-```
 ```bash
 python3 ~/.hermes/skills/talents/oteny-stock-talent/scripts/live_tape.py NVDA
 ```
 
-The transcriber probe should report `unavailable` (it ships as a stub in v1, D30);
-live-tape (free Yahoo) should print a quote. Set the persona to **paste/live-tape
-mode** (see the umbrella skill's "transcriber is a stub" note).
+`live_tape` (free Yahoo) should print a quote. Transcription uses the always-available
+`youtube_transcript` tool — nothing to install here.
 
 ## Remediation: `routing` (register the channel prompt)
 
@@ -64,12 +60,11 @@ If `profile.language` ≠ the base language, translate with
 [`skill-translator`](../../skill-translator/SKILL.md), then
 `echo "<lang>" > ~/.hermes/data/oteny-stock-talent/.bundle_lang`.
 
-## `cron` (auto-watcher) — gated OFF in v1
+## `cron` (auto-watcher) — opt-in
 
-The All-In poll→ingest→brief watcher is **not registered** while
-`youtube_transcription` is a stub (it can't complete ingest). It is declared
-`enabled_when: tool:youtube_transcription` and turns on when the real charged tool lands
-(D30). Do not register it now.
+The All-In poll→fetch→brief watcher is **not registered at first-run** because it incurs
+recurring paid transcriber spend (a few cents per new episode). Register it only when the
+owner asks to auto-follow new episodes. Design: `references/cron-architecture.md`.
 
 ## Re-check
 

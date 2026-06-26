@@ -18,7 +18,7 @@ artifacts:
     label: shared identity
     remediation: "first-run §profile: render the identity USER.md from profile/USER.md.template"
 
-  - kind: memory                 # per-bot DOMAIN memory — food-tracker triage reads it (D34)
+  - kind: memory                 # per-bot DOMAIN memory — food-tracker triage reads it
     path: ~/.hermes/data/oteny-flatbelly-talent/memory.md
     label: domain memory
     blocking: false              # accrues over time / lazily; never a hard gate to coach
@@ -29,7 +29,7 @@ artifacts:
     matches_profile_field: language
     language_marker: ~/.hermes/data/oteny-flatbelly-talent/.bundle_lang
 
-  - kind: routing                      # DM-first: the native skill index routes DMs (D57)
+  - kind: routing                      # DM-first: the native skill index routes DMs
     config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). A
     platform: telegram                 #   group-bound Talent would add requires_channel_prompt:
     signature: "oteny-flatbelly-talent"   #   true to assert its channel_prompt is registered.

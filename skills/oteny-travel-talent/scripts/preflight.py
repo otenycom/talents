@@ -21,8 +21,8 @@ It prints, in a compact parseable block:
   * TODAY    — today's itinerary rows for the active trip (no double-scheduling).
   * TODOS    — count of still-open todos for the active trip.
   * ROSTER   — the travel party (group trips only).
-  * MEMORY   — the per-bot durable preferences (D34; not auto-loaded by Hermes).
-  * OVERRIDES— whether a per-tenant overrides.md exists (the agent must honor it; D53).
+  * MEMORY   — the per-bot durable preferences (not auto-loaded by Hermes).
+  * OVERRIDES— whether a per-tenant overrides.md exists (the agent must honor it).
 
 Pure / read-only / side-effect-free; safe to run on every turn. Exit code is always 0
 (a non-zero would make the LLM's terminal call look failed) — readiness is in the
@@ -256,7 +256,7 @@ def _memory_block(data_dir: Path) -> str:
 
 
 def _overrides_block(data_dir: Path) -> str:
-    """Surface whether a per-tenant override doc exists (D53). The global SOUL rule
+    """Surface whether a per-tenant override doc exists. The global SOUL rule
     tells the agent to honor it with precedence — preflight just flags its presence so
     the weak model remembers to read+obey it this turn."""
     ov = data_dir / "overrides.md"

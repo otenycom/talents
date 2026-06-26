@@ -16,12 +16,12 @@ skills:
 voice_skill: travel-concierge-voice         # the persona; loaded on demand, NOT in SOUL
 
 base_language: en
-model_tier: assistant                    # GLOBAL (Gemini-Flash v1, D18) — the reason every task is a checklist
+model_tier: assistant                    # GLOBAL (Gemini-Flash v1) — the reason every task is a checklist
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
-delivery: baked                          # M-Pilot: baked into the golden image
+delivery: baked                          # delivered with the bot
 price: free                              # free travel on-ramp (the OV demo Talent)
 
-# First-party tools the bot relies on; HermesHost provisions these always-on in the
+# First-party tools the bot relies on; Oteny provisions these always-on in the
 # `web` toolset (see skills/tool-use). Calendar is intentionally ABSENT in v1 — the bot
 # degrades gracefully (no cron gated on it); see references/safety-boundaries.md + the
 # backlog note in skills/design/catalog-roadmap.md.
@@ -61,8 +61,8 @@ routing:
 
 # Shared tenant identity (name/language/timezone) + this bot's extension (home_city,
 # default_currency, traveller prefs) live in ~/.hermes/data/oteny-travel-talent/profile.yaml,
-# produced by first-run. Two seeds (D34): shared identity (small, Hermes auto-loads) +
+# produced by first-run. Two seeds: shared identity (small, Hermes auto-loads) +
 # per-bot domain memory. Per-tenant customizations land in the data-plane override
-# (memory.md / overrides.md), NEVER in these shipped files (D53).
+# (memory.md / overrides.md), NEVER in these shipped files.
 seed_memory: profile/USER.md.template          # -> ~/.hermes/memories/USER.md (identity)
 seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-travel-talent/memory.md

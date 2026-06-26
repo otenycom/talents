@@ -60,7 +60,7 @@ DEFAULT_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
 # ("Invalid model name passed in model="). We read the tenant's real model/provider
 # from config.yaml and emit them on every spec; these are only a last-resort fallback.
 #
-# The fallback is the `assistant` PERSONA ALIAS (D55), never the raw OpenRouter slug —
+# The fallback is the `assistant` persona alias, never the raw OpenRouter slug —
 # the router/metering proxy 400s anything but an alias as `unknown model`.
 _FALLBACK_MODEL = "assistant"
 _FALLBACK_PROVIDER = "router"

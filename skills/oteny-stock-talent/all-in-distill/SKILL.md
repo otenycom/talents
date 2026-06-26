@@ -13,7 +13,7 @@ metadata:
 # all-in-distill
 
 Reads an episode (from `~/.hermes/data/oteny-stock-talent/allin_transcripts.db`, or from a **pasted
-transcript file** when the transcriber is stubbed) and emits the full transcript +
+transcript file** when you already have one) and emits the full transcript +
 metadata so **you** (the orchestrator LLM) write the brief. The script never writes a
 brief — a previous design shipped a hardcoded brief identical for every episode; that
 is the regression to avoid.
@@ -25,13 +25,14 @@ python3 scripts/distill.py --list                       # what's in the DB
 python3 scripts/distill.py --last                        # most-recent episode (full transcript)
 python3 scripts/distill.py --video <ID>                  # a specific episode
 python3 scripts/distill.py --latest 3                     # latest N back-to-back
-python3 scripts/distill.py --paste /tmp/transcript.txt    # PASTE MODE (no DB; v1 path)
+python3 scripts/distill.py --paste /tmp/transcript.txt    # PASTE MODE (no DB)
 python3 scripts/distill.py --last --head 4000             # preview / token budget
 python3 scripts/distill.py --last --json                  # machine-readable
 ```
 
-**Paste mode** is the v1 workhorse while `youtube_transcription` is stubbed: the user
-pastes a transcript, you save it to a file, run `--paste`, and brief it.
+**Paste mode** handles a transcript you already have: the user pastes one, you save it
+to a file, run `--paste`, and brief it. Otherwise fetch with the `youtube_transcript`
+tool and store it (see `all-in-transcripts`).
 
 ## Brief format (LLM-produced, compact for Telegram)
 
