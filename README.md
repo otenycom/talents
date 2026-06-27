@@ -1,9 +1,8 @@
 # Oteny Talents
 
-The open catalog of **Talents** for [Oteny](https://oteny.com) — your own private
-AI assistant on Telegram. A **Talent** is a ready-made personality and know-how that
-gives your OtenyBot a focused role — a flat-belly coach, a shared grocery list, a
-stock-research analyst, a travel concierge.
+The open catalog of **Talents** for your [OtenyBot](https://oteny.com) — your own private
+AI assistant. A **Talent** is a ready-made personality and know-how that
+gives your OtenyBot a focused role. Examples are the flat-belly bot, the ShopBot to track groceries, StockBot the stock-research analyst, and TravelBot, your travel concierge.
 
 Everything here is **open** ([Apache-2.0](LICENSE)) — read any Talent end to end,
 learn from it, and publish your own. Oteny does the hard part — hosting your OtenyBot,
