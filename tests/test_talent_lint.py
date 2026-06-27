@@ -16,18 +16,26 @@ FLATBELLY = CATALOG / "oteny-flatbelly-talent"
 
 
 def _talent(root: Path, *, version_line: str | None = "version: 1.2.3",
-            migrations: str | None = None) -> Path:
+            migrations: str | None = None, artifacts: str = "artifacts: []",
+            neutralize: str | None = None, profile_extra: str = "") -> Path:
     """A minimal Talent bundle (has required_artifacts.yaml -> is_talent)."""
     b = root / "oteny-x-talent"
     b.mkdir(parents=True, exist_ok=True)
-    (b / "required_artifacts.yaml").write_text("bot: oteny-x-talent\nartifacts: []\n")
-    prof = "bot: oteny-x-talent\n"
+    (b / "required_artifacts.yaml").write_text("bot: oteny-x-talent\n" + artifacts + "\n")
+    prof = "bot: oteny-x-talent\n" + profile_extra
     if version_line is not None:
         prof += version_line + "\n"
     (b / "agent-profile.yaml").write_text(prof)
     if migrations is not None:
         (b / "migrations.yaml").write_text(migrations)
+    if neutralize is not None:
+        (b / "neutralize.yaml").write_text(neutralize)
     return b
+
+
+_CRON_ARTIFACT = (
+    "artifacts:\n  - kind: cron\n    jobs_path: ~/.hermes/cron/jobs.json\n"
+    "    jobs:\n      - \"OtenyX daily nudge\"\n")
 
 
 # --------------------------------------------------------------------------- #
@@ -153,6 +161,56 @@ def test_against_cli_catches_forgotten_bump(tmp_path):
                               "  - id: 0003_b\n    kind: sql\n    sql: \"CREATE TABLE b(id INT)\"\n"))
     rc = lint.main([str(cur), "--against", str(prior)])
     assert rc == 1
+
+
+# --------------------------------------------------------------------------- #
+# neutralize safety (check 13) — an outbound-action Talent must de-fang clones   #
+# --------------------------------------------------------------------------- #
+def test_required_crons_without_neutralize_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT)
+    assert any("ships no neutralize.yaml" in f for f in lint.lint_bundle(b))
+
+
+def test_seam_without_neutralize_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra="seam:\n  base: crewradar\n")
+    assert any("external seam" in f and "neutralize.yaml" in f for f in lint.lint_bundle(b))
+
+
+def test_self_contained_talent_needs_no_neutralize(tmp_path):
+    # no required crons, no seam -> neutralize.yaml is not required
+    b = _talent(tmp_path)
+    assert not any("neutralize" in f for f in lint.lint_bundle(b))
+
+
+def test_neutralize_covering_all_required_crons_is_clean(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, neutralize=(
+        "bot: oteny-x-talent\nsteps:\n  - id: 0001_crons\n    kind: crons\n"
+        "    crons:\n      disable:\n        - \"OtenyX daily nudge\"\n"))
+    assert not any("neutralize" in f for f in lint.lint_bundle(b))
+
+
+def test_neutralize_missing_a_required_cron_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, neutralize=(
+        "bot: oteny-x-talent\nsteps:\n  - id: 0001_crons\n    kind: crons\n"
+        "    crons:\n      disable:\n        - \"OtenyX some other job\"\n"))
+    assert any("does not disable every required cron" in f for f in lint.lint_bundle(b))
+
+
+def test_malformed_neutralize_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT,
+                neutralize="bot: oteny-x-talent\nsteps:\n  - kind: crons\n")  # step has no id
+    assert any("steps[0] has no `id`" in f for f in lint.lint_bundle(b))
+
+
+def test_neutralize_sql_step_without_db_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra="seam:\n  base: crewradar\n", neutralize=(
+        "bot: oteny-x-talent\nsteps:\n  - id: 0001_seam\n    kind: sql\n"
+        "    sql: \"UPDATE seam SET url='staging'\"\n"))
+    assert any("no `db:`" in f for f in lint.lint_bundle(b))
+
+
+def test_flatbelly_neutralize_is_well_shaped():
+    assert lint._neutralize_findings(FLATBELLY) == []
 
 
 def test_all_real_talents_lint_clean():

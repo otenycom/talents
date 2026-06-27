@@ -38,4 +38,9 @@ turns:
           equals: 2                      # prior weigh-ins preserved (additive, no data loss)
         - query: "SELECT COUNT(*) FROM meals"
           equals: 3                      # prior meals preserved
-      reply: "reports yesterday's macros from the new rollup"   # live-only -> SKIP in mock
+      # live-only (SKIP in mock): the reply reports yesterday's protein (32+45=77 g) from
+      # the freshly-migrated rollup, and the migration never stalls on the approval gate.
+      reply:
+        contains: ["77"]
+      trace:
+        absent: ["Command Approval Required"]

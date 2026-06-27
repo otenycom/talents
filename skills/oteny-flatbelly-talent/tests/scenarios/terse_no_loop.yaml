@@ -1,0 +1,41 @@
+# Scenario: a TERSE weigh-in ("2-76") logs the row and does NOT loop or wander.
+#
+# The data layer writes the morning weigh-in (mock proves the row); the live layer proves
+# the model reads the terse "evening period 2? no — 76 kg" correctly, replies briefly, and
+# never stalls on the command-approval gate or spins into a re-ask loop (the food-tracker
+# loop guard). Reply/trace are live-only -> SKIP in mock.
+bot: oteny-flatbelly-talent
+
+seed:
+  migrations: baseline
+  profile:
+    goal_weight_kg: 85
+    start_weight_kg: 100
+    height_cm: 178
+    age: 47
+    sex: male
+    language: en
+    timezone: Europe/Amsterdam
+  user_md: |
+    # Identity
+    Name: Test Tenant
+    Language: en
+  cron_jobs:
+    - "OtenyFlatBellyTalent daily morning log"
+    - "OtenyFlatBellyTalent daily evening log"
+    - "OtenyFlatBellyTalent weekly dashboard"
+
+turns:
+  - user: "2-76"
+    expect:
+      tool_calls:
+        - sql: "INSERT INTO weight(date, weight_kg, period) VALUES (date('now'), 76, 'morning')"
+      state:
+        - query: "SELECT weight_kg FROM weight ORDER BY id DESC LIMIT 1"
+          equals: 76
+        - query: "SELECT COUNT(*) FROM weight"
+          equals: 1
+      reply:
+        contains: ["76"]
+      trace:
+        absent: ["Command Approval Required"]

@@ -1,0 +1,27 @@
+# OtenyFlatBellyTalent clone neutralize — the declared, deterministic de-fanging a clone
+# of this Talent's real state MUST pass before it is allowed to serve a turn.
+#
+# flatbelly has no external `/json/2/` seam and holds no credential rows, so its one
+# outbound vector is its SCHEDULED CRON JOBS: the daily morning/evening log nudges and the
+# weekly dashboard all DM the real owner. A clone stood up from a real tenant's captured
+# state would inherit those jobs and message the live user — so neutralize disables them.
+# (Owner PII in profile.yaml is scrubbed separately by the control-plane redaction floor.)
+#
+# Run by the control plane at clone time (`neutralize.py --all`, gateway not serving);
+# `check_neutralize.py` then refuses the gateway start unless every step below is applied.
+bot: oteny-flatbelly-talent
+db: food.db
+
+steps:
+  - id: 0001_disable_outbound_crons
+    kind: crons
+    summary: >-
+      Disable every scheduled DM cron so a clone never messages the real owner. The
+      cronjob tool re-plans live jobs only on a genuine first-run; a clone inherits the
+      source's jobs.json, so they are disarmed in place here.
+    ref: food-tracker/references/neutralize.md
+    crons:
+      disable:
+        - "OtenyFlatBellyTalent daily morning log"
+        - "OtenyFlatBellyTalent daily evening log"
+        - "OtenyFlatBellyTalent weekly dashboard"
