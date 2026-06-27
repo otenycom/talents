@@ -148,12 +148,72 @@ def test_bot_mismatch_is_an_error(tmp_path):
     assert rep["error"] and "!=" in rep["error"], rep
 
 
-def test_live_backend_not_yet_implemented(tmp_path):
+def test_live_backend_needs_a_driver(tmp_path):
+    # Without an injected LiveDriver, --backend live errors gracefully (no crash) — the
+    # sidecar `test` verb sets the driver; CI sets a fake.
+    rs.set_live_driver(None)
     bundle = _synthetic_bundle(tmp_path)
     scenario = _write(bundle / "tests" / "scenarios" / "x.yaml",
                       "bot: oteny-sample-talent\nturns: []\n")
     rep = rs.run_scenario(scenario, "live")
-    assert rep["failed"] == 1 and "live backend" in (rep["error"] or ""), rep
+    assert rep["failed"] == 1 and "LiveDriver" in (rep["error"] or ""), rep
+
+
+class _FakeDriver:
+    """A scripted LiveDriver: canned replies + a gateway-log blob + db answers, so the live
+    assertion engine (reply/trace/state matchers) is proven offline."""
+
+    def __init__(self, *, reply="logged 76 kg this morning ✅", trace="Making API call #1",
+                 scalars=None, counts=None):
+        self.reply = reply
+        self._trace = trace
+        self._scalars = scalars or {}
+        self._counts = counts or {}
+        self.sent = []
+
+    def send(self, text):
+        self.sent.append(text)
+        return self.reply
+
+    def trace(self):
+        return self._trace
+
+    def scalar(self, sql):
+        for k, v in self._scalars.items():
+            if k in sql:
+                return v
+        return None
+
+    def rows(self, sql):
+        for k, v in self._counts.items():
+            if k in sql:
+                return [(0,)] * v
+        return []
+
+
+def test_live_backend_asserts_reply_trace_and_state():
+    rs.set_live_driver(_FakeDriver(
+        reply="got it — 76 kg logged for this morning",
+        trace="… Making API call #1 …",            # no 'Command Approval Required'
+        scalars={"weight_kg FROM weight": 76, "COUNT(*) FROM weight": 1}))
+    try:
+        rep = rs.run_scenario(SCENARIOS / "weight_log.yaml", "live")
+    finally:
+        rs.set_live_driver(None)
+    assert rep["error"] is None, rep
+    assert rep["failed"] == 0 and rep["passed"] >= 4, rep   # reply + trace-absent + 2 state
+
+
+def test_live_backend_fails_on_loop_marker_and_wrong_reply():
+    rs.set_live_driver(_FakeDriver(
+        reply="sorry, what did you weigh?",                 # missing '76'
+        trace="Command Approval Required",                  # a stall/loop marker present
+        scalars={"weight_kg FROM weight": 0, "COUNT(*) FROM weight": 0}))
+    try:
+        rep = rs.run_scenario(SCENARIOS / "weight_log.yaml", "live")
+    finally:
+        rs.set_live_driver(None)
+    assert rep["failed"] >= 3, rep                          # reply + trace + state all fail
 
 
 # --------------------------------------------------------------------------- #

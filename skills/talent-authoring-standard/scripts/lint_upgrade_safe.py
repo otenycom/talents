@@ -60,6 +60,17 @@ VERSIONING & MIGRATION SHAPE (Talent only — upgrade coherence):
      need prior state and live in ``check_upgrade_coherence()`` (run in CI / at delivery,
      and exposed on the CLI via ``--against <prior_bundle_dir>``).
 
+NEUTRALIZE SAFETY (Talent only — a clone of real state must not fire a live action, P4):
+ 13. a Talent with an OUTBOUND action — it declares required cron jobs (a ``cron`` artifact
+     with a non-empty ``jobs:`` list, e.g. a scheduled DM) or an external ``seam:`` in
+     ``agent-profile.yaml`` (a ``/json/2/`` integration) — MUST ship a ``neutralize.yaml``,
+     and it must be well-shaped: a ``steps:`` LIST, each a unique ``id`` with ``kind`` ∈
+     {``sql``, ``crons``, ``checklist``}; a ``crons`` step lists jobs to ``disable:`` and
+     between them they cover EVERY declared required cron (else a clone would still fire the
+     uncovered one); a ``sql`` step has a non-empty ``sql`` body. (Needs PyYAML; CI installs
+     it.) Without it, a disposable clone of a real tenant inherits live crons/seams and DMs
+     the real owner or files a real form — the whole point of P4's fail-closed gate.
+
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
   Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
@@ -268,6 +279,100 @@ def _migration_shape_findings(bundle: Path) -> list[str]:
     return out
 
 
+def required_cron_jobs(bundle: Path) -> list[str]:
+    """Declared REQUIRED cron job names (the ``cron`` artifact's ``jobs:`` list) — the
+    outbound DM schedule a clone must NOT inherit. [] if no required_artifacts / PyYAML
+    absent / no cron artifact. Gated jobs (only live if the owner opts in) are not
+    *required*, so they don't force a neutralize.yaml — they are caught by the clone
+    path's universal cron-disable + the boot canary."""
+    man = bundle / "required_artifacts.yaml"
+    if yaml is None or not man.is_file():
+        return []
+    try:
+        data = yaml.safe_load(man.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    for a in data.get("artifacts", []):
+        if isinstance(a, dict) and a.get("kind") == "cron":
+            return [j for j in (a.get("jobs") or []) if j]
+    return []
+
+
+def _has_external_seam(bundle: Path) -> bool:
+    """True if the Talent declares an external ``/json/2/`` seam in agent-profile.yaml (a
+    business bot like the CrewRadar HR bot). A clone must repoint it at staging, so the
+    Talent must ship a neutralize.yaml. Detection is an explicit ``seam:`` block — never a
+    guess — so a self-contained Talent (flatbelly owns its own db) is not falsely flagged."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return False
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return False
+    return bool(data.get("seam"))
+
+
+def _neutralize_findings(bundle: Path) -> list[str]:
+    """(13) An outbound-action Talent MUST ship a well-shaped neutralize.yaml that covers
+    every declared required cron. A self-contained Talent with no outbound action needs
+    none; a neutralize.yaml that IS present is shape-checked regardless."""
+    neu = bundle / "neutralize.yaml"
+    required = required_cron_jobs(bundle)
+    needs = bool(required) or _has_external_seam(bundle)
+    if not neu.is_file():
+        if needs:
+            why = "required cron jobs" if required else "an external seam"
+            return [f"declares an outbound action ({why}) but ships no neutralize.yaml — a "
+                    "clone of this Talent's real state would inherit it and fire a live "
+                    "action; ship neutralize.yaml (kind: crons disables every declared job, "
+                    "kind: sql repoints the seam) — P4 fail-closed gate"]
+        return []
+    if yaml is None:
+        return []          # the structural check needs PyYAML; CI installs it
+    try:
+        data = yaml.safe_load(neu.read_text()) or {}
+    except yaml.YAMLError as e:
+        return [f"neutralize.yaml does not parse: {e}"]
+    steps = data.get("steps")
+    if not isinstance(steps, list):
+        return ["neutralize.yaml has no `steps:` list"]
+    out: list[str] = []
+    seen: set[str] = set()
+    disabled: set[str] = set()
+    has_sql = False
+    for i, s in enumerate(steps):
+        if not isinstance(s, dict) or not s.get("id"):
+            out.append(f"neutralize.yaml steps[{i}] has no `id`")
+            continue
+        sid = s["id"]
+        if sid in seen:
+            out.append(f"neutralize.yaml duplicate step id '{sid}'")
+        seen.add(sid)
+        kind = s.get("kind")
+        if kind not in ("sql", "crons", "checklist"):
+            out.append(f"neutralize step '{sid}': kind must be sql|crons|checklist (got {kind!r})")
+        elif kind == "sql":
+            has_sql = True
+            if not str(s.get("sql") or "").strip():
+                out.append(f"neutralize step '{sid}': kind sql but no `sql` body")
+        elif kind == "crons":
+            names = ((s.get("crons") or {}).get("disable")) or []
+            if not names:
+                out.append(f"neutralize step '{sid}': kind crons but lists no jobs to disable")
+            disabled |= {n for n in names if n}
+        elif kind == "checklist" and not s.get("ref"):
+            out.append(f"neutralize step '{sid}': kind checklist but no `ref` to references/neutralize.md")
+    if has_sql and not (data.get("db") or any(
+            isinstance(s, dict) and s.get("db") for s in steps)):
+        out.append("neutralize.yaml has sql steps but no `db:` (top-level or per-step)")
+    uncovered = [j for j in required if j not in disabled]
+    if uncovered:
+        out.append(f"neutralize.yaml does not disable every required cron: {uncovered} "
+                   "still live — a clone would fire them (add them to a `crons` step's disable list)")
+    return out
+
+
 def _semver_tuple(v: str | None):
     if not v or not _SEMVER.match(v):
         return None
@@ -346,6 +451,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _version_findings(bundle)
     if is_talent:
         findings += _migration_shape_findings(bundle)
+        findings += _neutralize_findings(bundle)   # (13) outbound-action Talent must de-fang clones
 
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):

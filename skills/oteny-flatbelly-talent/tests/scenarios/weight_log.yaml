@@ -39,4 +39,9 @@ turns:
           equals: 76
         - query: "SELECT COUNT(*) FROM weight"
           equals: 1
-      reply: "confirms the 76 kg morning weigh-in"   # live-only -> SKIP in mock
+      # live-only (SKIP in mock): the reply confirms the weigh-in and the turn never stalls
+      # on Hermes' command-approval gate (a delivered Talent self-runs declared scripts).
+      reply:
+        contains: ["76"]
+      trace:
+        absent: ["Command Approval Required"]

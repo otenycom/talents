@@ -13,8 +13,15 @@ and runs them two ways from ONE runner:
     every push. Routing/reply/trace assertions are LIVE-ONLY here (the mock can't judge
     natural-language behaviour); they are recorded as ``SKIP`` and proven by the live
     backend.
-  * ``--backend live`` — drives the real bot and reads the trace from the gateway-log
-    markers (built alongside the live E2E loop; not implemented in this file yet).
+  * ``--backend live`` — drives the REAL bot (a neutralized prod CLONE) and reads the
+    trace from the gateway-log markers. The natural-language layer the mock can't judge —
+    does the model ROUTE to the right skill, does it PHRASE the reply well, does it AVOID a
+    loop — is proven here. A ``LiveDriver`` (injected by the sidecar ``test`` verb; a fake
+    in CI) sends each turn over the bot, reads the gateway log over node-exec, and queries
+    the clone's db, so this file stays standalone (no sidecar import). The same ``state``
+    assertions run live too (against the clone's real db), and ``reply``/``trace`` —
+    SKIPped in mock — are asserted with declared matchers (``reply.contains``/``regex``,
+    ``trace.markers``).
 
 Mock mode proves the PROTOCOL and the Talent's deterministic data layer (its SQL /
 scripts / in-box migrations produce the right state), exactly the layer that breaks
@@ -377,6 +384,118 @@ def assert_selfcheck(sb: Sandbox, want_ready: bool) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# the live backend (drives a real neutralized clone; reads gateway-log markers) #
+# --------------------------------------------------------------------------- #
+# The sidecar's ``test`` verb sets this to a LiveDriver before calling run_scenario with
+# ``--backend live``; CI sets a fake. A LiveDriver is duck-typed:
+#   send(user_text: str) -> str        # DM the bot, return its reply text
+#   trace() -> str                     # recent gateway-log text (for marker asserts)
+#   scalar(sql: str)                   # one value from the clone's db (node-exec sqlite3)
+#   rows(sql: str) -> list             # rows from the clone's db
+_LIVE_DRIVER = None
+
+
+def set_live_driver(driver) -> None:
+    """Inject the LiveDriver the live backend drives (the sidecar ``test`` verb / a CI fake)."""
+    global _LIVE_DRIVER
+    _LIVE_DRIVER = driver
+
+
+def _as_list(v):
+    return v if isinstance(v, list) else ([] if v is None else [v])
+
+
+def assert_reply(reply_text: str, spec) -> dict:
+    """Assert a live reply against a declared matcher. ``spec`` may be a plain string
+    (advisory — recorded, not failed, so a born-mock scenario's prose reply doesn't break
+    live) or a dict ``{contains: [...], not_contains: [...], regex: "..."}``."""
+    if not isinstance(spec, dict):
+        return {"kind": "reply", "ok": True, "advisory": str(spec), "got": reply_text[:200]}
+    text = reply_text or ""
+    fails = []
+    for sub in _as_list(spec.get("contains")):
+        if str(sub).lower() not in text.lower():
+            fails.append(f"missing {sub!r}")
+    for sub in _as_list(spec.get("not_contains")):
+        if str(sub).lower() in text.lower():
+            fails.append(f"unexpected {sub!r}")
+    import re as _re
+    if spec.get("regex") and not _re.search(spec["regex"], text):
+        fails.append(f"no match /{spec['regex']}/")
+    return {"kind": "reply", "ok": not fails, "fails": fails, "got": text[:200]}
+
+
+def assert_trace(trace_text: str, spec) -> dict:
+    """Assert gateway-log markers. ``spec`` is a list of markers (all must appear) or a
+    dict ``{markers: [...], absent: [...]}``."""
+    markers = spec.get("markers") if isinstance(spec, dict) else spec
+    absent = spec.get("absent") if isinstance(spec, dict) else None
+    text = trace_text or ""
+    fails = [f"missing marker {m!r}" for m in _as_list(markers) if str(m) not in text]
+    fails += [f"unexpected marker {m!r}" for m in _as_list(absent) if str(m) in text]
+    return {"kind": "trace", "ok": not fails, "fails": fails}
+
+
+def assert_state_live(driver, spec: dict) -> dict:
+    """The same state assertions as mock, but against the clone's REAL db via the driver."""
+    try:
+        if "table_exists" in spec:
+            got = driver.scalar("SELECT name FROM sqlite_master WHERE type='table' AND "
+                                f"name='{spec['table_exists']}'")
+            return {"kind": "state", "ok": got is not None, "spec": spec, "got": got}
+        query = spec["query"]
+        if "equals" in spec:
+            got = driver.scalar(query)
+            return {"kind": "state", "ok": _eq(got, spec["equals"]), "spec": spec, "got": got}
+        if "count" in spec:
+            got = len(driver.rows(query))
+            return {"kind": "state", "ok": got == spec["count"], "spec": spec, "got": got}
+        if "nonempty" in spec:
+            got = len(driver.rows(query))
+            return {"kind": "state", "ok": (got > 0) == bool(spec["nonempty"]), "spec": spec, "got": got}
+        return {"kind": "state", "ok": False, "spec": spec, "reason": "no assertion verb"}
+    except Exception as e:  # a driver/db error is a test failure, not a runner crash
+        return {"kind": "state", "ok": False, "spec": spec, "reason": f"{type(e).__name__}: {e}"}
+
+
+def run_scenario_live(path: Path, driver, bundle_override: str | None = None) -> dict:
+    """Drive ONE scenario against a real clone via ``driver``; return the result DTO. The
+    deterministic ``state`` assertions run live too; ``reply``/``trace`` are asserted with
+    their declared matchers (the natural-language layer the mock cannot judge)."""
+    scenario = _load_yaml(path) or {}
+    bot = scenario.get("bot")
+    result = {"path": str(path), "bot": bot, "backend": "live", "skipped": False,
+              "passed": 0, "failed": 0, "skipped_count": 0, "turns": [], "error": None}
+    db_name = _resolve_db_name(resolve_bundle(path, bundle_override), scenario)
+    for turn in scenario.get("turns", []):
+        tres = {"user": turn.get("user", ""), "results": []}
+        expect = turn.get("expect") or {}
+        reply_text = driver.send(turn.get("user", "")) if turn.get("user") else ""
+        if "reply" in expect:
+            r = assert_reply(reply_text, expect["reply"])
+            tres["results"].append(r)
+            result["passed" if r["ok"] else "failed"] += 1
+        if "trace" in expect:
+            r = assert_trace(driver.trace(), expect["trace"])
+            tres["results"].append(r)
+            result["passed" if r["ok"] else "failed"] += 1
+        for spec in expect.get("state", []):           # ground-truth db, now LIVE
+            r = assert_state_live(driver, spec)
+            tres["results"].append(r)
+            result["passed" if r["ok"] else "failed"] += 1
+        if turn.get("assert"):                         # the /json/2/ escape hatch (Barney)
+            r = {"kind": "assert", "ok": False, "ref": turn["assert"],
+                 "reason": "assert hooks need a sandbox (mock only)"}
+            # a live driver may expose run_assert; honor it when present.
+            if hasattr(driver, "run_assert"):
+                r = driver.run_assert(turn["assert"], db_name)
+            tres["results"].append(r)
+            result["passed" if r["ok"] else "failed"] += 1
+        result["turns"].append(tres)
+    return result
+
+
+# --------------------------------------------------------------------------- #
 # the mock backend                                                             #
 # --------------------------------------------------------------------------- #
 _LIVE_ONLY_KEYS = ("reply", "trace")
@@ -398,9 +517,12 @@ def run_scenario(path: Path, backend: str = "mock", bundle_override: str | None 
               "turns": [], "error": None}
 
     if backend == "live":
-        result["error"] = "live backend not implemented in run_scenario.py yet (P6)"
-        result["failed"] = 1
-        return result
+        if _LIVE_DRIVER is None:
+            result["error"] = ("live backend needs a LiveDriver — run it via the sidecar "
+                               "`test` verb (or set_live_driver) against a neutralized clone")
+            result["failed"] = 1
+            return result
+        return run_scenario_live(path, _LIVE_DRIVER, bundle_override)
 
     if _scenario_is_live_only(scenario):
         result["skipped"] = True
