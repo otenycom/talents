@@ -1,0 +1,38 @@
+# OtenyFlatBellyTalent in-box migrations — an ordered, append-only, forward-only list.
+# A converge swaps the Talent's FILES, but never the live food.db it owns. When a new
+# version changes the SHAPE of that db, the agent reconciles it IN-BOX from this list:
+# selfcheck/preflight surface what is pending; migrate.py runs the deterministic (sql)
+# ones and records completion in the data-plane marker (~/.hermes/data/<bot>/migrations.json),
+# which survives every converge/backup/restore. A fresh box ends first-run with
+# `migrate.py --baseline` (nothing to reconcile); a box upgraded from a prior version has
+# no marker, so each migration below runs forward, idempotently. Never renumber a shipped id.
+bot: oteny-flatbelly-talent
+db: food.db
+
+migrations:
+  - id: 0002_food_macros
+    kind: sql
+    summary: >-
+      Add a per-day food_macros rollup table and backfill it from the existing meals
+      rows, so "what were my macros yesterday?" reads one summarized row per day instead
+      of re-summing meals every turn. Additive and idempotent; prior data is preserved.
+    ref: food-tracker/references/migrations.md
+    sql: |
+      CREATE TABLE IF NOT EXISTS food_macros (
+        date      TEXT PRIMARY KEY,
+        protein_g REAL    NOT NULL DEFAULT 0,
+        carbs_g   REAL    NOT NULL DEFAULT 0,
+        fat_g     REAL    NOT NULL DEFAULT 0,
+        calories  INTEGER NOT NULL DEFAULT 0
+      );
+      -- Backfill one rollup row per day from meals. INSERT OR REPLACE keeps a re-run
+      -- idempotent (a crash mid-migration, or a converge that re-applies, recomputes
+      -- the same totals) without ever dropping a meal or a weigh-in.
+      INSERT OR REPLACE INTO food_macros (date, protein_g, carbs_g, fat_g, calories)
+        SELECT date,
+               COALESCE(SUM(protein_g), 0),
+               COALESCE(SUM(carbs_g),   0),
+               COALESCE(SUM(fat_g),     0),
+               COALESCE(SUM(calories),  0)
+        FROM meals
+        GROUP BY date;

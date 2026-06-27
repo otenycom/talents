@@ -5,6 +5,8 @@
 bot: oteny-stock-talent
 display_name: StockBot
 tagline: "Terse, numbers-first stock research grounded in live prices + All-In distillation."
+version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+                 # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
 
 skills:
   - oteny-stock-talent          # umbrella persona + operating rules + density tiers

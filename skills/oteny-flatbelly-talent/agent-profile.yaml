@@ -6,6 +6,8 @@
 bot: oteny-flatbelly-talent
 display_name: FlatbellyBot
 tagline: "Your private flat-belly coach — real food, protein timing, sleep, evidence-based."
+version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+                 # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
 
 # The skills delivered together (Option A: separately installable).
 skills:

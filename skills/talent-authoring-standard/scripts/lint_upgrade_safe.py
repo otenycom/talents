@@ -48,6 +48,18 @@ the open catalog repo, so internal build refs are a leak):
      absent that is in fact live in the fleet registry) is caught by the registry
      check that ships with the ``hh.tool`` index, not by a blunt word ban.
 
+VERSIONING & MIGRATION SHAPE (Talent only — upgrade coherence):
+ 11. ``agent-profile.yaml`` carries a valid semver ``version:`` (MAJOR.MINOR.PATCH) — a
+     label over the delivered commit, bumped on every change. (Stdlib regex; always runs.)
+ 12. a ``migrations.yaml`` (present only for a Talent with mutable live state) is
+     well-shaped: a ``migrations:`` LIST, each entry a unique ``id`` with ``kind`` ∈
+     {``sql``, ``checklist``}; a ``sql`` kind has a non-empty ``sql`` body, a
+     ``checklist`` kind a ``ref``; sql migrations require a top-level ``db:``. (Structural
+     check needs PyYAML — CI installs it; skipped where absent.) The CROSS-version rules (a
+     new migration forces a MINOR/MAJOR bump; a shipped id is never renamed/renumbered)
+     need prior state and live in ``check_upgrade_coherence()`` (run in CI / at delivery,
+     and exposed on the CLI via ``--against <prior_bundle_dir>``).
+
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
   Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
@@ -70,6 +82,11 @@ import json
 import re
 import sys
 from pathlib import Path
+
+try:
+    import yaml
+except ImportError:  # the migration-SHAPE structural check needs PyYAML (CI installs it);
+    yaml = None      # everything else — including the version check — is stdlib.
 
 # Per-tenant state / data-plane artifacts that must NEVER ship in a delivered bundle.
 _STATE_GLOBS = (
@@ -169,6 +186,127 @@ def _read_description(skill_md_text: str) -> str | None:
     return m.group(1).strip().strip("'").strip('"').strip()
 
 
+# --------------------------------------------------------------------------- #
+# versioning + migration shape (checks 11/12) + cross-version coherence         #
+# --------------------------------------------------------------------------- #
+_SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-]+)?$")
+_PROFILE_VERSION = re.compile(r"(?m)^version:\s*(.+?)\s*$")
+
+
+def read_profile_version(bundle: Path) -> str | None:
+    """The Talent's semver from ``agent-profile.yaml`` (stdlib regex), or None."""
+    prof = bundle / "agent-profile.yaml"
+    if not prof.is_file():
+        return None
+    m = _PROFILE_VERSION.search(prof.read_text(errors="ignore"))
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    raw = re.split(r"\s+#", raw, maxsplit=1)[0].strip()   # drop an inline YAML comment
+    return raw.strip("'").strip('"')
+
+
+def migration_ids(bundle: Path) -> list[str]:
+    """Declared migration ids, in order ([] if no migrations.yaml / PyYAML absent)."""
+    mig = bundle / "migrations.yaml"
+    if yaml is None or not mig.is_file():
+        return []
+    try:
+        data = yaml.safe_load(mig.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    return [m.get("id") for m in data.get("migrations", [])
+            if isinstance(m, dict) and m.get("id")]
+
+
+def _version_findings(bundle: Path) -> list[str]:
+    v = read_profile_version(bundle)
+    if v is None:
+        return ["agent-profile.yaml has no `version:` — a publishable Talent carries a "
+                "semver (a label over the delivered commit; bump it on every change)"]
+    if not _SEMVER.match(v):
+        return [f"agent-profile.yaml version '{v}' is not valid semver (MAJOR.MINOR.PATCH)"]
+    return []
+
+
+def _migration_shape_findings(bundle: Path) -> list[str]:
+    mig = bundle / "migrations.yaml"
+    if not mig.is_file():
+        return []          # migrations are optional (only mutable-state Talents need them)
+    if yaml is None:
+        return []          # the structural check needs PyYAML; CI installs it, so it runs there
+    try:
+        data = yaml.safe_load(mig.read_text()) or {}
+    except yaml.YAMLError as e:
+        return [f"migrations.yaml does not parse: {e}"]
+    migs = data.get("migrations")
+    if not isinstance(migs, list):
+        return ["migrations.yaml has no `migrations:` list"]
+    out: list[str] = []
+    seen: set[str] = set()
+    has_sql = False
+    for i, m in enumerate(migs):
+        if not isinstance(m, dict) or not m.get("id"):
+            out.append(f"migrations[{i}] has no `id`")
+            continue
+        mid = m["id"]
+        if mid in seen:
+            out.append(f"migrations.yaml duplicate id '{mid}'")
+        seen.add(mid)
+        kind = m.get("kind")
+        if kind not in ("sql", "checklist"):
+            out.append(f"migration '{mid}': kind must be 'sql' or 'checklist' (got {kind!r})")
+        elif kind == "sql":
+            has_sql = True
+            if not str(m.get("sql") or "").strip():
+                out.append(f"migration '{mid}': kind sql but no `sql` body")
+        elif kind == "checklist" and not m.get("ref"):
+            out.append(f"migration '{mid}': kind checklist but no `ref` to references/migrations.md")
+    if has_sql and not data.get("db"):
+        out.append("migrations.yaml has sql migrations but no top-level `db:` (the runner "
+                   "can't locate the db to apply them)")
+    return out
+
+
+def _semver_tuple(v: str | None):
+    if not v or not _SEMVER.match(v):
+        return None
+    core = v.split("+")[0].split("-")[0]
+    return tuple(int(x) for x in core.split("."))
+
+
+def check_upgrade_coherence(prev: dict, cur: dict) -> list[str]:
+    """Cross-VERSION coherence between a prior published bundle state and the current one.
+
+    ``prev`` / ``cur`` are ``{"version": "<semver>", "migration_ids": [<id>, ...]}``. Catches
+    a renumbered/renamed/removed shipped migration id (ids are append-only) and a new
+    migration shipped WITHOUT a MINOR/MAJOR bump (the forgotten-bump footgun). Pure — wired
+    into CI / at delivery, where the prior state is read from the merge base or the live
+    delivered commit. Returns [] when coherent."""
+    out: list[str] = []
+    cv = _semver_tuple(cur.get("version"))
+    if cv is None:
+        return [f"current version '{cur.get('version')}' is not valid semver"]
+    pv = _semver_tuple(prev.get("version"))
+    if pv is None:
+        return out  # first publish (or no prior) — nothing to compare against
+    pids = list(prev.get("migration_ids") or [])
+    cids = list(cur.get("migration_ids") or [])
+    append_only = cids[:len(pids)] == pids
+    if not append_only:
+        out.append("migrations are not append-only: a shipped id was renamed, renumbered, "
+                   f"or removed (was {pids}, now {cids}) — never mutate a shipped id")
+    new_ids = cids[len(pids):] if append_only else [i for i in cids if i not in pids]
+    if new_ids:
+        if cv <= pv:
+            out.append(f"new migration(s) {new_ids} added without a version bump "
+                       f"({prev.get('version')} -> {cur.get('version')}): bump MINOR or MAJOR")
+        elif (cv[0], cv[1]) == (pv[0], pv[1]):
+            out.append(f"new migration(s) {new_ids} need a MINOR or MAJOR bump, not just "
+                       f"PATCH ({prev.get('version')} -> {cur.get('version')})")
+    return out
+
+
 def _is_comment_line(line: str) -> bool:
     """A line that documents rather than executes — a comment or a blockquote.
 
@@ -201,6 +339,13 @@ def lint_bundle(bundle: Path) -> list[str]:
             "declares required_artifacts.yaml (a Talent) but has no agent-profile.yaml "
             "(a publishable Talent needs its persona/routing profile)"
         )
+
+    # (11)+(12) versioning + migration shape — Talent only. The version check needs the
+    # profile to exist (the (9) finding already covers its absence), so guard on it.
+    if is_talent and (bundle / "agent-profile.yaml").is_file():
+        findings += _version_findings(bundle)
+    if is_talent:
+        findings += _migration_shape_findings(bundle)
 
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):
@@ -324,6 +469,9 @@ def checklist_warnings(bundle: Path) -> list[str]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Talent upgrade-safety lint (D53 check 12)")
     ap.add_argument("bundles", nargs="+", help="bundle directories to lint")
+    ap.add_argument("--against", default=None,
+                    help="a prior bundle dir to check version/migration coherence against "
+                         "(single bundle only; CI/at-delivery passes the merge-base copy)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
@@ -336,6 +484,19 @@ def main(argv=None) -> int:
         report[bp.name] = violations
         warns[bp.name] = checklist_warnings(bp)  # soft (D85) — does NOT affect exit code
         if violations:
+            ok = False
+
+    # Cross-version coherence (a new migration forces a bump; a shipped id is never
+    # renamed/renumbered). Needs the prior bundle state — passed via --against.
+    if args.against and len(args.bundles) == 1:
+        bp = Path(args.bundles[0])
+        prior = Path(args.against)
+        coh = check_upgrade_coherence(
+            {"version": read_profile_version(prior), "migration_ids": migration_ids(prior)},
+            {"version": read_profile_version(bp), "migration_ids": migration_ids(bp)},
+        )
+        report[bp.name] = report.get(bp.name, []) + coh
+        if coh:
             ok = False
 
     if args.json:

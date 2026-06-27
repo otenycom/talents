@@ -1,7 +1,8 @@
 # Talent lint — the publishable author gate (D124). Runs the SAME static
 # upgrade-safety + lean-authoring rules Oteny runs at delivery, so an outside
 # author self-checks in their PR and never hits a surprise rejection. The rules are
-# the open, self-contained script in the standard bundle — no proprietary dep.
+# the open, self-contained script in the standard bundle — PyYAML is the only dep
+# (it powers the migrations.yaml structural check; everything else is stdlib).
 #
 # Copy this file into a Talent-owning repo's .github/workflows/ to gate its PRs.
 name: Talent lint
@@ -20,6 +21,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install lint deps
+        run: pip install pyyaml
 
       - name: Lint every Talent bundle
         run: |
