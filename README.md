@@ -1,14 +1,13 @@
 # Oteny Talents
 
 The open catalog of **Talents** for [Oteny](https://oteny.com) — your own private
-AI assistant on Telegram. A **Talent** is open content: a persona plus a set of
-skills (a tool *request* + instructions) that gives your OtenyBot a focused role —
-a flat-belly coach, a shared grocery list, a stock-research analyst, a travel concierge.
+AI assistant on Telegram. A **Talent** is a ready-made personality and know-how that
+gives your OtenyBot a focused role — a flat-belly coach, a shared grocery list, a
+stock-research analyst, a travel concierge.
 
-A Talent is **content, never capability**. The Oteny platform runs every Talent
-inside a scope-locked harness, so a Talent is safe by construction no matter what
-it says. That is why this catalog is **open** ([Apache-2.0](LICENSE)) — browse it,
-learn from it, and contribute your own.
+Everything here is **open** ([Apache-2.0](LICENSE)) — read any Talent end to end,
+learn from it, and publish your own. Oteny does the hard part — hosting your OtenyBot,
+running it safely, and covering the model bills — so a great Talent is all you bring.
 
 > Browse the live store at **[oteny.com/bots](https://oteny.com/bots)**.
 > Want to write one? Start at **[oteny.com/bots/build](https://oteny.com/bots/build)**.
