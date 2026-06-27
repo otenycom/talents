@@ -2,7 +2,9 @@
 
 The open catalog of **Talents** for your [OtenyBot](https://oteny.com) — your own private
 AI assistant. A **Talent** is a ready-made personality and know-how that
-gives your OtenyBot a focused role. Examples are the flat-belly bot, the ShopBot to track groceries, StockBot the stock-research analyst, and TravelBot, your travel concierge.
+gives your OtenyBot a focused role — **FlatbellyBot** the flat-belly coach, **ShopBot**
+the shared aisle-sorted grocery list, **StockBot** the numbers-first stock analyst, and
+**TravelBot** the travel concierge.
 
 Everything here is **open** ([Apache-2.0](LICENSE)) — read any Talent end to end,
 learn from it, and publish your own. Oteny does the hard part — hosting your OtenyBot,
