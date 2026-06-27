@@ -25,6 +25,15 @@ mkdir -p ~/.hermes/data/oteny-shopbot-talent
 sqlite3 ~/.hermes/data/oteny-shopbot-talent/shopping.db < ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/init.sql
 ```
 
+**Rescue an existing list (if migrating from the stock grocery-tracker).** If the household
+already kept a list with the old skill, import it once — it maps the old Dutch aisles to
+ShopBot's sections and carries over their learned stores. Safe + idempotent (no-op if there
+is no old list, or if ShopBot's list already has items):
+
+```bash
+python3 ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/import_legacy.py
+```
+
 ## Remediation: `profile` (light intake)
 
 Ask (in the tenant's language) and write `~/.hermes/data/oteny-shopbot-talent/profile.yaml`

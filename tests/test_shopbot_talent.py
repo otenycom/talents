@@ -171,6 +171,58 @@ def test_list_groups_default_store_first_then_aisle_walk_order(tmp_path, monkeyp
     assert "added_by" not in out and "Ries" not in out         # names not shown
 
 
+# --------------------------------------------------------------- legacy import
+def _legacy_db(path: Path) -> None:
+    """A stand-in for the stock grocery-tracker's ~/grocery_list/grocery.db."""
+    con = sqlite3.connect(path)
+    con.executescript(
+        "CREATE TABLE grocery_items (id INTEGER PRIMARY KEY, item TEXT, quantity TEXT,"
+        " added_by TEXT, status TEXT, created_at TEXT, completed_at TEXT, category TEXT,"
+        " store TEXT);"
+        "CREATE TABLE store_aliases (alias TEXT PRIMARY KEY, canonical_name TEXT);")
+    con.executemany(
+        "INSERT INTO grocery_items (item,quantity,added_by,status,category,store) "
+        "VALUES (?,?,?,?,?,?)", [
+            ("Spinazie", "1", "Angela", "pending", "Groente & fruit", "AH"),
+            ("Melk", "2", "Ries", "pending", "Zuivel (melk, yoghurt)", "AH"),
+            ("Paling", "1", "Ries", "pending", "Vis & schaal- en schelpdieren", "Hanos"),
+            ("Brood", "1", "Angela", "completed", "Bakkerij (brood)", "Supermarkt"),
+            ("Mystery", "1", "Angela", "pending", "Onbekend", "Supermarkt"),
+        ])
+    con.execute("INSERT INTO store_aliases VALUES ('ah','AH')")
+    con.commit(); con.close()
+
+
+def test_import_legacy_maps_aisles_and_is_idempotent(tmp_path, monkeypatch):
+    sandbox_env(monkeypatch, tmp_path)
+    d = _setup(tmp_path)
+    legacy = tmp_path / "grocery_list" / "grocery.db"
+    legacy.parent.mkdir(parents=True)
+    _legacy_db(legacy)
+    imp = load(SHOPBOT / "scripts" / "import_legacy.py", "imp_shop")
+    res = imp.migrate(legacy, d / "shopping.db")
+    assert res["imported"] == 5 and not res["skipped"]
+    rows = {r["name"]: r for r in _rows(d / "shopping.db")}
+    assert rows["Spinazie"]["category"] == "Produce" and rows["Spinazie"]["store"] == "AH"
+    assert rows["Melk"]["category"] == "Dairy"
+    assert rows["Paling"]["category"] == "Meat & Fish"
+    assert rows["Brood"]["category"] == "Bakery" and rows["Brood"]["status"] == "completed"
+    assert rows["Mystery"]["category"] == "Other"          # unknown Dutch aisle → Other
+    # the household's learned alias carried over (their canonical 'AH' wins over the seed)
+    con = sqlite3.connect(d / "shopping.db")
+    assert con.execute("SELECT canonical FROM store_aliases WHERE alias='ah'").fetchone()[0] == "AH"
+    con.close()
+    # idempotent: a second run does nothing (list already has items)
+    assert imp.migrate(legacy, d / "shopping.db")["skipped"] is True
+
+
+def test_import_legacy_noop_without_legacy_db(tmp_path, monkeypatch):
+    sandbox_env(monkeypatch, tmp_path)
+    d = _setup(tmp_path)
+    imp = load(SHOPBOT / "scripts" / "import_legacy.py", "imp_shop2")
+    assert imp.migrate(tmp_path / "nope.db", d / "shopping.db")["skipped"] is True
+
+
 # --------------------------------------------------------------- cron (unchanged)
 def test_weekly_nudge_cron_pins_model_and_provider(tmp_path):
     pc = load(SHOPBOT / "scripts" / "provision_cron.py", "pc_shop")
