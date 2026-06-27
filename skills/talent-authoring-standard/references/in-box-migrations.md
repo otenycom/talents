@@ -56,7 +56,23 @@ migration; anything needing the LLM or the `cronjob` tool → in-box Talent migr
 
 ## Reference implementation
 
-The travel Talent's `0001_windowed_trip_crons` (`kind: checklist`) — swaps a prior
-version's open-interval monitor/briefing crons for day-bounded windowed ones, per active
-trip. See [`../../oteny-travel-talent/migrations.yaml`](../../oteny-travel-talent/migrations.yaml) +
-`trip-planner/references/migrations.md`.
+The shipped, tested **sql** example is flatbelly's `0002_food_macros` — it adds a
+per-day `food_macros` rollup table and backfills it from the existing `meals` rows
+(additive, idempotent, prior data preserved). See
+[`../../oteny-flatbelly-talent/migrations.yaml`](../../oteny-flatbelly-talent/migrations.yaml) +
+[`../../oteny-flatbelly-talent/food-tracker/references/migrations.md`](../../oteny-flatbelly-talent/food-tracker/references/migrations.md).
+A **checklist** migration (anything needing the agent / the `cronjob` tool — e.g. swapping a
+prior version's open-interval crons for day-bounded windowed ones) follows the same pattern
+but is run by the agent from its `references/migrations.md` section and recorded with
+`migrate.py --mark <id>`.
+
+## Testing a migration offline (the dev loop)
+
+A migration is tested **offline and deterministically** as a behavioral scenario with
+`requires_migration:` — no LLM, free in CI. The scenario seeds the **prior-shape** state (a
+legacy box: no migration marker, the old schema + rows), the turn applies the pending
+migration, and `state:` assertions verify the new shape **and** that prior rows are
+preserved; running it twice proves idempotency. The copy-paste template is
+[`migration-test-template.md`](migration-test-template.md); the worked example is
+flatbelly's [`tests/scenarios/macros_migration.yaml`](../../oteny-flatbelly-talent/tests/scenarios/macros_migration.yaml).
+The scenario schema + runner are in [`behavioral-scenarios.md`](behavioral-scenarios.md).

@@ -25,3 +25,15 @@ jobs:
 
       - name: Run the marketable-Talent unit tests
         run: PYTHONPATH=tests python -m pytest tests/ -q
+
+      - name: Run behavioral scenarios (offline mock backend)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          scenarios=(skills/*/tests/scenarios/*.yaml)
+          if [ ${#scenarios[@]} -eq 0 ]; then
+            echo "No behavioral scenarios (skills/*/tests/scenarios/*.yaml) to run."
+            exit 0
+          fi
+          echo "Running ${#scenarios[@]} scenario(s) on the mock backend..."
+          python skills/_shared/scripts/run_scenario.py --backend mock "${scenarios[@]}"

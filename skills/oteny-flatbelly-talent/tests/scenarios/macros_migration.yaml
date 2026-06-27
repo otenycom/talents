@@ -1,0 +1,41 @@
+# Scenario: a box upgraded from a version BEFORE 0002_food_macros reconciles its db in-box.
+#
+# This is the clone-from-prod migration proof on real prior-shape state. The box has the
+# v1 schema (meals + weights, NO food_macros table) and NO migration marker, so 0002 is
+# pending. When the tenant asks a macro question, the agent applies the pending sql
+# migration, which adds the food_macros rollup and backfills it from the existing meals —
+# additively, preserving every prior row. All of this is deterministic, so the mock backend
+# proves it offline; only the natural-language reply is live-only.
+bot: oteny-flatbelly-talent
+
+seed:
+  # No `migrations:` key -> a LEGACY box (no marker): every declared migration is pending.
+  sql: |
+    INSERT INTO meals (date, meal_type, food, calories, protein_g, carbs_g, fat_g, leucine_g) VALUES
+      ('2026-06-20', 'breakfast', '3 eggs + oats',  520, 32, 40, 22, 2.6),
+      ('2026-06-20', 'dinner',    'salmon + rice',  700, 45, 55, 28, 3.1),
+      ('2026-06-21', 'lunch',     'chicken salad',  430, 38, 20, 18, 2.9);
+    INSERT INTO weight (date, weight_kg, period) VALUES
+      ('2026-06-20', 99.5, 'morning'),
+      ('2026-06-21', 99.2, 'morning');
+
+requires_migration: 0002_food_macros   # asserts it is declared AND pending after seed
+
+turns:
+  - user: "what were my macros yesterday?"
+    expect:
+      tool_calls:
+        - migrate: 0002_food_macros     # the agent applies the pending deterministic migration
+      state:
+        - table_exists: food_macros
+        - query: "SELECT protein_g FROM food_macros WHERE date = '2026-06-20'"
+          equals: 77                     # 32 + 45
+        - query: "SELECT calories FROM food_macros WHERE date = '2026-06-20'"
+          equals: 1220                   # 520 + 700
+        - query: "SELECT COUNT(*) FROM food_macros"
+          equals: 2                      # one rollup row per day
+        - query: "SELECT COUNT(*) FROM weight"
+          equals: 2                      # prior weigh-ins preserved (additive, no data loss)
+        - query: "SELECT COUNT(*) FROM meals"
+          equals: 3                      # prior meals preserved
+      reply: "reports yesterday's macros from the new rollup"   # live-only -> SKIP in mock

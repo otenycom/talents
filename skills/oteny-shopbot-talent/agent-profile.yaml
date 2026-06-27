@@ -6,6 +6,8 @@
 bot: oteny-shopbot-talent
 display_name: ShopBot
 tagline: "One shared grocery list the whole house keeps live — sorted by aisle so you never crisscross the store."
+version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+                 # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
 
 # A single umbrella skill (the shopping-list engine: persona + operating rules + the
 # per-intent checklists). No child skills needed.

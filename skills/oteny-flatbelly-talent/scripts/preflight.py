@@ -63,6 +63,26 @@ _TODAY = {
 }
 
 
+def _migrations_line() -> str:
+    """Pending in-box migrations, so the triage reconciles the db SHAPE before it plans
+    (even on a READY box). Imports the sibling migrate.py by path; never raises — a bundle
+    without migrations.yaml / migrate.py just reports none."""
+    try:
+        import importlib.util
+
+        scripts = Path(__file__).resolve().parent
+        manifest = scripts.parent / "migrations.yaml"
+        migrate_py = scripts / "migrate.py"
+        if not manifest.exists() or not migrate_py.exists():
+            return "MIGRATIONS: none"
+        spec = importlib.util.spec_from_file_location("flatbelly_migrate", migrate_py)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.status_line(manifest)
+    except Exception:
+        return "MIGRATIONS: none"
+
+
 def _home() -> Path:
     return Path(os.environ.get("HH_HOME") or Path.home())
 
@@ -198,6 +218,7 @@ def main() -> int:
         print(f"READY: no  (missing: {'; '.join(missing)})")
         print("  => run selfcheck.py for the full list, then onboarding; "
               "do NOT coach until READY.")
+    print(_migrations_line())
     print(_now_line(profile))
     print(_profile_line(profile))
     print(_today_block(db))

@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.4.0
+version: 0.5.0
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -113,7 +113,7 @@ Artifact classes a manifest may declare (omit those a bot doesn't need):
 | `tools` | required tools present; absent charged tools shipped as stubs |
 | `secret` | named env vars present (delivered by the deployer, never baked) |
 
-## The rubric — 13 checks (each PASS / FAIL / N/A)
+## The rubric — 14 checks (each PASS / FAIL / N/A)
 
 Grade a bundle by running each check against the folder. Concrete inspection
 commands are given where they help; an LLM can run them via `terminal`. Checks 4 and 9
@@ -160,15 +160,13 @@ add **context-aware reads** (not keyword matches) — see
   registered list-first ("create if absent"), `ON CONFLICT … DO UPDATE` for daily rows.
 - It covers **every** manifest class it declares (create db → intake →
   register routing/cron) and **loops to a re-check** → READY.
-- **Cron jobs MUST pin `model` + `provider`** (live-proven footgun, D40). Hermes' cron
-  resolves an un-pinned job's model from `config.yaml`'s `model.default` (not
-  `model.model`, the interactive path) → a job with no model fires **empty** and the
-  router 400s; reminders silently fail. So the planner reads model+provider from
-  `config.yaml` and passes `model=`/`provider=` on **every** job (see
-  `oteny-flatbelly-talent/scripts/provision_cron.py`); verify with a `cronjob` list
-  showing a non-empty `model`. The pin is a **persona alias**
+- **Cron jobs MUST pin `model` + `provider`** (live-proven footgun, D40). An un-pinned job
+  resolves its model from `config.yaml`'s `model.default`; with none it fires **empty** and
+  the router 400s — reminders silently fail. So the planner reads model+provider from
+  `config.yaml` and passes them on **every** job (see
+  `oteny-flatbelly-talent/scripts/provision_cron.py`). The pin is a **persona alias**
   (`assistant`/`builder`/`researcher`, D55) — fallback `assistant`, **never** the raw
-  OpenRouter slug (the proxy 400s it as `unknown model`).
+  OpenRouter slug.
 - Honors the runtime hard rules (proven on the live `food-tracker`): **one
   `sqlite3` invocation per terminal call; never chain INSERT+SELECT in one call;
   keep non-ASCII out of SQL output.**
@@ -283,11 +281,15 @@ checklists / fade-ladder glossary / completeness checklist, plus the non-Talent
 
 ### 13. In-box migrations (forward-only state reconciliation, D99)
 A Talent with **mutable live state** (a db, or agent-registered crons) reconciles a prior
-version's state **in-box, agent-driven** — never an operator editing the VM (a converge
-can't reach registered crons; only the agent holds the `cronjob` tool's live origin). It
-ships a bundle-root `migrations.yaml` + the shared `scripts/migrate.py` +
-`references/migrations.md`, and surfaces `MIGRATIONS: pending` from `preflight`. Mechanism +
-boundary vs sidecar file-migrations (D52): [`references/in-box-migrations.md`](references/in-box-migrations.md).
+version's state **in-box, agent-driven** — never an operator editing the VM. It ships a
+bundle-root `migrations.yaml` + the shared `scripts/migrate.py` + `references/migrations.md`,
+and surfaces `MIGRATIONS: pending` from `preflight`. Mechanism + the D52 sidecar boundary:
+[`references/in-box-migrations.md`](references/in-box-migrations.md).
+
+### 14. Behavioral tests (the dev loop)
+Ships **behavioral tests in the bundle** (`tests/{scenarios,fixtures,unit}`, never delivered)
+run by [`run_scenario.py`](../_shared/scripts/run_scenario.py): `--backend mock` (offline, free
+in CI) + `--backend live`. Schema + examples: [`references/behavioral-scenarios.md`](references/behavioral-scenarios.md).
 
 ## Store presentation + per-Talent tools
 

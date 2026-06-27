@@ -1,0 +1,42 @@
+# Scenario: a returning, set-up tenant logs a morning weigh-in.
+#
+# Proves the food-tracker DATA LAYER writes the weigh-in to food.db (the ground truth)
+# and that a fully-seeded box selfchecks READY. The reply WORDING is live-only — the mock
+# backend cannot judge phrasing or routing, only state — so it is recorded as SKIP here and
+# proven by the live backend.
+bot: oteny-flatbelly-talent
+
+seed:
+  migrations: baseline                 # a born-current, already-set-up box
+  profile:
+    goal_weight_kg: 85
+    start_weight_kg: 100
+    height_cm: 178
+    age: 47
+    sex: male
+    language: en
+    timezone: Europe/Amsterdam
+    protein_target_g: 185
+    leucine_threshold_g: 2.5
+  user_md: |
+    # Identity
+    Name: Test Tenant
+    Language: en
+  cron_jobs:
+    - "OtenyFlatBellyTalent daily morning log"
+    - "OtenyFlatBellyTalent daily evening log"
+    - "OtenyFlatBellyTalent weekly dashboard"
+
+assert_selfcheck_ready: true           # the deterministic half of "setup complete"
+
+turns:
+  - user: "log 76 kg this morning"
+    expect:
+      tool_calls:
+        - sql: "INSERT INTO weight(date, weight_kg, period) VALUES (date('now'), 76, 'morning')"
+      state:
+        - query: "SELECT weight_kg FROM weight WHERE period='morning' ORDER BY id DESC LIMIT 1"
+          equals: 76
+        - query: "SELECT COUNT(*) FROM weight"
+          equals: 1
+      reply: "confirms the 76 kg morning weigh-in"   # live-only -> SKIP in mock
