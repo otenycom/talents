@@ -4,7 +4,7 @@
 # the agent), not per-talent. The internal slug (bot:) and the runtime group name
 # (routing.channel) stay as-is — internal identifiers, never user-facing.
 bot: oteny-flatbelly-talent
-display_name: Flatbelly
+display_name: FlatbellyBot
 tagline: "Your private flat-belly coach — real food, protein timing, sleep, evidence-based."
 
 # The skills delivered together (Option A: separately installable).
