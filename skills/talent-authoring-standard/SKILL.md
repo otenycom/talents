@@ -29,13 +29,12 @@ are the worked examples.
 
 ## Defer to the native authoring skill (don't fork it)
 
-An Oteny Talent **is** a Hermes skill bundle, so the GENERIC rules — frontmatter
-(`---` at byte 0, `name`, `description`, non-empty body), the canonical
-`# Title → ## Overview → ## When to Use → body → ## Common Pitfalls` structure, the
-`references/`/`scripts/`/`templates/` placement, and **sizing** — are owned by the
-native **`hermes-agent-skill-authoring`** skill (the tenant has it loaded). Read it
-first; this skill adds only the Oteny **product deltas** below. Two facts from
-native this rubric leans on:
+An Oteny Talent **is** a Hermes skill bundle, so the GENERIC rules — frontmatter, the
+canonical section structure, `references/`/`scripts/`/`templates/` placement, and
+**sizing** — are owned by the native upstream skill
+**[`hermes-agent-skill-authoring`](https://github.com/NousResearch/hermes-agent/blob/main/skills/software-development/hermes-agent-skill-authoring/SKILL.md)**
+(the tenant has it loaded). Read it first; this skill adds the Oteny **product deltas**
+below. Two native facts it leans on:
 
 - **Lean bodies via native progressive disclosure.** Only a one-line `name:
   description` index sits in the cached prompt; the agent pulls a body on demand with
