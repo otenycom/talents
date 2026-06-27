@@ -1,0 +1,36 @@
+# Travel sample-chat teaser — the single source for the "Our Trip to Lisbon" group-chat
+# demo. Rendered on the /bots/travel landing AND the oteny.com homepage by the shared
+# oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Text + rich cards
+# only (no media) — crisp at any DPI, fully accessible, localisable.
+teaser:
+  title: "Our Trip to Lisbon"
+  icon: fa-plane
+  members:
+    - {key: me,    name: You,      role: me}
+    - {key: maya,  name: Maya,     color: maya}
+    - {key: priya, name: Priya,    color: priya}
+    - {key: bot,   name: OtenyBot, role: bot}
+  turns:
+    - {from: me,   at: "9:24", text: "@OtenyBot — plan us 3 days in Lisbon, mid-May"}
+    - {from: bot,  at: "9:24", text: "On it 👋 Here's a 3-day draft, about €240 pp:"}
+    - {from: bot,  at: "9:24",
+       card: {lines: ["📅 Fri · Alfama food walk + Fado",
+                      "📅 Sat · day-trip to Sintra",
+                      "📅 Sun · Belém pastéis → LX Factory"]}}
+    - {from: maya, at: "9:25", text: "love it 😍 can we squeeze in a beach?"}
+    - {from: bot,  at: "9:25", text: "Done — Carcavelos is in for Sunday morning ☀️ Updated plan:"}
+    - {from: bot,  at: "9:25",
+       card: {lines: ["📅 Fri · Alfama food walk + Fado",
+                      "📅 Sat · day-trip to Sintra",
+                      {text: "📅 Sun · Carcavelos beach → Belém pastéis → LX Factory", highlight: true}]}}
+    - {from: bot,  at: "9:25", text: "Want me to track what everyone spends, too?"}
+    - {from: priya, at: "9:26", text: "yes please 🙌"}
+    - {from: bot,  at: "9:26", text: "Will do — I'll keep the plan updated and nudge everyone to book flights Friday. ✈️"}
+    - {from: me,   at: "9:30", text: "booked our flights! TAP TP1234, Fri 07:40 🎉"}
+    - {from: bot,  at: "9:30",
+       card: {title: "AMS → LIS",
+              lines: ["TAP TP1234 · Fri 16 May · 07:40–09:55"],
+              status: "● On time"}}
+    - {from: bot,  at: "9:30", text: "Tracking it now — I'll alert the group the moment it's delayed."}
+    - {from: priya, at: "9:31", text: "amazing 🙌 and getting around once we're there?"}
+    - {from: bot,  at: "9:31", text: "Metro red line → Baixa, ~20 min, €1.80. Each morning I'll send live departures — and flag any delays or strikes. 🚇"}

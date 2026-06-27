@@ -1,0 +1,58 @@
+# ShopBot — the sellable Talent spec (a Talent = persona + skills, one of several
+# loadable on a tenant's OtenyBot). Composition is config: drop the skill files + merge
+# the routing declaration. Model tier is GLOBAL (set on the agent), not per-talent. The
+# internal slug (bot:) and the runtime group name (routing.channel) stay as-is —
+# internal identifiers, never user-facing.
+bot: oteny-shopbot-talent
+display_name: ShopBot
+tagline: "One shared grocery list the whole house keeps live — sorted by aisle so you never crisscross the store."
+
+# A single umbrella skill (the shopping-list engine: persona + operating rules + the
+# per-intent checklists). No child skills needed.
+skills:
+  - oteny-shopbot-talent
+voice_skill: oteny-shopbot-talent          # the persona lives in the umbrella skill, NOT in SOUL
+
+base_language: en
+model_tier: assistant                       # GLOBAL (Gemini-Flash v1); a weekly nudge cron stays on it
+toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
+delivery: baked                             # delivered with the bot
+price: free                                 # free on-ramp
+
+# Tools the bot relies on. It runs on built-ins only (sqlite via terminal, cron,
+# send_message); nothing to install. A snapped-receipt importer is an OPTIONAL
+# enhancement that degrades gracefully when the read-document tool is absent.
+tools:
+  required: []
+  stubbed: []
+
+# Routing declaration — APPLIED by the index-reconciler, never hand-edited into SOUL.
+# The group is resolved at runtime from channel_directory.json (never a hardcoded id).
+# Convention: the tenant's ShopBot group is named after the bot; onboarding may set
+# routing.channel_chat_id explicitly once the group is bound. Privacy-mode-off so the
+# bot sees every household member's edits to the shared list.
+routing:
+  channel: "OtenyShopBotTalent"             # group NAME, resolved via channel_directory.json
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **ShopBot** in this group — a shared
+    household grocery list. Refer to yourself by your own bot name; the Talent is a
+    capability you're using, not your identity.
+    On the FIRST message from a new tenant (no ~/.hermes/data/oteny-shopbot-talent/profile.yaml yet),
+    or when asked "what can you do?" / "how does this work?", load the oteny-shopbot-talent
+    skill (skill_view name='oteny-shopbot-talent') and run its first-run intake.
+    For any message about groceries, the shopping list, adding/removing an item, a
+    quantity, marking something bought, "what's left", or which store to buy at: load the
+    oteny-shopbot-talent skill first and follow its master triage and per-intent
+    checklists step by step, and its hard rules — read the list from the database in the
+    same turn (never recite it from memory), file each item under its store + aisle
+    section, and drop bought items off the active list. In a household group, answer
+    untagged messages; attribute each add/check-off to the member who sent it. Reply in
+    the tenant's language; keep replies short and Telegram-friendly.
+  signature: "oteny-shopbot-talent"
+
+# Shared tenant profile (name/language/timezone) + this bot's extension (default store /
+# household / reminders) live in ~/.hermes/data/oteny-shopbot-talent/profile.yaml, produced
+# by first-run. Two seeds (the per-bot memory split): shared identity (small, Hermes
+# auto-loads) + per-bot domain memory.
+seed_memory: null                              # shared identity USER.md seeded by the primary bot
+seed_domain_memory: profile/memory.md.template # -> ~/.hermes/data/oteny-shopbot-talent/memory.md

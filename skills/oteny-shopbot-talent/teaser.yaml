@@ -1,0 +1,27 @@
+# ShopBot sample-chat teaser — rendered on the /bots/shopbot landing by the shared
+# oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Demoes the
+# spearhead features: one default store, aisle ordering (the standout), frictionless
+# add + check-off, and the real-time multi-person household. Text only (no media), so it
+# is crisp at any DPI and fully accessible.
+teaser:
+  title: "Weekly groceries"
+  icon: fa-shopping-basket
+  members:
+    - {key: me,  name: You,      role: me}
+    - {key: sam, name: Sam}
+    - {key: bot, name: OtenyBot, role: bot}
+  turns:
+    - {from: me,  at: "18:02", text: "add oat milk x2 and spinach"}
+    - {from: bot, at: "18:02", text: "Added — oat milk → Dairy, spinach → Produce. 12 items across 5 aisles at Albert Heijn."}
+    - {from: sam, at: "18:41", text: "got the oat milk 👍"}
+    - {from: bot, at: "18:41", text: "Nice — checked off. 11 left."}
+    - {from: me,  at: "18:55", text: "what's left? heading to the shop"}
+    - {from: bot, at: "18:55",
+       card: {title: "Albert Heijn — in aisle order",
+              lines: ["🥬 Produce — spinach, bananas ×3",
+                      "🥖 Bakery — sourdough",
+                      "🧀 Dairy — Greek yoghurt, eggs ×12",
+                      "🧊 Frozen — peas",
+                      "🧴 Household — dish soap"],
+              status: "11 items · walk top to bottom"}}
+    - {from: bot, at: "18:55", text: "Sorted so you walk the store section by section — no backtracking. I'll drop items as you and Sam check them off."}

@@ -1,0 +1,11 @@
+# ~/.hermes/data/oteny-shopbot-talent/profile.yaml — the per-tenant "person" (the skill is
+# the "method"). Written by the first-run intake; editable by the tenant. "" / [] are unset
+# sentinels selfcheck treats as missing. Never bake a tenant's store/household here.
+name: ""
+default_store: ""          # the supermarket items file under unless told otherwise
+household: []              # display names sharing the list (group bots), e.g. ["You","Sam"]
+language: "en"             # reply language; the model localises replies on the fly
+timezone: "Europe/Amsterdam"
+reminders:
+  weekly_shop: ""          # optional weekly "what do we need?" nudge, e.g. "Sat 09:00"; "" disables
+terms_accepted: false      # set true once the tenant acknowledges this is a convenience list

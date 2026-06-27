@@ -1,0 +1,15 @@
+<!-- ~/.hermes/data/oteny-shopbot-talent/memory.md — ShopBot's per-tenant DOMAIN memory.
+     NOT auto-loaded by Hermes; the triage reads it every turn. It holds this household's
+     shopping context plus durable learnings. Append a short line when you learn a lasting
+     preference; keep the whole file compact. Replace every {{placeholder}} from
+     profile.yaml; drop any line whose source field is unset. -->
+# ShopBot — shopping context for {{name}}
+
+- Default store: **{{default_store}}** (items file here unless told otherwise).
+- Household sharing the list: {{household}} — attribute each add / check-off to the sender.
+- Reply language {{language}}; timezone {{timezone}}.
+- Weekly nudge: {{reminders.weekly_shop}} (empty = off).
+
+## Durable learnings (append one short line as you discover them)
+<!-- e.g. "buys oat milk, not dairy" · "shops at Albert Heijn weekdays, Lidl weekends"
+     · "prefers loose produce" · "Sam handles the bakery run" -->

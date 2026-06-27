@@ -1,0 +1,43 @@
+# OtenyShopBotTalent first-run manifest — the setup GOAL, declared (not implied).
+# selfcheck.py walks this; the SKILL.md first-run section drives toward READY.
+# All paths are namespaced under the bot so bots never collide.
+bot: oteny-shopbot-talent
+base_language: en
+
+artifacts:
+  - kind: sqlite_db
+    path: ~/.hermes/data/oteny-shopbot-talent/shopping.db
+    must_have_tables: [stores, sections, items, item_sections]
+
+  - kind: profile
+    path: ~/.hermes/data/oteny-shopbot-talent/profile.yaml
+    required_fields: [default_store, language, timezone]
+
+  - kind: memory                 # shared cross-skill identity — seeded by the primary bot
+    path: ~/.hermes/memories/USER.md
+    label: shared identity
+    blocking: false              # ShopBot does not own identity; degrade gracefully if absent
+    remediation: "first-run §profile: render a small identity USER.md (name/tz/language)"
+
+  - kind: memory                 # per-bot DOMAIN memory — the triage reads it each turn
+    path: ~/.hermes/data/oteny-shopbot-talent/memory.md
+    label: domain memory
+    blocking: false              # accrues over time / lazily; never a hard gate to add to the list
+    remediation: "first-run §profile: render memory.md from profile/memory.md.template"
+
+  - kind: routing                      # DM-first: the native skill index routes DMs
+    config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed). A
+    platform: telegram                 #   group-bound Talent would add requires_channel_prompt:
+    signature: "oteny-shopbot-talent"     #   true to assert its channel_prompt is registered.
+
+  - kind: cron
+    jobs_path: ~/.hermes/cron/jobs.json
+    jobs: []                       # none required at first-run (the weekly nudge is opt-in)
+    gated_jobs:
+      - name: "OtenyShopBotTalent weekly shop nudge"
+        enabled_when: "owner sets reminders.weekly_shop (a weekly 'what do we need?' nudge)"
+
+  - kind: tools
+    present_if_file:
+      list_view: ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/list_view.py
+    stubbed: []

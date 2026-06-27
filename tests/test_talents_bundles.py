@@ -20,6 +20,7 @@ from _talents import CATALOG, SHARED, load
 
 FLATBELLY = CATALOG / "oteny-flatbelly-talent"
 STOCK = CATALOG / "oteny-stock-talent"
+SHOPBOT = CATALOG / "oteny-shopbot-talent"
 
 
 def _sha(p: Path) -> str:
@@ -30,6 +31,7 @@ def test_shipped_selfcheck_matches_canonical():
     canon = _sha(SHARED / "selfcheck.py")
     assert _sha(FLATBELLY / "scripts" / "selfcheck.py") == canon
     assert _sha(STOCK / "scripts" / "selfcheck.py") == canon
+    assert _sha(SHOPBOT / "scripts" / "selfcheck.py") == canon
 
 
 # The hermeshost-internal default-skill canonical check (skill-translator /
@@ -40,6 +42,7 @@ def test_shipped_selfcheck_matches_canonical():
 @pytest.mark.parametrize("firstrun", [
     FLATBELLY / "food-tracker" / "references" / "first-run.md",
     STOCK / "references" / "first-run.md",
+    SHOPBOT / "references" / "first-run.md",
 ])
 def test_first_run_lives_in_references_and_is_mechanical(firstrun):
     # D57: the first-run drill moved OUT of the SKILL.md body into references/first-run.md
@@ -62,7 +65,8 @@ def test_first_run_lives_in_references_and_is_mechanical(firstrun):
 
 def test_first_run_not_in_skill_body():
     # The fat first-run section + inline DDL are gone from the bodies (D57 lean bodies).
-    for skill in (FLATBELLY / "food-tracker" / "SKILL.md", STOCK / "SKILL.md"):
+    for skill in (FLATBELLY / "food-tracker" / "SKILL.md", STOCK / "SKILL.md",
+                  SHOPBOT / "SKILL.md"):
         text = skill.read_text()
         assert "First-run setup" not in text            # moved to references/first-run.md
         assert "CREATE TABLE" not in text               # schema lives in scripts/ (init.sql / setup_db.py)
@@ -71,6 +75,7 @@ def test_first_run_not_in_skill_body():
 @pytest.mark.parametrize("manifest", [
     FLATBELLY / "required_artifacts.yaml",
     STOCK / "required_artifacts.yaml",
+    SHOPBOT / "required_artifacts.yaml",
 ])
 def test_manifest_parses_and_selfchecks(manifest, monkeypatch, tmp_path):
     data = yaml.safe_load(manifest.read_text())
@@ -84,7 +89,7 @@ def test_manifest_parses_and_selfchecks(manifest, monkeypatch, tmp_path):
 
 
 def test_routing_signature_matches_manifest():
-    for bot in (FLATBELLY, STOCK):
+    for bot in (FLATBELLY, STOCK, SHOPBOT):
         profile = yaml.safe_load((bot / "agent-profile.yaml").read_text())
         manifest = yaml.safe_load((bot / "required_artifacts.yaml").read_text())
         routing_artifact = [a for a in manifest["artifacts"] if a["kind"] == "routing"][0]
@@ -156,7 +161,7 @@ def test_bundles_are_pii_clean():
         r"\bRies\b|ALAT 91|HDL 0\.9|aspirin|prescan|life-cvd|atal-medial"
         r"|apify_api|DEFAULT_TOKEN|8799761609|-4936433409|-5249654892|\bArjen\b|XAI_API_KEY",
     )
-    for bot in (FLATBELLY, STOCK):
+    for bot in (FLATBELLY, STOCK, SHOPBOT):
         for f in bot.rglob("*"):
             if f.suffix in (".md", ".yaml", ".py", ".sql") and f.name != "PLAN.md":
                 hits = [ln for ln in f.read_text().splitlines() if pii.search(ln)]
@@ -232,7 +237,8 @@ def test_cron_utc_conversion_summer_offset():
 def test_memory_split_per_bot_domain_and_shared_identity():
     """Each bot declares a shared identity USER.md AND a per-bot domain memory.md
     (non-blocking — domain memory accrues, it never gates coaching)."""
-    for bot, datadir in ((FLATBELLY, "oteny-flatbelly-talent"), (STOCK, "oteny-stock-talent")):
+    for bot, datadir in ((FLATBELLY, "oteny-flatbelly-talent"), (STOCK, "oteny-stock-talent"),
+                         (SHOPBOT, "oteny-shopbot-talent")):
         manifest = yaml.safe_load((bot / "required_artifacts.yaml").read_text())
         mems = [a for a in manifest["artifacts"] if a["kind"] == "memory"]
         paths = {a["path"] for a in mems}
