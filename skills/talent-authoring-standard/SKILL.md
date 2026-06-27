@@ -22,12 +22,10 @@ It serves two jobs from one rubric:
 - **Validate** — inspect an existing bundle and emit a PASS/FAIL verdict.
 
 It is the Talent-library counterpart to
-[`skill-writing`](../../../skills/skill-writing/SKILL.md) (which governs the
-*design* library, `skills/`). The full rationale this rubric distills lives in
-[`skill-library`](../../../skills/skill-library/SKILL.md) (the package contract,
-first-run, routing, reconciler, delivery); the shipped
-[`oteny-flatbelly-talent`](../oteny-flatbelly-talent/) and [`oteny-stock-talent`](../oteny-stock-talent/)
-bundles are the worked examples.
+[`skill-writing`](../../../skills/skill-writing/SKILL.md) (the *design* library); the full
+rationale lives in [`skill-library`](../../../skills/skill-library/SKILL.md), and
+[`oteny-flatbelly-talent`](../oteny-flatbelly-talent/) + [`oteny-stock-talent`](../oteny-stock-talent/)
+are the worked examples.
 
 ## Defer to the native authoring skill (don't fork it)
 
@@ -61,17 +59,13 @@ both for any bundle:
    host fails.
 2. **No new Hermes code.** A bundle is plain files — `SKILL.md`, small YAML
    manifests, optional helper scripts — run by the tools the tenant's Hermes
-   already has (`terminal`/`execute_code`/`cronjob`, …). It never requires forking
-   or patching Hermes, or authoring a **new** Hermes tool/plugin to make the Talent
-   run. Building **on** tools already present in the tenant's instance is fine and
-   expected — both Hermes's own built-ins **and the growing set Oteny
-   provisions alongside every instance** (web search, travel/maps, and MCP servers
-   such as the browser-use server being added; the menu lives in
-   [`tool-use`](../../../skills/tool-use/SKILL.md)). Declare what the bundle needs
-   as dependencies (check 9) and stub the charged/absent ones so the persona
-   degrades gracefully. What's banned is a Talent that can't run until *we* extend
-   Hermes. The deterministic backbone lives in the bundle's own scripts (or inline
-   commands), not in new Hermes code.
+   already has (`terminal`/`execute_code`/`cronjob`, plus the set Oteny provisions:
+   web search, travel/maps, MCP servers — the menu is
+   [`tool-use`](../../../skills/tool-use/SKILL.md)). Building **on** present tools is
+   expected; what's banned is a Talent that can't run until *we* fork/patch Hermes or
+   author a **new** tool/plugin. Declare what it needs (check 9), stub charged/absent
+   tools so the persona degrades gracefully, and keep the deterministic backbone in
+   the bundle's own scripts.
 
 ## The checklist-first bar (the airline-pilot rule)
 
@@ -83,24 +77,20 @@ This is the durable **cost lever**: a checklist-structured skill runs correctly 
 cheap tier; prose forces a bigger model or a costly loop.
 
 **Not Talent-only.** It governs **every Oteny skill a tenant's agent runs on that weak
-model** — a sold **Talent** *and* the non-Talent **infra-default skills** we ship to every
-VM but never sell ([`oteny-cron-authoring`](../oteny-cron-authoring/SKILL.md),
-[`oteny-set-timezone`](../oteny-set-timezone/SKILL.md), and the common-task skills to
-come). A non-Talent skill is **N/A** for the Talent-only rubric below (no
-`required_artifacts.yaml` / `agent-profile.yaml`) but holds **this** bar the same: one
-ordered, literal protocol per task, no step left to improvisation.
+model** — a sold **Talent** *and* the non-Talent **infra-default skills** we ship but never
+sell (`oteny-cron-authoring`, `oteny-set-timezone`, …). A non-Talent skill is **N/A** for
+the Talent-only rubric below (no `required_artifacts.yaml` / `agent-profile.yaml`) but holds
+**this** bar the same: one ordered, literal protocol per task, no improvisation.
 
 The shape (master triage → per-task *input → check → reply/act* → completeness loops), the
-**five disciplines that keep it runnable by the weak tier**, the worked examples (Flatbelly
-+ the `oteny-cron-authoring` protocol), and check 11's Talent expansion are in
-[`references/checklist-first.md`](references/checklist-first.md). **Keep checklists lean —
-tune against real test-VM logs**, don't over-specify up front.
+**five disciplines** that keep it runnable by the weak tier, the worked examples, and check
+11's Talent expansion are in [`references/checklist-first.md`](references/checklist-first.md).
+**Keep checklists lean — tune against real test-VM logs**, don't over-specify up front.
 
 ## When to use
 
-- Writing a new `catalog/skills/<bot>/` bundle, or revising one.
-- Reviewing/grading a bundle before it is baked into the bot image or shipped.
-- A tenant's Hermes self-checking that a delivered bundle is well-formed.
+- Writing or revising a `skills/<bot>/` bundle.
+- Grading a bundle before it ships, or a tenant's Hermes self-checking a delivered one.
 
 ## The setup goal is the bundle's `required_artifacts.yaml`
 
@@ -299,52 +289,12 @@ ships a bundle-root `migrations.yaml` + the shared `scripts/migrate.py` +
 `references/migrations.md`, and surfaces `MIGRATIONS: pending` from `preflight`. Mechanism +
 boundary vs sidecar file-migrations (D52): [`references/in-box-migrations.md`](references/in-box-migrations.md).
 
-## Store presentation: `icon.png` + `teaser.yaml`
+## Store presentation + per-Talent tools
 
-Two optional bundle-root files give a Talent its face in the Oteny Bot Market — read by
-the seeder, never required at runtime, so a bundle without them still works (graceful
-fallback). Author both for any Talent you want to ship to the storefront.
-
-- **`icon.png`** — a square card/landing mark, ≥512×512 (the seeder down-scales),
-  transparent or stage-dark background, in the art-deco gold palette. Distinct per Talent
-  (a grid of identical glyphs reads as unfinished). The mark must stay legible at ~56 px
-  and hold contrast on a light card; pre-rasterise an `.svg` to PNG (the seeder stores the
-  raster as-is). An `icon:` key in `agent-profile.yaml` overrides the default filename. The
-  icon is **ops-curatable**: a backend upload wins and is never clobbered by a re-seed.
-
-- **`teaser.yaml`** — a believable **sample chat** rendered on the landing page (and the
-  homepage, for the flagship). One authored artifact, two consumers (and the future in-chat
-  previewer). Shape:
-
-  ```yaml
-  teaser:
-    title: "Weekly groceries"          # group-chat title (required)
-    icon: fa-shopping-basket            # FontAwesome class for the group avatar
-    members:                            # required; role me|bot, else a "them" colour by index
-      - {key: me,  name: You,      role: me}
-      - {key: sam, name: Sam}           # optional color: maya|priya|sky|rose|sage|plum
-      - {key: bot, name: OtenyBot, role: bot}
-    turns:                              # required; each `from` is a member key + content
-      - {from: me,  at: "18:02", text: "add oat milk x2"}
-      - {from: bot, at: "18:02", text: "Added — Dairy aisle.",
-         card: {title: "Weekly list", lines: ["oat milk x2", "spinach"], status: "12 items"}}
-      - {from: bot, image: "teaser/aisle.png", alt: "list grouped by aisle"}   # alt REQUIRED
-  ```
-
-  A turn carries any of `text` / `card` / `image` / `video`. **Every image/video turn MUST
-  carry `alt`** (the accessibility floor — same as a screenshot); the seeder rejects one
-  that doesn't. A card line may be `{text, highlight: true}` to spotlight a changed line.
-  Bundle-relative media (`teaser/…`) is inlined as a data URI at seed time; an `http(s)`
-  URL is kept as-is. Keep it short (a dozen turns) and lead with the outcome.
-
-## Per-Talent tools-used (check 9 extension)
-
-State, in `agent-profile.yaml`, the capabilities the Talent leans on — its
-`toolset_contribution` (the Hermes built-ins it unions in: `terminal`, `cron`,
-`send_message`, …) and any first-party tool under `tools.required` / `tools.stubbed`. This
-is both the runtime contract (check 9: absent charged tools ship as graceful stubs) and the
-storefront's "what it can do" copy. Don't claim a tool you don't use; don't stub a tool the
-catalog says is live (`lint_tools.py` fails a stale claim).
+A Talent's storefront face — the optional bundle-root `icon.png` + `teaser.yaml` (sample
+chat) the Bot Market seeder reads — and the `agent-profile.yaml` tools declaration that
+doubles as the "what it can do" copy (the check-9 extension) live in
+[`references/store-presentation.md`](references/store-presentation.md).
 
 ## Validation output (what the grader returns)
 

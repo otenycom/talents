@@ -58,5 +58,5 @@ migration; anything needing the LLM or the `cronjob` tool → in-box Talent migr
 
 The travel Talent's `0001_windowed_trip_crons` (`kind: checklist`) — swaps a prior
 version's open-interval monitor/briefing crons for day-bounded windowed ones, per active
-trip. See `catalog/skills/oteny-travel-talent/migrations.yaml` +
+trip. See [`../../oteny-travel-talent/migrations.yaml`](../../oteny-travel-talent/migrations.yaml) +
 `trip-planner/references/migrations.md`.
