@@ -3,15 +3,15 @@
 The open catalog of **Talents** for [Oteny](https://oteny.com) — your own private
 AI assistant on Telegram. A **Talent** is open content: a persona plus a set of
 skills (a tool *request* + instructions) that gives your OtenyBot a focused role —
-a flat-belly coach, a stock-research analyst, a travel concierge.
+a flat-belly coach, a shared grocery list, a stock-research analyst, a travel concierge.
 
 A Talent is **content, never capability**. The Oteny platform runs every Talent
 inside a scope-locked harness, so a Talent is safe by construction no matter what
 it says. That is why this catalog is **open** ([Apache-2.0](LICENSE)) — browse it,
 learn from it, and contribute your own.
 
-> Browse the live store at **[oteny.com/talents](https://oteny.com/talents)**.
-> Want to write one? Start at **[oteny.com/talents/build](https://oteny.com/talents/build)**.
+> Browse the live store at **[oteny.com/bots](https://oteny.com/bots)**.
+> Want to write one? Start at **[oteny.com/bots/build](https://oteny.com/bots/build)**.
 
 ## What's here
 
@@ -20,6 +20,7 @@ skills/
 ├── talent-authoring-standard/   the rubric a Talent must meet (+ the lint rules)
 ├── oteny-talent-authoring/      the how-to: create → edit → package → publish
 ├── oteny-flatbelly-talent/      a private flat-belly coach
+├── oteny-shopbot-talent/        one shared grocery list, sorted by aisle
 ├── oteny-stock-talent/          terse, numbers-first stock research
 └── oteny-travel-talent/         a private travel concierge
 ```
@@ -27,9 +28,9 @@ skills/
 Each marketable Talent is a self-contained bundle: an `agent-profile.yaml`
 (persona + which skills load), the skills themselves, `references/`, and a
 `scripts/selfcheck.py` first-run judge. Some bundle docs link to **Oteny platform
-skills** (e.g. `index-reconciler`, `skill-translator`) that run on your OtenyBot's
-machine and apply the Talent's routing — those live on the platform, not in this
-catalog, so a few in-bundle links resolve only once the Talent is delivered.
+skills** (e.g. `index-reconciler`, which applies the Talent's routing) that run on
+your OtenyBot's machine — those live on the platform, not in this catalog, so a few
+in-bundle links resolve only once the Talent is delivered.
 
 ## Build a Talent
 
