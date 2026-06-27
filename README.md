@@ -19,6 +19,7 @@ running it safely, and covering the model bills — so a great Talent is all you
 skills/
 ├── talent-authoring-standard/   the rubric a Talent must meet (+ the lint rules)
 ├── oteny-talent-authoring/      the how-to: create → edit → package → publish
+├── oteny-talent-dev-loop/       the test/ship loop: clone → reload → test → traces → green → tag
 ├── oteny-flatbelly-talent/      a private flat-belly coach
 ├── oteny-shopbot-talent/        one shared grocery list, sorted by aisle
 ├── oteny-stock-talent/          terse, numbers-first stock research
