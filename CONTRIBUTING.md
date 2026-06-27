@@ -8,15 +8,20 @@ and follow the **[oteny-talent-authoring](skills/oteny-talent-authoring)** how-t
 
 ## Before you open a PR
 
-Run the same gate Oteny runs at delivery — there are no surprise rejections:
+1. **Lint** — run the same gate Oteny runs at delivery, so there are no surprise rejections:
 
-```bash
-python skills/talent-authoring-standard/scripts/lint_upgrade_safe.py skills/<your>-talent
-# exit 0 = pass, 1 = fail. Add --json for machine-readable output.
-```
+   ```bash
+   python skills/talent-authoring-standard/scripts/lint_upgrade_safe.py skills/<your>-talent
+   # exit 0 = pass, 1 = fail. Add --json for machine-readable output.
+   ```
 
-The CI workflow ([`.github/workflows/talent-lint.yml`](.github/workflows/talent-lint.yml))
-runs this on every PR.
+   The CI workflow ([`.github/workflows/talent-lint.yml`](.github/workflows/talent-lint.yml))
+   runs this on every PR.
+
+2. **Prove it behaves** — linting never sends the bot a message, so back it with
+   behavioral tests in `tests/scenarios/*.yaml` and run them through the
+   **[oteny-talent-dev-loop](skills/oteny-talent-dev-loop)** (clone → test → traces). A green
+   run is what pre-clears the human review below.
 
 ## What we check
 
@@ -26,7 +31,10 @@ runs this on every PR.
   state that a re-delivery would clobber (the lint enforces this statically).
 - **Provenance & trust** — a reviewer verifies a Talent before it is marked
   **Verified** in the store. GitHub is the transport; the review is the trust
-  authority. A merged-but-unverified Talent lists as **Community**.
+  authority. A merged-but-unverified Talent lists as **Community**; a clean automated test
+  run (the dev loop above) auto-grades it and can pre-clear the human review. Community
+  flags can quarantine a listing, and the store sorts by reputation — so honest, well-tested
+  Talents rise.
 
 ## Licensing
 
