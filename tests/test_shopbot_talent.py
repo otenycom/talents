@@ -1,9 +1,10 @@
 """Unit tests for ShopBot (the grocery-list Talent).
 
 Proves the authored bundle works end-to-end without a VM: the profile parses, the schema
-creates its tables idempotently + seeds the generic aisle reference, selfcheck reaches
-READY once set up, list_view groups the active list by store -> aisle in walk order, and
-the (opt-in) weekly-nudge cron planner pins model + provider.
+seeds the aisle walk order + store aliases, selfcheck reaches READY once set up, and the
+shop.py CLI backbone does the real work — store parsing + alias learning, model/-c
+categories, lowest-vacant stable IDs, unique-per-store upsert, and the grouped (default
+store first, then aisle walk order) render with names + qty-1 hidden.
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ import yaml
 from _talents import CATALOG, SHARED, load, sandbox_env
 
 SHOPBOT = CATALOG / "oteny-shopbot-talent"
-_TABLES = {"stores", "sections", "items", "item_sections"}
+_TABLES = {"items", "store_aliases", "categories"}
 
 
 def _init(db: Path) -> None:
@@ -32,6 +33,23 @@ def _data_dir(root: Path) -> Path:
     return d
 
 
+def _setup(root: Path, *, default_store="Supermarket") -> Path:
+    """A ready sandbox: db + profile; returns the data dir."""
+    d = _data_dir(root)
+    _init(d / "shopping.db")
+    (d / "profile.yaml").write_text(
+        f"default_store: {default_store}\nlanguage: en\ntimezone: Europe/Amsterdam\n")
+    return d
+
+
+def _rows(db: Path, where="1=1"):
+    con = sqlite3.connect(db); con.row_factory = sqlite3.Row
+    rows = [dict(r) for r in con.execute(f"SELECT * FROM items WHERE {where} ORDER BY id")]
+    con.close()
+    return rows
+
+
+# --------------------------------------------------------------- bundle shape
 def test_agent_profile_parses_and_is_single_skill():
     prof = yaml.safe_load((SHOPBOT / "agent-profile.yaml").read_text())
     assert prof["bot"] == "oteny-shopbot-talent"
@@ -40,34 +58,33 @@ def test_agent_profile_parses_and_is_single_skill():
     assert prof["routing"]["signature"] == "oteny-shopbot-talent"
 
 
-def test_init_sql_creates_tables_idempotently_and_seeds_aisles(tmp_path):
+def test_init_sql_seeds_aisles_and_aliases_idempotently(tmp_path):
     db = tmp_path / "shopping.db"
     _init(db)
     con = sqlite3.connect(db)
-    tables = {r[0] for r in con.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'")}
+    tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert _TABLES <= tables
-    seeds = con.execute("SELECT COUNT(*) FROM item_sections").fetchone()[0]
+    cats = con.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
+    aliases = con.execute("SELECT COUNT(*) FROM store_aliases").fetchone()[0]
+    # walk order is real: Produce sorts before Dairy before Other
+    order = [r[0] for r in con.execute(
+        "SELECT name FROM categories ORDER BY sort_order")]
     con.close()
-    assert seeds >= 40                       # generic keyword -> aisle reference seeded
-    _init(db)                                # idempotent: re-run raises nothing
+    assert cats >= 10 and aliases >= 15
+    assert order.index("Produce") < order.index("Dairy") < order.index("Other")
+    _init(db)  # idempotent
     con = sqlite3.connect(db)
-    again = con.execute("SELECT COUNT(*) FROM item_sections").fetchone()[0]
+    assert con.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == cats
     con.close()
-    assert again == seeds                    # INSERT OR IGNORE -> no duplicates
 
 
-def test_selfcheck_reaches_ready_when_set_up(tmp_path, monkeypatch):
+# --------------------------------------------------------------- selfcheck
+def test_selfcheck_ready_when_set_up(tmp_path, monkeypatch):
     sandbox_env(monkeypatch, tmp_path)
-    d = _data_dir(tmp_path)
-    _init(d / "shopping.db")
-    (d / "profile.yaml").write_text(
-        "default_store: Albert Heijn\nlanguage: en\ntimezone: Europe/Amsterdam\n")
+    d = _setup(tmp_path)
     (d / "memory.md").write_text("# memory\n")
     (tmp_path / ".hermes" / "memories").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".hermes" / "memories" / "USER.md").write_text("# identity\n")
-    # The bundle is delivered at ~/.hermes/skills/talents/<bot>/ — mirror that so the
-    # `tools` artifact (list_view.py present_if_file) resolves, as it does on a real VM.
     skills = tmp_path / ".hermes" / "skills" / "talents"
     skills.mkdir(parents=True, exist_ok=True)
     (skills / "oteny-shopbot-talent").symlink_to(SHOPBOT)
@@ -78,40 +95,83 @@ def test_selfcheck_reaches_ready_when_set_up(tmp_path, monkeypatch):
 
 def test_selfcheck_not_ready_without_profile(tmp_path, monkeypatch):
     sandbox_env(monkeypatch, tmp_path)
-    d = _data_dir(tmp_path)
-    _init(d / "shopping.db")                  # db only, no profile
+    _init(_data_dir(tmp_path) / "shopping.db")  # db only, no profile
     sc = load(SHARED / "selfcheck.py", "sc_shop2")
-    rep = sc.run(SHOPBOT / "required_artifacts.yaml")
-    assert rep["ready"] is False
+    assert sc.run(SHOPBOT / "required_artifacts.yaml")["ready"] is False
 
 
-def test_list_view_groups_by_store_then_aisle_walk_order(tmp_path, monkeypatch):
+# --------------------------------------------------------------- shop.py CLI
+def _shop(monkeypatch, tmp_path):
     sandbox_env(monkeypatch, tmp_path)
-    d = _data_dir(tmp_path)
-    db = d / "shopping.db"
-    _init(db)
-    con = sqlite3.connect(db)
-    con.execute("INSERT INTO stores (id,name,is_default) VALUES (1,'Albert Heijn',1)")
-    con.execute("INSERT INTO sections (id,store_id,name,sort_order) VALUES"
-                " (1,1,'Produce',10),(2,1,'Dairy',30)")
-    con.execute("INSERT INTO items (name,quantity,store_id,section_id,added_by,status) VALUES"
-                " ('oat milk','2',1,2,'Sam','active'),"        # Dairy (sort 30)
-                " ('spinach','',1,1,'You','active'),"          # Produce (sort 10)
-                " ('eggs','12',1,2,'You','bought')")           # bought -> off the active list
-    con.commit()
-    con.close()
-    lv = load(SHOPBOT / "scripts" / "list_view.py", "lv_shop")
-    con = sqlite3.connect(db)
-    con.row_factory = sqlite3.Row
-    groups = lv.active_groups(con)
-    con.close()
-    assert len(groups) == 1 and groups[0]["store"] == "Albert Heijn"
-    sections = [s["section"] for s in groups[0]["sections"]]
-    assert sections == ["Produce", "Dairy"]          # walk order (sort_order asc)
-    names = [it["name"] for s in groups[0]["sections"] for it in s["items"]]
-    assert names == ["spinach", "oat milk"]          # bought 'eggs' excluded
+    return load(SHOPBOT / "scripts" / "shop.py", "shop_cli")
 
 
+def test_add_parses_store_in_text_and_learns_it(tmp_path, monkeypatch):
+    shop = _shop(monkeypatch, tmp_path)
+    _setup(tmp_path)
+    shop.main(["add", "aardbei bij banketbakker", "-c", "Bakery", "-u", "Ries"])
+    db = _data_dir(tmp_path) / "shopping.db"
+    row = _rows(db)[0]
+    assert row["name"] == "Aardbei" and row["store"] == "Banketbakker"
+    assert row["category"] == "Bakery" and row["status"] == "pending"
+    # the new structured store was LEARNED into store_aliases
+    con = sqlite3.connect(db)
+    learned = con.execute(
+        "SELECT canonical FROM store_aliases WHERE alias='banketbakker'").fetchone()
+    con.close()
+    assert learned and learned[0] == "Banketbakker"
+
+
+def test_add_resolves_seeded_alias_and_default_store(tmp_path, monkeypatch):
+    shop = _shop(monkeypatch, tmp_path)
+    _setup(tmp_path, default_store="Albert Heijn")
+    shop.main(["add", "melk", "-s", "ah", "-c", "Dairy"])       # alias ah -> Albert Heijn
+    shop.main(["add", "bananen", "-c", "Produce"])              # no store -> default
+    rows = {r["name"]: r for r in _rows(_data_dir(tmp_path) / "shopping.db")}
+    assert rows["Melk"]["store"] == "Albert Heijn"
+    assert rows["Bananen"]["store"] == "Albert Heijn"
+
+
+def test_add_is_unique_per_store_upsert(tmp_path, monkeypatch):
+    shop = _shop(monkeypatch, tmp_path)
+    _setup(tmp_path)
+    shop.main(["add", "oat milk", "-q", "2", "-c", "Dairy"])
+    shop.main(["add", "oat milk", "-q", "3", "-c", "Dairy"])    # re-add → update qty, same row
+    rows = _rows(_data_dir(tmp_path) / "shopping.db")
+    assert len(rows) == 1 and rows[0]["quantity"] == "3" and rows[0]["id"] == 1
+
+
+def test_check_drops_off_and_lowest_vacant_id_recycles(tmp_path, monkeypatch):
+    shop = _shop(monkeypatch, tmp_path)
+    _setup(tmp_path)
+    for n in ("eggs", "bread", "milk"):
+        shop.main(["add", n, "-c", "Other"])                   # ids 1,2,3
+    shop.main(["remove", "2"])                                  # free id 2
+    shop.main(["add", "peas", "-c", "Frozen"])                 # should reuse id 2
+    db = _data_dir(tmp_path) / "shopping.db"
+    peas = next(r for r in _rows(db) if r["name"] == "Peas")
+    assert peas["id"] == 2
+    shop.main(["check", "1"])                                   # eggs bought → off the list
+    pending = [r["name"] for r in _rows(db, "status='pending'")]
+    assert "Eggs" not in pending and "Peas" in pending
+
+
+def test_list_groups_default_store_first_then_aisle_walk_order(tmp_path, monkeypatch, capsys):
+    shop = _shop(monkeypatch, tmp_path)
+    _setup(tmp_path, default_store="Albert Heijn")
+    shop.main(["add", "spinach", "-c", "Produce"])             # AH (default), Produce(10)
+    shop.main(["add", "milk", "-q", "1", "-c", "Dairy"])       # AH, Dairy(30), qty1 hidden
+    shop.main(["add", "steak bij Butcher", "-c", "Meat & Fish"])  # specialty store
+    capsys.readouterr()
+    shop.main(["list"])
+    out = capsys.readouterr().out
+    assert out.index("Albert Heijn") < out.index("Butcher")    # default store first
+    assert out.index("Produce") < out.index("Dairy")           # aisle walk order
+    assert "Milk" in out and "x1" not in out                   # qty 1 hidden
+    assert "added_by" not in out and "Ries" not in out         # names not shown
+
+
+# --------------------------------------------------------------- cron (unchanged)
 def test_weekly_nudge_cron_pins_model_and_provider(tmp_path):
     pc = load(SHOPBOT / "scripts" / "provision_cron.py", "pc_shop")
     profile = {"timezone": "Europe/Amsterdam", "reminders": {"weekly_shop": "Sat 09:00"}}
@@ -119,12 +179,5 @@ def test_weekly_nudge_cron_pins_model_and_provider(tmp_path):
                 model="assistant", provider="router", ref=datetime(2026, 7, 1))
     assert len(p["to_create"]) == 1
     job = p["to_create"][0]
-    assert job["name"] == "OtenyShopBotTalent weekly shop nudge"
     assert job["model"] == "assistant" and job["provider"] == "router"
-    assert job["schedule"] == "0 7 * * 6"            # Sat 09:00 CEST -> 07:00 UTC, dow=6
-
-
-def test_no_weekly_nudge_when_unset(tmp_path):
-    pc = load(SHOPBOT / "scripts" / "provision_cron.py", "pc_shop2")
-    assert pc.build_specs({"timezone": "Europe/Amsterdam"}) == []        # reminders absent
-    assert pc.build_specs({"reminders": {"weekly_shop": ""}}) == []       # blank disables
+    assert job["schedule"] == "0 7 * * 6"

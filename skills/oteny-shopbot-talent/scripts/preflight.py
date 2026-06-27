@@ -39,7 +39,7 @@ except ImportError:  # pragma: no cover - py>=3.9 on Hermes
     ZoneInfo = None
 
 _BOT = "oteny-shopbot-talent"
-_DB_TABLES = ["stores", "sections", "items", "item_sections"]
+_DB_TABLES = ["items", "store_aliases", "categories"]
 _PROFILE_REQUIRED = ["default_store", "language", "timezone"]
 _PROFILE_SHOW = ["name", "default_store", "household", "language", "timezone", "reminders"]
 
@@ -111,14 +111,13 @@ def _list_line(db: Path) -> str:
         if "items" not in have:
             return "LIST: (no items table yet)"
         total = con.execute(
-            "SELECT COUNT(*) FROM items WHERE status='active'").fetchone()[0]
+            "SELECT COUNT(*) FROM items WHERE status='pending'").fetchone()[0]
         rows = con.execute(
-            "SELECT COALESCE(st.name,'(no store)') AS store, COUNT(*) AS n "
-            "FROM items i LEFT JOIN stores st ON st.id = i.store_id "
-            "WHERE i.status='active' GROUP BY store ORDER BY n DESC"
+            "SELECT COALESCE(store,'(no store)') AS store, COUNT(*) AS n "
+            "FROM items WHERE status='pending' GROUP BY store ORDER BY n DESC"
         ).fetchall()
         by_store = ", ".join(f"{r[0]}: {r[1]}" for r in rows) or "—"
-        return f"LIST: {total} active ({by_store}) — use list_view.py for aisle order"
+        return f"LIST: {total} to buy ({by_store}) — use 'shop.py list' for aisle order"
     except sqlite3.Error as exc:
         return f"LIST: (query error: {exc})"
     finally:

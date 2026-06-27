@@ -7,7 +7,7 @@ base_language: en
 artifacts:
   - kind: sqlite_db
     path: ~/.hermes/data/oteny-shopbot-talent/shopping.db
-    must_have_tables: [stores, sections, items, item_sections]
+    must_have_tables: [items, store_aliases, categories]
 
   - kind: profile
     path: ~/.hermes/data/oteny-shopbot-talent/profile.yaml
@@ -39,5 +39,5 @@ artifacts:
 
   - kind: tools
     present_if_file:
-      list_view: ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/list_view.py
+      shop: ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/shop.py
     stubbed: []

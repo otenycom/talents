@@ -16,8 +16,9 @@ python3 ~/.hermes/skills/talents/oteny-shopbot-talent/scripts/selfcheck.py
 
 ## Remediation: `sqlite_db` (the shopping list)
 
-The shipped, idempotent `init.sql` owns the schema and seeds the generic keyword→aisle
-reference. Run it once (creates the dir first):
+The shipped, idempotent `init.sql` owns the schema AND seeds the canonical aisle walk order
+(`categories`) + the common store aliases (`store_aliases`) — no manual per-store setup. Run
+it once (creates the dir first):
 
 ```bash
 mkdir -p ~/.hermes/data/oteny-shopbot-talent
@@ -28,23 +29,13 @@ sqlite3 ~/.hermes/data/oteny-shopbot-talent/shopping.db < ~/.hermes/skills/talen
 
 Ask (in the tenant's language) and write `~/.hermes/data/oteny-shopbot-talent/profile.yaml`
 (template: `../profile/profile.yaml.template`):
-1. Your **main supermarket** (the default store items file under) — e.g. Albert Heijn.
+1. Your **main supermarket** (the default store new items file under) — e.g. Albert Heijn.
 2. (group bots) who is in the **household** sharing the list?
 3. Reply **language** (default English) and **timezone**.
 4. (optional) a **weekly nudge** time, e.g. `Sat 09:00` — leave blank to skip.
 
-Then create that store + its aisle walk order, so items group correctly. Insert the
-store, mark it default, and add its sections in walk order (lower `sort_order` = earlier).
-Run each statement as its OWN `sqlite3` call (one invocation per call). Example:
-
-```bash
-sqlite3 ~/.hermes/data/oteny-shopbot-talent/shopping.db "INSERT OR IGNORE INTO stores (name, is_default) VALUES ('Albert Heijn', 1);"
-```
-
-Then add that store's sections in the order you walk them (Produce, Bakery, Dairy, Meat &amp;
-Fish, Pantry, Frozen, Drinks, Household, Personal care …), one `sqlite3` call per section,
-using the store id you just created. Keep the names matching the generic reference's
-`section_name` values so auto-grouping lines up.
+That's all the store setup needed — `shop.py` files each item under its aisle automatically
+and learns specialty stores ("... bij slager") as they're mentioned.
 
 Finally render this bot's DOMAIN memory: fill `../profile/memory.md.template`'s
 `{{placeholders}}` from `profile.yaml` and write it to
