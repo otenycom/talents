@@ -29,8 +29,19 @@ computer** — a real machine of its own, where it remembers what you tell it, k
 data, runs automations on a schedule while you're away, and grows its own tools and skills over
 time. The hard wall is *between* bots: a Talent can never reach another user's bot, their data,
 or Oteny's keys and control plane. So a Talent is powerful inside its own bot and
-powerless outside it — even an unreviewed one can, at worst, only affect the bot running it,
-never yours. That's why the catalog can be fully open.
+powerless outside it — the blast radius of even a misbehaving Talent stops at the one bot
+running it, never anyone else's.
+
+**One honest caveat: "the bot running it" is yours.** Isolation contains the blast radius; it
+doesn't make every Talent harmless to the person who installs it. Inside your bot a Talent has
+real reach — its scripts run on your own private machine, alongside your data, your automations,
+and the tools it requested. The wall keeps a bad Talent *off other people's bots*; it can't keep
+one *off the bot you chose to install it on*. So picking a Talent is a real (and perfectly
+normal) act of trust — and that's the other reason everything here is open: you, or a reviewer
+you trust, can read a Talent end to end before it ever touches your bot. Favor **Verified**
+Talents, skim what you run, and let the lint gate, neutralized test clones, and the on-device
+self-check carry the rest. Hard isolation plus open code is what makes a catalog of strangers'
+Talents safe to *browse* — and safe to *run*.
 
 **Oteny runs the bot; you bring the Talent.** Each user gets their own OtenyBot in an isolated
 sandbox (its own memory, its own database, its own schedule). Oteny provisions it, keeps it
