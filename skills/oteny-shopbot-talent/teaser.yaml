@@ -1,6 +1,6 @@
 # ShopBot sample-chat teaser — rendered on the /bots/shopbot landing by the shared
 # oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Modelled on a real
-# household's prod session (hh00009): two people sharing one live list across TWO stores (a
+# household's prod session: two people sharing one live list across TWO stores (a
 # default supermarket + a specialty store), aisle ordering with the default store on top,
 # frictionless add, routing an item to a second store, and the bare-number check-off people
 # actually text while walking the shop. Text only (no media) — crisp at any DPI, accessible.

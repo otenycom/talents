@@ -1,6 +1,6 @@
 # StockBot sample-chat teaser — rendered on the /bots/stock landing by the shared
 # oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Modelled on a real
-# investors' group session (hh00066): terse, numbers-first research GROUNDED IN LIVE PRICES
+# investors' group session: terse, numbers-first research GROUNDED IN LIVE PRICES
 # (a per-ticker take with a clear Buy/Hold + analyst targets), the All-In podcast distillation
 # (core thesis → key takeaways → company positioning → portfolio watch), and a daily cron
 # brief — all in a shared group of friends. Research/education, not financial advice. Text
@@ -10,7 +10,7 @@ teaser:
   icon: fa-line-chart
   members:
     - {key: me,    name: You,      role: me}
-    - {key: arjen, name: Arjen}
+    - {key: max,   name: Max}
     - {key: bot,   name: OtenyBot, role: bot}
   turns:
     - {from: me,   at: "9:12", text: "news/trend on TSLA, GOOG?"}
@@ -20,7 +20,7 @@ teaser:
                       "GOOG  $349.56  ▼ −5% on the AI talent war"],
               status: "prices pulled live · not financial advice"}}
     - {from: bot,  at: "9:12", text: "TSLA — Hold. July 2 delivery report (~400k expected) is the catalyst. GOOG — pullback looks technical; long-term AI backing is the strongest in big tech."}
-    - {from: arjen, at: "9:20", text: "what did All-In say this week?"}
+    - {from: max,  at: "9:20", text: "what did All-In say this week?"}
     - {from: bot,  at: "9:20",
        card: {title: "All-In · E271 — distilled",
               lines: ["Power, not chips, is the AI choke point",

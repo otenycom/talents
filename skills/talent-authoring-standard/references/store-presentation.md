@@ -50,6 +50,13 @@ fallback). Author both for any Talent you want to ship to the storefront.
   Keep the chat in the storefront's English even if you tested it in another language — the
   realism is the interaction shape, not the words.
 
+  **Mirror the shape, not real people's data.** A teaser ships publicly, so never carry real
+  personal data over from the session you grounded it in: use stand-in member names (`You`,
+  `Sam`, a colour-keyed friend), and replace any real person's name, contact detail, or
+  personal/biometric figure (a real weight, a real account/phone id) with a representative
+  invented value. The bundle PII check rejects known real names outright — keep the numbers
+  believable but synthetic.
+
 ## Per-Talent tools-used (check 9 extension)
 
 State, in `agent-profile.yaml`, the capabilities the Talent leans on — its
