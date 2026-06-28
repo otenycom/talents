@@ -6,6 +6,22 @@ the skills themselves, optional `references/`, and a `scripts/selfcheck.py` firs
 judge. Write it against the **[talent-authoring-standard](skills/talent-authoring-standard)**
 and follow the **[oteny-talent-authoring](skills/oteny-talent-authoring)** how-to.
 
+## Enable the local gate (once)
+
+The repo ships a **pre-commit hook** that runs the *same* checks CI runs — the bundle unit
+tests (PII-clean, teaser schema, selfcheck parity, …), the offline behavioral scenarios, and
+the two Talent lints — so a red change is caught before it leaves your machine instead of on
+CI after the fact. Turn it on once:
+
+```bash
+pip install pre-commit && pre-commit install
+```
+
+After that every `git commit` runs the gate and blocks on a failure. To run it on demand
+(no install required) use `python scripts/precommit_checks.py`, or
+`pre-commit run --all-files`. In a genuine emergency `git commit --no-verify` bypasses it —
+CI still gates the push.
+
 ## Before you open a PR
 
 1. **Lint** — run the same gate Oteny runs at delivery, so there are no surprise rejections:
