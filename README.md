@@ -134,6 +134,7 @@ runs it on every push. A merged Talent lists as **Community** until a reviewer m
 | I want to… | Read |
 | --- | --- |
 | Understand what a Talent is and how it's delivered | this page (above) |
+| Learn to write my first Talent, from scratch (newcomer's guide) | [`docs/writing-a-talent.md`](docs/writing-a-talent.md) |
 | Know the rules a Talent must satisfy | [`skills/talent-authoring-standard/`](skills/talent-authoring-standard) |
 | Write or edit a Talent step by step | [`skills/oteny-talent-authoring/`](skills/oteny-talent-authoring) |
 | Test, clone, debug, and ship a Talent | [`skills/oteny-talent-dev-loop/`](skills/oteny-talent-dev-loop) |
