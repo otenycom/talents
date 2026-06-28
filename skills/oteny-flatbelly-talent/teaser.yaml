@@ -1,0 +1,34 @@
+# FlatbellyBot sample-chat teaser — rendered on the /bots/flatbelly landing by the shared
+# oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Modelled on a real
+# coaching session (hh00046): ONE shorthand morning log (weight + sleep score + meals) turns
+# into a full day-status — morning weight + trend slope, per-meal macro breakdown, the
+# leucine ≥3.0 g (mTOR) threshold, protein-to-go vs the daily target, and an evidence-based,
+# non-judgmental nudge — plus the Sunday progress chart. A private 1:1 coach (DM), text only
+# (no media) — crisp at any DPI, accessible, localisable.
+teaser:
+  title: "Flatbelly coach"
+  icon: fa-heartbeat
+  members:
+    - {key: me,  name: You,      role: me}
+    - {key: bot, name: OtenyBot, role: bot}
+  turns:
+    - {from: me,  at: "8:14", text: "101.2 kg, sleep score 81\n100g salmon, 50g sardines, 3 eggs, rucola + olive oil"}
+    - {from: bot, at: "8:14", text: "Morning! All logged. Down 0.9 kg — trend −0.93 kg/week over 55 weigh-ins, right in the healthy 0.5–1.0%/week band. Sleep 81 (high band) 💤"}
+    - {from: bot, at: "8:14",
+       card: {title: "Breakfast",
+              lines: ["🐟 100g salmon · 22 g protein · 2.0 g leucine",
+                      "🐟 50g sardines · 12 g protein · 1.0 g leucine",
+                      "🍳 3 eggs · 18 g protein · 1.6 g leucine",
+                      "🥗 rucola + olive oil"],
+              status: "516 kcal · 53 g protein · 4.62 g leucine ✅"}}
+    - {from: bot, at: "8:14", text: "Leucine 4.62 g clears the 3.0 g threshold, so the muscle-keeping switch is on. 109 g protein to go to your 162 g target — pure protein at lunch and you're there."}
+    - {from: me,  at: "15:30", text: "snack: 50g whey choc ice"}
+    - {from: bot, at: "15:30", text: "Logged — 38 g protein, leucine 4.0 g ✅ Day total 91 g protein. Strong base; aim a fish or chicken anchor at dinner to close the gap."}
+    - {from: me,  at: "20:02", text: "how's my week trending?"}
+    - {from: bot, at: "20:02",
+       card: {title: "This week",
+              lines: ["⚖️ 101.2 kg · −0.9 kg/week",
+                      "💤 avg sleep 79 · high band",
+                      "🥩 protein target hit 6 of 7 days"],
+              status: "On track — visceral fat trending down"}}
+    - {from: bot, at: "20:02", text: "I'll drop your full weight + waist chart here every Sunday at noon. This is coaching, not medical advice 🙏"}

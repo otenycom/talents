@@ -42,6 +42,14 @@ fallback). Author both for any Talent you want to ship to the storefront.
   Bundle-relative media (`teaser/…`) is inlined as a data URI at seed time; an `http(s)`
   URL is kept as-is. Keep it short (a dozen turns) and lead with the outcome.
 
+  **Ground it in a real session — don't invent the chat.** A teaser reads true only when it
+  mirrors how the bot actually replies. Run the Talent on a real bot, have an ordinary
+  conversation, and copy what actually comes back — the same card layout, the exact counts and
+  numbers, the terse confirmations — instead of an idealised script written from memory. Show
+  the Talent's standout in action (an aisle-ordered list, a macro breakdown, a live-price take).
+  Keep the chat in the storefront's English even if you tested it in another language — the
+  realism is the interaction shape, not the words.
+
 ## Per-Talent tools-used (check 9 extension)
 
 State, in `agent-profile.yaml`, the capabilities the Talent leans on — its

@@ -1,27 +1,31 @@
 # ShopBot sample-chat teaser — rendered on the /bots/shopbot landing by the shared
-# oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Demoes the
-# spearhead features: one default store, aisle ordering (the standout), frictionless
-# add + check-off, and the real-time multi-person household. Text only (no media), so it
-# is crisp at any DPI and fully accessible.
+# oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Modelled on a real
+# household's prod session (hh00009): two people sharing one live list across TWO stores (a
+# default supermarket + a specialty store), aisle ordering with the default store on top,
+# frictionless add, routing an item to a second store, and the bare-number check-off people
+# actually text while walking the shop. Text only (no media) — crisp at any DPI, accessible.
 teaser:
-  title: "Weekly groceries"
+  title: "Groceries"
   icon: fa-shopping-basket
   members:
     - {key: me,  name: You,      role: me}
     - {key: sam, name: Sam}
     - {key: bot, name: OtenyBot, role: bot}
   turns:
-    - {from: me,  at: "18:02", text: "add oat milk x2 and spinach"}
-    - {from: bot, at: "18:02", text: "Added — oat milk → Dairy, spinach → Produce. 12 items across 5 aisles at Albert Heijn."}
-    - {from: sam, at: "18:41", text: "got the oat milk 👍"}
-    - {from: bot, at: "18:41", text: "Nice — checked off. 11 left."}
-    - {from: me,  at: "18:55", text: "what's left? heading to the shop"}
+    - {from: me,  at: "18:02", text: "skyr, blueberries, spinach, eggs x12"}
+    - {from: bot, at: "18:02", text: "Added — filed by aisle at Albert Heijn (your default store). 9 items on the list now."}
+    - {from: sam, at: "18:41", text: "ribeye for saturday — get it at the butcher"}
+    - {from: bot, at: "18:41", text: "Routed ribeye ×1 to the butcher 🔪 Everything else stays at Albert Heijn — I keep each store on its own list."}
+    - {from: me,  at: "18:55", text: "what's left? heading out"}
     - {from: bot, at: "18:55",
-       card: {title: "Albert Heijn — in aisle order",
-              lines: ["🥬 Produce — spinach, bananas ×3",
+       card: {lines: ["🛒 Albert Heijn",
+                      "🥬 Produce — spinach, blueberries, bananas ×3",
                       "🥖 Bakery — sourdough",
-                      "🧀 Dairy — Greek yoghurt, eggs ×12",
-                      "🧊 Frozen — peas",
-                      "🧴 Household — dish soap"],
-              status: "11 items · walk top to bottom"}}
-    - {from: bot, at: "18:55", text: "Sorted so you walk the store section by section — no backtracking. I'll drop items as you and Sam check them off."}
+                      "🥛 Dairy — Skyr, Greek yoghurt, eggs ×12",
+                      "🥩 Meat & fish — smoked chicken",
+                      "🛒 The butcher",
+                      "🥩 Meat — ribeye ×2"],
+              status: "9 items · default store first, walk top to bottom"}}
+    - {from: bot, at: "18:55", text: "Sorted so you walk each shop section by section — no backtracking, no double trip."}
+    - {from: sam, at: "19:24", text: "3"}
+    - {from: bot, at: "19:24", text: "Checked off Greek yoghurt 👍 8 left. Sam's shopping live — you two won't grab the same things twice."}
