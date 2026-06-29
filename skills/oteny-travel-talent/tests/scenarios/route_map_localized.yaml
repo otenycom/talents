@@ -1,0 +1,26 @@
+# Scenario: the incident route ("show me the route to the OV + a map") — the shipped fix,
+# re-asserted. Proves: ONE structured `travel` call (transit, static_map), a real Google
+# map (deeplink + the Static-Maps MEDIA image), local times, and ZERO `image_generate`
+# (never an AI-drawn map) and ZERO `web_search` for the route. LIVE-ONLY (reply/trace).
+bot: oteny-travel-talent
+live_only: true
+
+seed:
+  profile:
+    home_city: Amsterdam
+    home_timezone: Europe/Amsterdam
+    language: en
+    default_currency: EUR
+  user_md: |
+    # Identity
+    Name: Test Tenant
+    Language: en
+
+turns:
+  - user: "Plan a trip from Jacob Marisplein, Amsterdam to OLVG Oost now — show the route to the OV and a map."
+    expect:
+      reply:
+        contains: ["google.com/maps"]       # the always-on deeplink floor
+      trace:
+        markers: ["travel"]
+        absent: ["image_generate", "web_search"]   # real Google map, not an AI fabrication; no route web_search

@@ -6,13 +6,17 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-version: 1.2.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.3.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
                  # 1.2.0: in-chat Static-Maps route image (travel static_map=true) + forwarded
                  # e-ticket intake → auto-filled booking (ticket-intake.md, national-ticket
                  # rules) + the broker-cache reuse nudge. Behavior added, no new migration id.
+                 # 1.3.0: live departures board (travel action=departures, Google alternatives,
+                 # international) + times already localized (no LLM tz-math) + cite-or-stand-down
+                 # discipline (honor tool fallback_hint; uncited grounding = unverified).
+                 # Behavior added, no new migration id.
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
 skills:

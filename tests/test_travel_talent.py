@@ -599,9 +599,13 @@ def test_hard_rule_strings_present_in_skill():
     assert "≤2 tool calls" in skill
     # (d) anti-fabrication of transit specifics
     assert "never invent a transit specific" in skill
-    # (e) honest real-time
-    assert "honest real-time" in skill
-    assert "no made-up" in skill
+    # (e) live departures board (v1.3.0) — call the board, never invent a clock time
+    assert "live departures" in skill
+    assert "action: departures" in skill
+    assert "never invent a clock time" in skill
+    # (f) cite or stand down — honor the tool's fallback_hint; uncited grounding is unverified
+    assert "cite or stand down" in skill
+    assert "fallback_hint" in skill
 
 
 def test_anti_fabrication_of_closures_in_disruption():
