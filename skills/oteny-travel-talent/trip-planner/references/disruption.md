@@ -6,13 +6,21 @@ to the **end-user traveller**. Four flows: the **monitor** (watch booked legs), 
 **post-trip review** (Wilma's 7-step, user-facing). All obey the hard rules — especially
 **no fabricated status** and **verify live** (`SKILL.md`).
 
-**⚠️ A disruption is only real if a live source says so.**
-**Never invent a network change, a line/route reorganisation, a stop closure, or "works on
-the line" to explain a route — and never agree a closure exists because the user guessed
-it.** A delay/cancellation/closure is reportable **only** when the `travel` tool (or a quoted
-live source) confirmed it **this turn**. If you can't confirm it, say "I can't confirm a
-disruption" and hand over the live deeplink (`transit.md` step 4) — a fabricated closure
-sends the traveller on an absurd detour, which is exactly the failure this rule prevents.
+**⚠️ A disruption is only real if a STRUCTURED live source says so.**
+**Never invent a network change, a line/route reorganisation, a stop closure, "works on the
+line", a relocated stop, or an accident to explain a route — and never agree a closure exists
+because the user guessed it.** For **ground transit** (tram/bus/metro/train) we have **no live
+delay/diversion feed**: Google's structured `transit`/`departures` carry times only — not
+delays, closures, or platforms. So a `web_search`/grounded hit is **NOT** a confirming source —
+it invents plausible specifics (a relocated stop "until some date", a line "split", an "accident
+at HH:MM"). **For an ad-hoc "any delays / storingen on my tram now?" do NOT `web_search` it and
+report the hits as fact**: answer "I don't have a live delay feed for local transit", give the
+`departures` board (what IS live) + the **9292 / Google Maps live board** (`transit.md` step 4)
+as the authoritative real-time source, and flag possible planned works only as "verify on the
+live board", never a certain dated closure. *(FLIGHT status is the exception — grounding is the
+documented fallback there until the structured flight source lands, but still cite-or-stand-down,
+never an invented gate/number.)* A fabricated closure sends the traveller on an absurd detour —
+exactly the failure this rule prevents.
 
 ## §MONITOR — watch booked flights/trains within the window (cron)
 

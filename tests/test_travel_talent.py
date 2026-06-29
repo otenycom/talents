@@ -610,8 +610,11 @@ def test_hard_rule_strings_present_in_skill():
 
 def test_anti_fabrication_of_closures_in_disruption():
     dis = _flat((TRAVEL / "trip-planner" / "references" / "disruption.md").read_text())
-    assert "only real if a live source says so" in dis
+    assert "only real if a structured live source says so" in dis
     assert "never invent a network change" in dis
+    # v1.3.3: ground transit has no live delay feed → web_search is NOT a confirming source
+    assert "no live delay/diversion feed" in dis
+    assert "do not `web_search` it and" in dis
 
 
 def test_anti_sycophancy_voice_rule():
