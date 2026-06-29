@@ -483,6 +483,19 @@ def run_scenario_live(path: Path, driver, bundle_override: str | None = None) ->
             r = assert_state_live(driver, spec)
             tres["results"].append(r)
             result["passed" if r["ok"] else "failed"] += 1
+        for spec in expect.get("uplink", []):          # ground-truth over /json/2/ (business bot)
+            # A business bot's source of truth is the business Odoo, not a local db: read the
+            # records back over the uplink (the business-bot-pattern §5 data-plane check). The
+            # live driver exposes ``assert_uplink``; a driver without it (no business uplink) is
+            # a fail, not a crash. Mock backend ignores ``uplink:`` (live-only).
+            if hasattr(driver, "assert_uplink"):
+                r = driver.assert_uplink(spec)
+            else:
+                r = {"kind": "uplink", "ok": False, "spec": spec,
+                     "reason": "driver has no uplink (run via the sidecar test verb on a "
+                               "business-bot clone)"}
+            tres["results"].append(r)
+            result["passed" if r["ok"] else "failed"] += 1
         if turn.get("assert"):                         # the /json/2/ escape hatch (Barney)
             r = {"kind": "assert", "ok": False, "ref": turn["assert"],
                  "reason": "assert hooks need a sandbox (mock only)"}
