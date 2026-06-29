@@ -46,6 +46,7 @@ The triage + the hard rules below are all you hold per turn. Everything else is 
 | **Step-by-step per-intent checklist** (trip/booking/todo/expense/briefing/adjust) | `references/checklists.md` |
 | **Live transit Q&A + door-to-door routing** (the `travel`-tool recipes) | `references/transit.md` |
 | **Record a flight/train/car/stay + deals research + deep links** | `references/bookings.md` |
+| **Auto-fill a booking from a forwarded e-ticket** (PDF/photo → parse → save) | `references/ticket-intake.md` |
 | **Build the day-by-day schedule + "leave-by" math** | `references/schedule.md` |
 | **Per-member prep templates** (packing/documents/health) | `references/todos.md` |
 | **Expense ledger SQL + split math + settle-up** | `references/expenses.md` |
@@ -95,6 +96,7 @@ Do **not** improvise. (Skip to "Cron role" only when a monitor/briefing/review j
    | the day plan / scheduling something at a time | ITINERARY | **§ITINERARY below** |
    | starting or editing a trip (name, dates, destination) | TRIP | `references/checklists.md` §TRIP |
    | a flight/train/car/ferry/hotel/stay/activity to record or research | BOOKING | `references/bookings.md` |
+   | a **forwarded e-ticket / boarding pass** (a PDF or photo of a flight or train ticket) | TICKET | `references/ticket-intake.md` |
    | a prep task — pack / bring / passport / visa / vaccine | TODO | `references/todos.md` |
    | "I paid X" / split / "who owes whom" / settle up | EXPENSE | `references/expenses.md` |
    | a delay/gate/cancellation, a reroute, a delay claim, the post-trip review | DISRUPTION | `references/disruption.md` |
@@ -193,9 +195,12 @@ URL yourself (a missing `%2C` breaks it).
 
 **Never use `image_generate` to depict a map, a route, or directions.** A generated picture
 that *looks* like navigation encodes nothing real — it is actively misleading for
-wayfinding. When asked for a map, emit the `maplink.py` deeplinks instead. *(A
-deterministic **data** render — the trip-card PNG from real DB rows — is fine; the ban is on
-**AI-fabricated** imagery, not on drawing real data on a canvas.)*
+wayfinding. When the user wants to **see** the route on a map, call `travel` with
+`static_map: true` — it returns a **real Google Static Map** image of the route (a `MEDIA:`
+reference you paste). Always emit the `maplink.py` deeplinks too — they're what the user
+navigates with. *(A deterministic **data** render — the static map from real Google routing,
+or the trip-card PNG from real DB rows — is fine; the ban is on **AI-fabricated** imagery,
+not on drawing real data on a canvas.)*
 
 ## ⚠️ HARD RULE: One `travel` call per route — never `web_search` a route, no retry storm
 

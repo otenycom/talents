@@ -4,6 +4,10 @@ The `bookings` table unifies transport legs + lodging + activities. This file is
 + the deals-research recipe. **We never book or pay** — we record what the tenant tells us,
 research options, and surface **links**. Schema in [`datamodel.md`](datamodel.md).
 
+> **Forwarded an e-ticket?** When the tenant sends a **PDF or photo of a flight/train
+> ticket**, don't ask them to retype it — parse it (it's ground truth) and auto-fill the
+> row: [`ticket-intake.md`](ticket-intake.md).
+
 ## Record a booking (entry → verify → reply)
 
 1. Classify `kind` ∈ flight/train/bus/car/ferry/hotel/airbnb/resort/activity. Pull what

@@ -27,7 +27,9 @@ Ferry, walk and bike legs ride inside a `transit`/`plan` query ("…including th
    deeplink (step 4), **never** a fabricated route or an empty "no trains". On a failure
    **STOP**: no `web_search` fallback, no retry of the same call, no probing variations
    (≤2 tool calls for a transit turn — preflight + one `travel`). Grinding searches is slow,
-   costly, and amplifies fabrication.
+   costly, and amplifies fabrication. **Don't re-resolve what you already have**: a place or
+   route you looked up earlier this conversation is still valid — reuse that result rather
+   than re-calling `travel` for it (the broker caches, so a re-ask just wastes a turn).
 3. **Quote the grounded result**: depart → arrive times, the line(s)/operator, platform,
    each transfer, total duration, and any **live delay/platform change**. For a newcomer,
    translate ("layover = the wait between connections", `glossary.md`). **Never invent a
@@ -48,6 +50,13 @@ Ferry, walk and bike legs ride inside a `transit`/`plan` query ("…including th
    For an NL transit trip it also prints the **9292 live-departures** board for the
    destination stop — that is the honest answer to "when's the next one?". **Never** draw a
    map with `image_generate` (a fabricated picture); link out instead.
+
+   **If the user wants to SEE the route on a map** (not just get directions), add
+   `static_map: true` to the `travel` call in step 2 — the result then carries a **real
+   Google Static Map** image of the route (a `MEDIA:` reference); paste that reference so the
+   image shows in-chat. It's a real Google map drawn from the route, **not** an
+   `image_generate` fabrication. The deeplink still goes too — the image is the picture, the
+   deeplink is what they navigate with.
 5. **Offer the next step**: if it's a leg they'll take, offer to save it as a BOOKING
    (`bookings.md`) and `monitor=1` it; if they want a reminder, that's **leave-by** math
    (`schedule.md`). For NL pay-as-you-go transit, end with the **check-out reminder** offer
