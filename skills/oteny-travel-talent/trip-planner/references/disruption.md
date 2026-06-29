@@ -6,21 +6,25 @@ to the **end-user traveller**. Four flows: the **monitor** (watch booked legs), 
 **post-trip review** (Wilma's 7-step, user-facing). All obey the hard rules — especially
 **no fabricated status** and **verify live** (`SKILL.md`).
 
-**⚠️ A disruption is only real if a STRUCTURED live source says so.**
-**Never invent a network change, a line/route reorganisation, a stop closure, "works on the
-line", a relocated stop, or an accident to explain a route — and never agree a closure exists
-because the user guessed it.** For **ground transit** (tram/bus/metro/train) we have **no live
-delay/diversion feed**: Google's structured `transit`/`departures` carry times only — not
-delays, closures, or platforms. So a `web_search`/grounded hit is **NOT** a confirming source —
-it invents plausible specifics (a relocated stop "until some date", a line "split", an "accident
-at HH:MM"). **For an ad-hoc "any delays / storingen on my tram now?" do NOT `web_search` it and
-report the hits as fact**: answer "I don't have a live delay feed for local transit", give the
-`departures` board (what IS live) + the **9292 / Google Maps live board** (`transit.md` step 4)
-as the authoritative real-time source, and flag possible planned works only as "verify on the
-live board", never a certain dated closure. *(FLIGHT status is the exception — grounding is the
-documented fallback there until the structured flight source lands, but still cite-or-stand-down,
-never an invented gate/number.)* A fabricated closure sends the traveller on an absurd detour —
-exactly the failure this rule prevents.
+**⚠️ A disruption you report must be SOURCED — cite it, don't invent it (and don't suppress it).**
+`web_search` IS a valid, useful source for planned works, diversions, and disruptions — Google
+indexes the GVB / NS / municipal announcements and they are **real** (e.g. the Surinameplein Oranje
+Loper works + the 4 July zomerdienstregeling are genuine). Use it for "any delays / storingen?" when
+the structured `transit`/`departures` board doesn't carry the answer. Two rules keep it honest:
+
+1. **Cite it + frame it as a report, not a live feed.** Lead with the source — "Per GVB, there are
+   works at Surinameplein from 4 July…" with the link the tool returns — **not** a bare "⚠️ CRITICAL
+   live disruption" as if from a guaranteed real-time feed. (Structured times are realtime-fused; a web
+   result is a *report* that may be slightly stale or imprecise on exact specifics.)
+2. **Quote what the source says; never invent a specific it didn't.** No made-up exact distance
+   ("40 m"), bridge number, platform, or **train number** the source didn't state. If two results
+   conflict (e.g. two different numbers for one departure), **say so and hand the live board** — don't
+   pick one and assert it. Don't agree a closure exists just because the user guessed it.
+
+**Treat a forwarded photo / sign as possibly STALE — cross-check it.** (A real case: a stop's closure
+sign was left up by the workers but the stop was open; the web / live board was correct.) Always end
+with the live board (`transit.md` step 4) as the floor. *(FLIGHT status → prefer the structured
+`flight_status` tool for gate/delay; web is the context fallback — still cite, never an invented gate.)*
 
 ## §MONITOR — watch booked flights/trains within the window (cron)
 
@@ -38,8 +42,9 @@ gate/delay), `travel` for a train.
    ```
    `NONE DUE` → reply `[SILENT]`. Stop. (That is how a far-future trip costs nothing.)
 2. For **each** due leg, fetch the live status — **`flight_status` for a flight** (flight no.;
-   structured status/gate/delay), `travel` for a train. A failed lookup is an **error to
-   surface**, never an empty "on time"; never `web_search` a gate/status.
+   structured status/gate/delay; the primary source), `travel` for a train. A failed lookup is an
+   **error to surface**, never an empty "on time". `web_search` is fine for the *reason*/context
+   (cite it); take the gate/delay numbers from the structured tool, never a guessed one.
 3. Record each fetched status (the diff is deterministic):
    ```bash
    python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/monitor_transport.py --update --leg <id> --status "delayed 40m, gate B7"
@@ -65,8 +70,8 @@ Adapted from Wilma's Step 6. Runs the day after a monitored flight's arrival; or
 
 1. **Re-pull the live flight via the `flight_status` tool** (pass the flight number) — it
    returns structured `status`, `delay_min`, `cancelled`, terminal/gate, and great-circle
-   `distance_km`. On time → `[SILENT]`. Never fabricate a delay, and **never `web_search` a
-   gate/status** (it invents them) — `flight_status` is the source.
+   `distance_km`. On time → `[SILENT]`. Take the gate/delay **numbers** from `flight_status` (the
+   structured source), never a guessed one; `web_search` is fine for the *reason*/context, cited.
 2. **Eligibility** — EU261/2004 applies to a flight **departing an EU/EEA airport** (any
    airline) **or arriving in the EU/EEA on an EU/EEA airline**, when the **arrival delay is
    ≥ 3 hours**, the flight was **cancelled** (<14 days' notice), or boarding was denied —

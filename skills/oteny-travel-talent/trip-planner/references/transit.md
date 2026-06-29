@@ -91,11 +91,12 @@ This is the answer to "wanneer komt het? / when does it come? / is there an earl
 - **Never invent "next at 08:51"**, a frequency, or a "+2 min" delay. Google gives the next
   departure *times*, not an explicit delay number or platform/track — don't state those as
   fact (the deeplink opens the app that shows them).
-- **The board is the COMPLETE answer — stop there.** Do **not** follow `departures`/`transit`
-  with a `plan`/grounded call for the same journey to "check disruptions or options": that
-  grounded call invents diversions/closures (a fake "temporary stop until some date") and is the
-  #1 fabrication source. No closure is real unless a structured call returned it (they don't),
-  so there is nothing to add — just the board + the deeplink.
+- **Don't *redundantly* re-call `travel` for the same route you already have** (reuse the result).
+  But the board gives *times*, not disruptions — so **if the user asks about works / closures /
+  "any delays?", `web_search` IS the right source** (planned works and diversions are real and
+  indexed): **cite the source it returns** and frame it as a report ("Per GVB, works at Surinameplein
+  from 4 July…"), **never** an invented closure/relocated-stop/exact-distance the source didn't state.
+  Full discipline (cite, don't invent, treat a photo/sign as possibly stale): [`disruption.md`](disruption.md).
 
 ## Notes that keep it grounded
 

@@ -597,24 +597,28 @@ def test_hard_rule_strings_present_in_skill():
     assert "one `travel` call per route" in skill
     assert "never `web_search` a route" in skill
     assert "≤2 tool calls" in skill
-    # (d) anti-fabrication of transit specifics
-    assert "never invent a transit specific" in skill
+    # (d) source-don't-invent: quote what a tool gave; web_search IS a valid disruption source,
+    #     cited + framed as a report, never an invented specific
+    assert "source a transit specific" in skill
+    assert "cite the source" in skill
+    assert "never invent a specific the source didn't give" in skill
     # (e) live departures board (v1.3.0) — call the board, never invent a clock time
     assert "live departures" in skill
     assert "action: departures" in skill
     assert "never invent a clock time" in skill
-    # (f) cite or stand down — honor the tool's fallback_hint; uncited grounding is unverified
+    # (f) cite or stand down — honor the tool's fallback_hint; attribute every live claim
     assert "cite or stand down" in skill
     assert "fallback_hint" in skill
 
 
-def test_anti_fabrication_of_closures_in_disruption():
+def test_source_dont_invent_disruptions():
+    """Disruptions are real + worth surfacing: web_search is a valid source — cite it, frame it as
+    a report, never invent a specific it didn't give; treat a forwarded photo/sign as possibly stale."""
     dis = _flat((TRAVEL / "trip-planner" / "references" / "disruption.md").read_text())
-    assert "only real if a structured live source says so" in dis
-    assert "never invent a network change" in dis
-    # v1.3.3: ground transit has no live delay feed → web_search is NOT a confirming source
-    assert "no live delay/diversion feed" in dis
-    assert "do not `web_search` it and" in dis
+    assert "must be sourced — cite it, don't invent it" in dis
+    assert "web_search` is a valid, useful source" in dis
+    assert "never invent a specific it didn't" in dis
+    assert "treat a forwarded photo / sign as possibly stale" in dis
 
 
 def test_anti_sycophancy_voice_rule():

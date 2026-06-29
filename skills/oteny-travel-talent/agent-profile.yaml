@@ -6,7 +6,7 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-version: 1.4.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.5.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -31,6 +31,12 @@ version: 1.4.1   # Talent semver — a label over the delivered commit; bump on 
                  # 1.4.1: live-E2E — flight_status is the complete flight answer; forbid enriching
                  # it with a travel/plan call (it added a 'typical D-gate' + aircraft guess); null gate
                  # => 'not yet assigned'. Behavior added, no migration.
+                 # 1.5.0: CORRECTION — v1.3.2-1.4.1 wrongly told the model NOT to web_search transit
+                 # disruptions, on an UNVERIFIED premise that they're hallucinations. Truth-checked: the
+                 # surfaced works (GVB Oranje Loper / Surinameplein / 4-Jul zomerdienstregeling) are REAL
+                 # + useful, and a web check correctly overrode a stale closure sign. So web_search IS a
+                 # valid disruption source — rule flipped to cite-it + frame-as-a-report + never-invent-a-
+                 # specific-the-source-didn't-give + treat-a-photo-as-possibly-stale. Behavior, no migration.
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
 skills:
