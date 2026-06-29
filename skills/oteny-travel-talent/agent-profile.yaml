@@ -6,7 +6,7 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-version: 1.4.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.4.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -28,6 +28,9 @@ version: 1.4.0   # Talent semver — a label over the delivered commit; bump on 
                  # 1.4.0: Phase 3 — structured flight status/gate via the new `flight_status` tool
                  # (AeroDataBox); flights' status/gate/delay no longer ride grounding; EU261 claim
                  # calc wired to the structured delay_min + distance_km. Behavior added, no migration.
+                 # 1.4.1: live-E2E — flight_status is the complete flight answer; forbid enriching
+                 # it with a travel/plan call (it added a 'typical D-gate' + aircraft guess); null gate
+                 # => 'not yet assigned'. Behavior added, no migration.
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
 skills:

@@ -22,6 +22,11 @@ action — call the dedicated `flight_status` tool** (pass the flight number, e.
 returns structured status/gate/delay from an aviation feed; **never** `web_search` or `travel
 plan` a flight's status (those invent gates and numbers). If a flight isn't found or the feed
 is down, it says so + gives a Google Flights link — hand that, never a guessed gate.
+**`flight_status` is the COMPLETE flight answer — quote ONLY its fields and stop.** Do NOT
+follow it with a `travel`/`plan`/`web_search` call to "enrich" the flight (that's the
+fabrication surface). If the tool returned no gate, say **"gate not yet assigned"** — never a
+"typical D-gate" or a guessed gate; and don't add an aircraft type/registration the tool
+didn't return.
 
 Ferry, walk and bike legs ride inside a `transit`/`plan` query ("…including the ferry").
 **Rental cars**: research with `plan` (options/depots) + `web_search` for prices; link out.
