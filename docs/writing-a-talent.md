@@ -58,14 +58,14 @@ The single most important file is **`agent-profile.yaml`**. It is the whole cont
 Here is a real, minimal one — Barney's conversational foundation, trimmed for clarity:
 
 ```yaml
-bot: oteny-barney-talent          # internal slug — never user-facing
+bot: cuneus-hr-talent          # internal slug — never user-facing
 display_name: Barney              # the name a person sees
 tagline: "Your posted-worker (MFNL) desk — files Cuneus's notifications and keeps the proof."
 version: 0.1.0                    # Talent semver — bump on every change
 
 skills:                           # the composing skills delivered together
-  - oteny-barney-talent
-voice_skill: oteny-barney-talent  # which skill carries the persona
+  - cuneus-hr-talent
+voice_skill: cuneus-hr-talent  # which skill carries the persona
 
 base_language: en                 # always author in English; the bot replies in the owner's language
 model_tier: builder               # GLOBAL on the agent, not per-Talent
@@ -79,10 +79,10 @@ routing:
   channel: discuss                # converse inside an Odoo Discuss channel
   channel_prompt: |
     You are the owner's Oteny bot, acting as their posted-worker (MFNL) desk in this
-    Odoo Discuss channel. Load the oteny-barney-talent skill and follow its triage and
+    Odoo Discuss channel. Load the cuneus-hr-talent skill and follow its triage and
     hard rules. Never ask for a password or a one-time code in chat. Reply in the
     operator's language; keep replies short and chat-friendly.
-  signature: "oteny-barney-talent"
+  signature: "cuneus-hr-talent"
 
 seed_memory: null                 # nothing baked; identity accrues in the data plane
 ```
@@ -171,7 +171,7 @@ end-to-end loop (this is the **D124 "external git Talent source"** pattern, alre
 live in production):
 
 1. **Author in your own git repo.** The Talent lives in *your* repo, in the folder you
-   own (Barney lives in the radar repo at `oteny_barney/talents/oteny-barney-talent/`).
+   own (Barney lives in the radar repo at `cuneus_barney/talents/cuneus-hr-talent/`).
    You edit it with the git workflow you already use.
 2. **Open a PR.** A published **`oteny-talent-lint`** CI check runs the
    `talent-authoring-standard` against your changed Talent and reports pass/fail with
@@ -207,7 +207,7 @@ uses. A human stays in charge — Barney can be set to ask for a "yes" before it
 
 Everything in this guide shows up concretely in Barney:
 
-- It lives in the **radar** repo at `oteny_barney/talents/oteny-barney-talent/`, owned
+- It lives in the **radar** repo at `cuneus_barney/talents/cuneus-hr-talent/`, owned
   by the team that knows the domain — not by Oteny.
 - It **routes to Discuss** (`channel: discuss`), not Telegram.
 - Its toolset is **minimal** (`[send_message, memory, todo]` in its first milestone) —
