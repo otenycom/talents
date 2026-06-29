@@ -1,0 +1,30 @@
+# Scenario: "when's the next tram / is there an earlier one?" → the live departures board.
+#
+# Proves the v1.3.0 capability flip: the model calls `travel action=departures` (Google
+# alternatives) and quotes real local-time departures, instead of the old "no board yet →
+# 9292 deeplink" answer. The transit path writes no DB row, so the whole scenario is
+# LIVE-ONLY (reply/trace) — the mock backend SKIPs it; the dev-loop `test --backend live`
+# (a neutralized clone) proves it. Edge: an "earlier one?" ask must NOT grind web_search.
+bot: oteny-travel-talent
+live_only: true
+
+seed:
+  profile:
+    home_city: Amsterdam
+    home_timezone: Europe/Amsterdam
+    language: en
+    default_currency: EUR
+  user_md: |
+    # Identity
+    Name: Test Tenant
+    Language: en
+
+turns:
+  - user: "I'm at Surinameplein, Amsterdam heading to Weesperplein — when's the next tram, and is there an earlier one?"
+    expect:
+      reply:
+        # quotes at least one real clock time (the board), never a vague "every ~10 min"-only answer
+        regex: "[0-9]{1,2}:[0-9]{2}"
+      trace:
+        markers: ["travel"]                 # the structured tool, not a route web_search
+        absent: ["web_search", "image_generate"]

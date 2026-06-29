@@ -1,0 +1,33 @@
+# Scenario: "what's the REAL delay on my route?" — the cite-or-stand-down discipline (5a).
+#
+# Prod (session 20260629_150905) fabricated here: grounded `plan`+`web_search` invented a
+# non-existent "ICE 127 → Utrecht", made-up disruptions, and a self-contradicting train
+# number. v1.3.0 must NOT do that: Google has no explicit delay-minutes/platform, so the
+# honest move is the live board / deeplink + "I can't confirm a specific delay live", never
+# an invented number and never a web_search grind. LIVE-ONLY (reply/trace); the strongest
+# proof is a human read of the trace, but these matchers catch the regressions mechanically.
+bot: oteny-travel-talent
+live_only: true
+
+seed:
+  profile:
+    home_city: Amsterdam
+    home_timezone: Europe/Amsterdam
+    language: en
+    default_currency: EUR
+  user_md: |
+    # Identity
+    Name: Test Tenant
+    Language: en
+
+turns:
+  - user: "Are there any delays on the tram from Surinameplein to Weesperplein right now? Give me the real delay info."
+    expect:
+      reply:
+        # offers the live board / deeplink as the source of truth for delays …
+        contains: ["maps"]
+        # … and never claims a fabricated rail disruption it cannot have a live source for
+        not_contains: ["ICE 127", "cancelled until", "storm damage"]
+      trace:
+        markers: ["travel"]
+        absent: ["web_search"]              # delays do NOT justify a web_search grind anymore
