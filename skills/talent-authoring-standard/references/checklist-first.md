@@ -81,3 +81,34 @@ Two output disciplines a full Talent layers on top of the shape:
 
 **Keep checklists lean** — tune them against real test-VM logs as live cases surface,
 don't over-specify up front.
+
+## Verify before you gate — don't mistake REAL info for hallucination (live-proven, the hard way)
+
+A trap worth more than any rule it produced. The travel talent's `assistant` (Gemini-Flash) tier
+surfaced transit-disruption info from `web_search` (a Surinameplein tram closure / works), and the
+author **presumed it was hallucination, called it "fabrication," and built a mechanical gate that
+blocked `web_search` for that intent.** Truth-checked against the real world, the premise was wrong:
+
+- The works were **real and useful** — the GVB Oranje Loper reconstruction + the 4-July
+  zomerdienstregeling (shuttle trams 27/28, the Surinameplein split) are genuine.
+- A forwarded **photo of a stop's closure sign** was correctly **overridden** by a web check that
+  said the stop was open — the sign was just stale (workers hadn't removed it). Web beat reality.
+
+So the gate destroyed real value and made the bot **refuse true info**. The actual failure was
+narrower and different: **over-assertion** (presenting a web *report* as a "⚠️ CRITICAL live
+disruption" / guaranteed live feed) and the **occasional garbled specific** (a self-contradicting
+train number, an invented exact "40 m") — not "the tool hallucinates."
+
+The lessons:
+
+- **Truth-check before you block. Data is king** — verify a claim against the real source before
+  declaring it a hallucination and gating the tool. A tool returning something you can't *instantly*
+  confirm is not proof it's wrong; blocking a tool is a big hammer — earn it with evidence.
+- **Fix over-assertion with attribution, not suppression:** make the model **cite the source** and
+  **frame it as a report** ("Per GVB, works from 4 July…"), **never invent a specific the source
+  didn't give**, and **if two results conflict, say so** — keep the tool, fix the framing.
+- **Treat a user's photo / on-the-ground sign as possibly stale** — cross-check it against a live
+  source rather than trusting it blindly.
+- **A reference file that says the old thing wins over a SKILL.md rule** (the model followed
+  `disruption.md` over a newer SKILL.md line) — when you do change a rule, reconcile it at **every**
+  reference, not just the body (enumeration sweep).

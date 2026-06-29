@@ -240,15 +240,14 @@ add **context-aware reads** (not keyword matches) — see
   dumping everything up front.
 
 ### 11. Runtime-operable by a weak model
-The Talent expansion of **the checklist-first bar** (above): the bundle must be
-**executable day-to-day without losing track**, not merely installable (check 3 is the
-one-time *setup*; this is the steady state).
-Grade for the full shape — a **master triage** on every message (setup-check →
-is-this-for-me YES/NO/unsure, **writes nothing on NO** → classify → dispatch),
-**per-intent** *data entry → analysis → reply* sub-checklists, **completeness loops**
-that never restart from a partial state, and **grounded** reads (quote the store **this
-turn**; never a number from memory) — plus the two Talent nuances (jargon fade-ladder +
-glossary; hot-path-in-body) — all detailed in
+The Talent expansion of **the checklist-first bar**: the bundle must run day-to-day, not just
+install (check 3 is one-time setup; this is steady state). Grade the full shape — **master
+triage** every message (is-this-for-me YES/NO/unsure, **writes nothing on NO** → classify →
+dispatch), **per-intent** sub-checklists, **completeness loops** that never restart from a partial
+state, **grounded** reads (quote the store **this turn**, never from memory), and **no "enrich"
+call** after a structured tool answers (a `web_search`/second grounded lookup is the Flash-tier
+fabrication vector — durable fix is a feed/tool-gate/stronger tier, not prose). Detail + the
+Talent nuances (jargon fade-ladder + glossary; hot-path-in-body):
 [`references/checklist-first.md`](references/checklist-first.md).
 
 ### 12. Upgrade-safe (base/override split, D53)
@@ -272,14 +271,8 @@ violation (a shipped data-plane state file, an embedded secret, a hardcoded Tele
 **or lean-authoring (D57)** — over-60-char `description`, over-20k `SKILL.md`, an
 approval-gate-tripping command in a fenced block (`python -c`/heredoc/`bash -c`/`curl|sh`/
 unguarded `DELETE`), an inline `CREATE TABLE` in `.md`, a `## First-run setup` body section,
-or a Talent missing `agent-profile.yaml` (the script's docstring is the full list). Enforced
-**twice** — CI/offline suite **and** the deployer before shipping to a tenant; lint clean
-before ship.
-
-**Reference implementations (copy the shape).** Flatbelly's master triage / per-intent
-checklists / fade-ladder glossary / completeness checklist, plus the non-Talent
-`oteny-cron-authoring` protocol — all collected in
-[`references/checklist-first.md`](references/checklist-first.md).
+or a Talent missing `agent-profile.yaml` (the docstring is the full list). Enforced in CI
+**and** by the deployer before ship.
 
 ### 13. In-box migrations (forward-only state reconciliation, D99)
 A Talent with **mutable live state** (a db, or agent-registered crons) reconciles a prior
