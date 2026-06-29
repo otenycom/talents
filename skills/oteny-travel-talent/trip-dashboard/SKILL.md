@@ -57,6 +57,11 @@ accent #7dd3fc  ok #34d399  warn #fbbf24  alert #f87171  member #a78bfa
 
 ## Pitfalls
 
+- **Never use `image_generate` for a map or route.** The trip-card here is a **deterministic
+  data render** (`trip_card.py` draws real DB rows on a canvas) — that's allowed and
+  encouraged. An **AI-fabricated** map/route picture is banned (`trip-planner/SKILL.md` hard
+  rules): it encodes nothing real and misleads wayfinding. For directions, emit the
+  `maplink.py` deeplinks; for the at-a-glance trip view, render this card.
 - **Trip not found / empty trip** → the script exits non-zero; reply "nothing to show yet"
   instead of crashing.
 - **Live status is only as fresh as the last monitor run** — the card shows the stored

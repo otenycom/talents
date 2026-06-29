@@ -74,6 +74,53 @@ Runs only inside the trip window (the cron prompt + this checklist gate it).
    weather, and each person's open prep. Ground every fact (hard rule ①). If nothing is
    scheduled and nothing is open → a short "clear day" note, not a fabricated agenda.
 
+## §CHECKOUT — OFFER a "don't forget to check out" reminder (NL pay-as-you-go)
+
+On a **check-in/check-out** fare system (OVpay, OV-chipkaart — the NL public-transport
+default) a forgotten check-out triggers a **default fare** (~€4) the traveller then has to
+reclaim. A nudge a couple of minutes before arrival **prevents** it — a small, money-saving
+"the bot's looking out for me" win. But it doesn't apply to everyone (a season ticket / cash
+/ day-pass needs no per-ride check-out), so the bot **OFFERS, never imposes**, and remembers
+the answer.
+
+**1. When to offer.** As the **last step of a §TRANSIT answer**, when the route plausibly
+uses a check-out fare system (NL public transport by default) AND `memory.md` carries no
+"never remind" preference. If `memory.md` says **"always remind"** → skip the offer and
+schedule directly (step 3). If it says **"never remind"** (subscription / cash) → **say
+nothing** about check-out.
+
+**2. The offer (one line, in the tenant's language).** e.g.
+*"Wil je dat ik je een seintje geef om uit te checken, vlak voordat je aankomt bij
+`<eindhalte>`?"* ("Want me to nudge you to check out just before you reach
+the `<final stop>`?")
+
+**3. On "yes" → schedule a ONE-SHOT, self-expiring reminder.** Fire at **(ETA − ~3 min)** in
+the tenant's timezone (ETA from the live route — the `travel` result this turn). Reuse the
+talent's existing **one-shot cron pattern** (the post-trip review / EU261 one-shots in
+[`disruption.md`](disruption.md) + `scripts/provision_cron.py`): `repeat: 1`, a naive local
+ISO timestamp schedule — it fires **once, then self-expires**, so there is **zero idle cost**
+(honours the "never an always-on daily cron" rule). Register it with the `cronjob` tool,
+**pinning `model` + `provider`** (an un-pinned cron 400s), with a short prompt that just
+DMs the nudge:
+
+  - schedule: a naive local ISO timestamp at `ETA − 3 min` (same shape as the review one-shot:
+    `2026-09-10T17:42`), `repeat: 1`.
+  - prompt e.g.: *"🚊 Je bent bijna bij `<eindhalte>` — denk eraan om uit te checken!"*
+    (send the nudge, then nothing — the job self-expires).
+
+**4. Remember the preference (the ADJUST flow).** On **"I have a subscription / I pay
+cash / never"** → record a durable `memory.md` line ("never remind to check out —
+subscription/cash") so the bot stops offering (§ADJUST FACT). On **"always remind me"** →
+record "always remind to check out" and then schedule automatically each trip without
+re-asking. (`preflight.py` surfaces `memory.md` every turn, so it takes effect next message.)
+
+**5. Recovery — already forgot to check out.** If the traveller says they forgot, give the
+**OVpay correction-tariff** recovery steps: a forgotten check-out is charged the **default
+fare**; they reclaim the difference (the "correction" / **correctietarief**) via the OVpay
+account / transactions page (card or app) or the transport operator's refund flow, usually
+within a set window. Link out to the official OVpay / operator page — **never** claim to file
+the refund yourself. (Glossary: "uitchecken", "OVpay", "default/correction fare".)
+
 ## §ADJUST — durable customization (the teach loop) — NEVER touch the bundle
 
 The tenant is changing how the Talent behaves. The change must land in this Talent's **own

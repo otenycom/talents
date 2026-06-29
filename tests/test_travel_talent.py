@@ -28,10 +28,16 @@ su = load(TRAVEL / "scripts" / "settle_up.py", "tt_settle_up")
 pf = load(TRAVEL / "scripts" / "preflight.py", "tt_preflight")
 sc = load(SHARED / "selfcheck.py", "tt_sc_travel")
 mg = load(TRAVEL / "scripts" / "migrate.py", "tt_migrate")
+ml = load(TRAVEL / "scripts" / "maplink.py", "tt_maplink")
 
 
 def _sha(p: Path) -> str:
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def _flat(text: str) -> str:
+    """Lowercased, whitespace-collapsed — so a line-wrapped markdown phrase still matches."""
+    return " ".join(text.lower().split())
 
 
 def _make_db(path: Path) -> sqlite3.Connection:
@@ -478,3 +484,187 @@ def test_trip_card_renders(tmp_path):
     assert rc == 0
     pngs = list((tmp_path / "out").glob("oteny_trip_1_*.png"))
     assert len(pngs) == 1 and pngs[0].stat().st_size > 0
+
+
+# --------------------------------------------------------------------------- #
+# maplink — the deterministic deeplink builder (the deeplink-first transit fix) #
+# --------------------------------------------------------------------------- #
+def test_maplink_google_encoding_olvg_example():
+    """The prod-incident route (OLVG Oost -> Jacob Marisplein 26) must encode exactly:
+    comma -> %2C, space -> %20, the travelmode carried through."""
+    url = ml.google_dir("OLVG Oost, Amsterdam", "Jacob Marisplein 26, Amsterdam", "transit")
+    assert url == (
+        "https://www.google.com/maps/dir/?api=1"
+        "&origin=OLVG%20Oost%2C%20Amsterdam"
+        "&destination=Jacob%20Marisplein%2026%2C%20Amsterdam"
+        "&travelmode=transit")
+    # mode carries through; an unknown mode falls back to transit (the OV core)
+    assert "travelmode=driving" in ml.google_dir("A", "B", "driving")
+    assert "travelmode=walking" in ml.google_dir("A", "B", "walking")
+    assert "travelmode=transit" in ml.google_dir("A", "B", "bogus")
+
+
+def test_maplink_nl_slug_forms():
+    """A numbered address -> adres-<street>-<number>-<city>; a named stop -> station-<name>;
+    both lowercase, spaces -> '-'."""
+    assert ml.slugify_place("Jacob Marisplein 26, Amsterdam") == \
+        "adres-jacob-marisplein-26-amsterdam"
+    assert ml.slugify_place("OLVG Oost, Amsterdam") == "station-olvg-oost-amsterdam"
+    assert ml.slugify_place("Amsterdam Centraal") == "station-amsterdam-centraal"
+    # a house number with a letter suffix is still an address
+    assert ml.slugify_place("Kalverstraat 92a, Amsterdam") == \
+        "adres-kalverstraat-92a-amsterdam"
+    # the 9292 route + departures URLs are built from the slugs
+    assert ml.nine292_route("OLVG Oost, Amsterdam", "Jacob Marisplein 26, Amsterdam") == (
+        "https://9292.nl/reisadvies/station-olvg-oost-amsterdam/"
+        "adres-jacob-marisplein-26-amsterdam")
+    assert ml.nine292_departures("Amsterdam Centraal") == (
+        "https://9292.nl/locaties/station-amsterdam-centraal/departures")
+
+
+def test_maplink_default_set_is_google_plus_9292_no_apple():
+    """Default (NL transit): Google + 9292 route + 9292 live departures; Apple OFF."""
+    links = dict(ml.build_links(origin="OLVG Oost, Amsterdam",
+                                destination="Jacob Marisplein 26, Amsterdam",
+                                mode="transit"))
+    assert set(links) == {"Google Maps", "9292 (NL)", "9292 live departures"}
+    assert "Apple Maps" not in links
+    assert links["9292 live departures"].endswith("/departures")
+
+
+def test_maplink_apple_only_on_opt_in():
+    no_apple = dict(ml.build_links(origin="A", destination="B", mode="transit"))
+    assert "Apple Maps" not in no_apple
+    with_apple = dict(ml.build_links(origin="A", destination="B", mode="transit",
+                                     apple=True))
+    assert with_apple["Apple Maps"].startswith("https://maps.apple.com/directions?")
+
+
+def test_maplink_non_nl_is_google_only():
+    links = dict(ml.build_links(origin="Paris", destination="Lyon", mode="transit",
+                                nl=False))
+    assert set(links) == {"Google Maps"}
+
+
+def test_maplink_never_emits_a_server_side_or_keyed_url():
+    """HARD CONSTRAINT: only consumer deeplinks, never a Routes/OVapi/JSON/key-bearing URL,
+    and never a departure CLOCK time baked into a link."""
+    for label, url in ml.build_links(origin="A", destination="Amsterdam Centraal",
+                                     mode="transit", apple=True):
+        low = url.lower()
+        assert "routes.googleapis" not in low and "ovapi" not in low
+        assert "x-goog-api-key" not in low and "api_key=" not in low and "apikey=" not in low
+        assert url.startswith(("https://www.google.com/maps/",
+                               "https://9292.nl/", "https://maps.apple.com/"))
+        # no consumer scheme carries a departure time; none of ours should claim one
+        assert "departuretime=" not in low and "arrivaltime=" not in low
+
+
+def test_maplink_main_prints_links(capsys):
+    rc = ml.main(["--origin", "OLVG Oost, Amsterdam",
+                  "--destination", "Jacob Marisplein 26, Amsterdam", "--mode", "transit"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Google Maps: https://www.google.com/maps/dir/?api=1" in out
+    assert "9292.nl/reisadvies/" in out
+    assert "/departures" in out
+    assert "maps.apple.com" not in out          # Apple off by default
+
+
+# --------------------------------------------------------------------------- #
+# guardrail invariants — the new HARD RULES + deeplink wiring must be present   #
+# --------------------------------------------------------------------------- #
+def test_maplink_ships_and_is_referenced():
+    """The deterministic builder ships in scripts/ and is wired into the reply path
+    (SKILL.md + the transit/bookings references), per the deeplink-first fix."""
+    assert (TRAVEL / "scripts" / "maplink.py").is_file()
+    skill = (TRAVEL / "trip-planner" / "SKILL.md").read_text()
+    transit = (TRAVEL / "trip-planner" / "references" / "transit.md").read_text()
+    bookings = (TRAVEL / "trip-planner" / "references" / "bookings.md").read_text()
+    for body in (skill, transit, bookings):
+        assert "maplink.py" in body
+
+
+def test_hard_rule_strings_present_in_skill():
+    """The new mechanical HARD RULES the weak model must read are spelled out in SKILL.md."""
+    skill = _flat((TRAVEL / "trip-planner" / "SKILL.md").read_text())
+    # (a) deeplink on every getting-somewhere reply
+    assert "ends with a real map deeplink" in skill
+    # (b) never an AI image as a map
+    assert "never generate an ai image as a map" in skill
+    assert "image_generate" in skill
+    # (c) anti-grind: one travel call, no web_search fallback, bounded budget
+    assert "one `travel` call per route" in skill
+    assert "never `web_search` a route" in skill
+    assert "≤2 tool calls" in skill
+    # (d) anti-fabrication of transit specifics
+    assert "never invent a transit specific" in skill
+    # (e) honest real-time
+    assert "honest real-time" in skill
+    assert "no made-up" in skill
+
+
+def test_anti_fabrication_of_closures_in_disruption():
+    dis = _flat((TRAVEL / "trip-planner" / "references" / "disruption.md").read_text())
+    assert "only real if a live source says so" in dis
+    assert "never invent a network change" in dis
+
+
+def test_anti_sycophancy_voice_rule():
+    voice = _flat((TRAVEL / "travel-concierge-voice" / "SKILL.md").read_text())
+    assert "ratify a user's guess" in voice
+    assert "agreement is **not** verification".lower().replace("**", "") in \
+        voice.replace("**", "")
+
+
+def test_image_generate_map_ban_cross_noted_in_dashboard():
+    dash = _flat((TRAVEL / "trip-dashboard" / "SKILL.md").read_text())
+    assert "never use `image_generate` for a map or route" in dash
+    assert "deterministic data render" in dash          # the allowed distinction
+
+
+def test_false_maps_api_premise_is_gone():
+    """T0.8: the bug-written-down line ('No structured Maps API … grounding covers the whole
+    surface') must be rewritten to the deeplink-first reality."""
+    transit = (TRAVEL / "trip-planner" / "references" / "transit.md").read_text()
+    assert "grounding covers the whole surface" not in transit
+    assert "Deeplink-first" in transit
+
+
+# --------------------------------------------------------------------------- #
+# §CHECKOUT — the OVpay check-out reminder (offer, one-shot self-expiry, prefs) #
+# --------------------------------------------------------------------------- #
+def test_checkout_offer_section_exists_and_is_one_shot():
+    raw = (TRAVEL / "trip-planner" / "references" / "checklists.md").read_text()
+    cl = _flat(raw)
+    assert "§checkout" in cl
+    # it OFFERS, never imposes
+    assert "offers, never imposes" in cl or "offer, never impose" in cl
+    # the scheduled job is a ONE-SHOT that self-expires (reuses the talent's pattern)
+    assert "one-shot" in cl and "self-expir" in cl
+    assert "repeat: 1" in raw
+    assert "zero idle cost" in cl
+    # fires ~3 min before arrival
+    assert "eta − ~3 min" in cl or "eta − 3 min" in cl or "eta - 3 min" in cl
+
+
+def test_checkout_never_remind_preference_suppresses_offer():
+    cl = _flat((TRAVEL / "trip-planner" / "references" / "checklists.md").read_text())
+    # a recorded "never remind" preference stops the offer (subscription/cash)
+    assert "never remind" in cl
+    assert "say nothing" in cl
+    # always-remind path schedules without re-asking
+    assert "always remind" in cl
+
+
+def test_checkout_offer_wired_into_transit_step():
+    """The OFFER is the last step of a §TRANSIT answer (SKILL.md), per T0.9."""
+    skill = _flat((TRAVEL / "trip-planner" / "SKILL.md").read_text())
+    assert "check-out reminder" in skill
+    assert "§checkout" in skill
+
+
+def test_checkout_glossary_terms_present():
+    gl = _flat((TRAVEL / "trip-planner" / "references" / "glossary.md").read_text())
+    assert "uitchecken" in gl and "ovpay" in gl
+    assert "default fare" in gl and "correction" in gl

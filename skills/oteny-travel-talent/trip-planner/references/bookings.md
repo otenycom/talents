@@ -34,6 +34,16 @@ Construct a **status/info link**, never a checkout link with payment:
 - **Hotel/stay** — the property's own page or a maps link; if the tenant booked elsewhere,
   store their confirmation link.
 - **Activity** — the venue/official page.
+- **Getting there (every leg)** — **always** add the map deeplink from `maplink.py` so the
+  tenant can navigate to the airport / station / hotel / venue in their own app:
+
+  ```bash
+  python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/maplink.py --origin "<from>" --destination "<to>" --mode transit
+  ```
+
+  Match `--mode` (`transit`/`walking`/`driving`); `--no-nl` for a non-NL trip. This is the
+  same rule as a route reply (`SKILL.md` hard rules + `transit.md`): a "getting somewhere"
+  answer never ships without a real map link.
 Prefer the **official carrier/operator** page; quote the source so a correction is easy.
 
 ## Deals research (flights / hotels / car / activities) — research, never book
