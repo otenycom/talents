@@ -216,9 +216,11 @@ Everything in this guide shows up concretely in Barney:
   staging, a pinned tag for production).
 
 Open Barney's `agent-profile.yaml` and `SKILL.md` and read them top to bottom — they
-are the cleanest template for a new scoped bot. The full design story (why it's
-isolated, the locked-toolbox enforcement, the round-trip it automates) lives in the
-hermeshost repo at `skills/design/cuneus-hr-bot.md`.
+are the cleanest template for a new scoped bot. The generic authoring delta for this
+class — Discuss routing, the locked toolset, the `/json/2/` data plane, and the stub
+doubles — is [`skills/talent-authoring-standard/references/business-bot-pattern.md`](../skills/talent-authoring-standard/references/business-bot-pattern.md).
+The full design story (why it's isolated, the locked-toolbox enforcement, the round-trip
+it automates) lives in the hermeshost repo at `skills/design/cuneus-hr-bot.md`.
 
 ---
 
