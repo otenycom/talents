@@ -1,0 +1,30 @@
+---
+description: Oteny Talents — how to author, test, and ship a Talent in this repo
+globs:
+alwaysApply: true
+---
+
+# Oteny Talents — agent rules
+
+You are working in the open catalog of **Talents** for OtenyBot. A Talent is a self-contained
+bundle under `skills/<name>-talent/`. Start at the repo agent guide **[AGENTS.md](../../AGENTS.md)**
+(the canonical entrypoint; the human twin is `README.md`).
+
+**Read the skill that matches the task before touching a bundle** (`skills/` is the single
+source of truth):
+
+- Rules a Talent must satisfy → [`skills/talent-authoring-standard/SKILL.md`](../../skills/talent-authoring-standard/SKILL.md)
+- Create / edit / package / publish → [`skills/oteny-talent-authoring/SKILL.md`](../../skills/oteny-talent-authoring/SKILL.md)
+- Test / clone / debug / ship + **the Oteny dev CLI** → [`skills/oteny-talent-dev-loop/SKILL.md`](../../skills/oteny-talent-dev-loop/SKILL.md)
+
+The dev loop: `lint-talent → clone → reload → test → traces → fix → green → tag`. Linting never
+sends the bot a message — prove behavior with `tests/scenarios/*.yaml`.
+
+Before a PR run the gate (same as CI):
+`python skills/talent-authoring-standard/scripts/lint_upgrade_safe.py skills/<your>-talent`
+(or `python scripts/precommit_checks.py`).
+
+**Hard rules:** `skills/` is the single source — `.claude/`/`.cursor/` only point into it, never
+duplicate. No seeded dbs / hardcoded per-tenant ids (upgrade-safety, lint-enforced). Anything
+outbound needs a `neutralize.yaml`. Never hand-edit the generated `TOOLS.md` / `tools-catalog.md`.
+You may touch only the author's own + granted + Oteny demo bots — never an arbitrary customer.
