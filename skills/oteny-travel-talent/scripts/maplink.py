@@ -9,7 +9,7 @@ subtly wrong (a missing %2C, a dropped param, a malformed slug). So — like pre
 monitor_transport.py — the error-prone step lives in a deterministic SCRIPT, never the model:
 
     python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/maplink.py \
-        --origin "OLVG Oost, Amsterdam" --destination "Jacob Marisplein 26, Amsterdam" \
+        --origin "OLVG Oost, Amsterdam" --destination "Haarlemmermeerstraat 6, Amsterdam" \
         --mode transit
 
 It prints ready-to-paste links (one per line, ``LABEL: <url>``):
@@ -76,7 +76,7 @@ def slugify_place(place: str) -> str:
     9292 uses, deterministically from the words the tenant gave (never invented):
 
       * a numbered street address -> ``adres-<street>-<number>-<city>``
-        ("Jacob Marisplein 26, Amsterdam" -> ``adres-jacob-marisplein-26-amsterdam``)
+        ("Haarlemmermeerstraat 6, Amsterdam" -> ``adres-haarlemmermeerstraat-6-amsterdam``)
       * anything else (a station / stop / POI name) -> ``station-<name>``
         ("Amsterdam Centraal" -> ``station-amsterdam-centraal``;
          "OLVG Oost, Amsterdam" -> ``station-olvg-oost-amsterdam``)

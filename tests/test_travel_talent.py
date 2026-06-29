@@ -490,13 +490,13 @@ def test_trip_card_renders(tmp_path):
 # maplink — the deterministic deeplink builder (the deeplink-first transit fix) #
 # --------------------------------------------------------------------------- #
 def test_maplink_google_encoding_olvg_example():
-    """The prod-incident route (OLVG Oost -> Jacob Marisplein 26) must encode exactly:
+    """The prod-incident route (OLVG Oost -> Haarlemmermeerstraat 6) must encode exactly:
     comma -> %2C, space -> %20, the travelmode carried through."""
-    url = ml.google_dir("OLVG Oost, Amsterdam", "Jacob Marisplein 26, Amsterdam", "transit")
+    url = ml.google_dir("OLVG Oost, Amsterdam", "Haarlemmermeerstraat 6, Amsterdam", "transit")
     assert url == (
         "https://www.google.com/maps/dir/?api=1"
         "&origin=OLVG%20Oost%2C%20Amsterdam"
-        "&destination=Jacob%20Marisplein%2026%2C%20Amsterdam"
+        "&destination=Haarlemmermeerstraat%206%2C%20Amsterdam"
         "&travelmode=transit")
     # mode carries through; an unknown mode falls back to transit (the OV core)
     assert "travelmode=driving" in ml.google_dir("A", "B", "driving")
@@ -507,17 +507,17 @@ def test_maplink_google_encoding_olvg_example():
 def test_maplink_nl_slug_forms():
     """A numbered address -> adres-<street>-<number>-<city>; a named stop -> station-<name>;
     both lowercase, spaces -> '-'."""
-    assert ml.slugify_place("Jacob Marisplein 26, Amsterdam") == \
-        "adres-jacob-marisplein-26-amsterdam"
+    assert ml.slugify_place("Haarlemmermeerstraat 6, Amsterdam") == \
+        "adres-haarlemmermeerstraat-6-amsterdam"
     assert ml.slugify_place("OLVG Oost, Amsterdam") == "station-olvg-oost-amsterdam"
     assert ml.slugify_place("Amsterdam Centraal") == "station-amsterdam-centraal"
     # a house number with a letter suffix is still an address
     assert ml.slugify_place("Kalverstraat 92a, Amsterdam") == \
         "adres-kalverstraat-92a-amsterdam"
     # the 9292 route + departures URLs are built from the slugs
-    assert ml.nine292_route("OLVG Oost, Amsterdam", "Jacob Marisplein 26, Amsterdam") == (
+    assert ml.nine292_route("OLVG Oost, Amsterdam", "Haarlemmermeerstraat 6, Amsterdam") == (
         "https://9292.nl/reisadvies/station-olvg-oost-amsterdam/"
-        "adres-jacob-marisplein-26-amsterdam")
+        "adres-haarlemmermeerstraat-6-amsterdam")
     assert ml.nine292_departures("Amsterdam Centraal") == (
         "https://9292.nl/locaties/station-amsterdam-centraal/departures")
 
@@ -525,7 +525,7 @@ def test_maplink_nl_slug_forms():
 def test_maplink_default_set_is_google_plus_9292_no_apple():
     """Default (NL transit): Google + 9292 route + 9292 live departures; Apple OFF."""
     links = dict(ml.build_links(origin="OLVG Oost, Amsterdam",
-                                destination="Jacob Marisplein 26, Amsterdam",
+                                destination="Haarlemmermeerstraat 6, Amsterdam",
                                 mode="transit"))
     assert set(links) == {"Google Maps", "9292 (NL)", "9292 live departures"}
     assert "Apple Maps" not in links
@@ -562,7 +562,7 @@ def test_maplink_never_emits_a_server_side_or_keyed_url():
 
 def test_maplink_main_prints_links(capsys):
     rc = ml.main(["--origin", "OLVG Oost, Amsterdam",
-                  "--destination", "Jacob Marisplein 26, Amsterdam", "--mode", "transit"])
+                  "--destination", "Haarlemmermeerstraat 6, Amsterdam", "--mode", "transit"])
     assert rc == 0
     out = capsys.readouterr().out
     assert "Google Maps: https://www.google.com/maps/dir/?api=1" in out
