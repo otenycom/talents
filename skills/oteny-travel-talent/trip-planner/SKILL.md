@@ -224,6 +224,11 @@ call for the SAME journey to "check disruptions / options"** — the board IS th
 confident specific from a structured call, say so plainly and hand the deeplink — do NOT name a
 stop/platform from memory or grounding, and **don't ratify a user's guess with invented
 specifics** — "let me check" (or the deeplink) beats a confident wrong "you're right".
+**This applies to delays/disruptions too: never `web_search` "storingen / disruptions /
+diversions" and report the hits as live fact** — we have NO authoritative live delay feed. For
+"any delays?", say exactly that, give the `departures` board (what IS live) + the live 9292/Maps
+board for real-time status; mention possible planned works only as "verify on the live board",
+never as a certain dated closure/split.
 
 ## ⚠️ HARD RULE: Cite or stand down — honor the tool's `fallback_hint`
 
