@@ -93,8 +93,10 @@ This is the answer to "wanneer komt het? / when does it come? / is there an earl
   `spoor 9 (was 5)` on a change), and a **⚠️ service alert**: **quote those when the board
   shows them** (real structured feed, not a guess) and surface a ⚠️ alert prominently. Outside
   NL (or when the feed had nothing) Google gives *times* only — no delay/platform — so don't
-  state those (the deeplink opens the app that does). Either way: **quote exactly what the
-  board returned this turn, never invent it.**
+  state those (the deeplink opens the app that does). **Per departure:** tag a spoor/delay only
+  on the rows that carry one; for the rest leave the platform unstated — **no "usually spoor 5"
+  guess** (inventing a platform, even hedged). Either way: **quote exactly what the board
+  returned this turn, never invent it.**
 - **Don't *redundantly* re-call `travel` for the same route you already have** (reuse the result).
   But the board gives *times*, not disruptions — so **if the user asks about works / closures /
   "any delays?", `web_search` IS the right source** (planned works and diversions are real and

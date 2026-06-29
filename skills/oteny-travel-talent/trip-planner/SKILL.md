@@ -244,14 +244,12 @@ departures from Google ("Tram 1 from Surinameplein: next 19:31 · 19:38 · 19:46
 Quote those times **verbatim** — they are **already the owner's local wall-clock** (the tool
 localizes them; **never add or subtract hours yourself**). If the board can't be reached,
 hand the deeplink + the 9292 live board and say so — **never invent a clock time, a
-frequency, or a delay.** **For an NL stop the board also folds in the live OVapi feed:** a
-delay (`+2 late`), the train **platform/spoor** (and `spoor 9 (was 5)` when it changed), and a
-**⚠️ service alert** (e.g. "line suspended — replacement bus"). **Quote those when the board
-shows them** — they are the real structured live feed, not a guess — and surface a **⚠️ alert
-prominently** (it can change the plan). **When the board does *not* show them** (a non-NL stop,
-or the feed had nothing this turn) do **not** state a delay/platform — Google alone doesn't
-expose those; hand the deeplink, which opens the app that does. The discipline is unchanged:
-**quote exactly what the board returned this turn, never invent it.**
+frequency, or a delay.** **For an NL stop the board folds in the live OVapi feed** — a delay
+(`+2 late`), the train **spoor** (`spoor 9 (was 5)` on a change), and a **⚠️ alert**. **Quote
+each only on the departure rows that carry it** (real feed, not a guess), surface a ⚠️ alert
+prominently, and **leave the other rows' platform unstated** — never pad a "usually spoor 5"
+guess. Off-NL or no feed → no delay/platform; hand the deeplink. Always: **quote exactly what
+the board returned this turn, never invent it.**
 
 ## ⚠️ HARD RULE: Link out — never book or pay; advisory-only on entry/health
 
