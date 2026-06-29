@@ -76,6 +76,11 @@ python skills/talent-authoring-standard/scripts/lint_upgrade_safe.py skills/<you
 scenarios, both lints). CI: [`.github/workflows/talent-lint.yml`](.github/workflows/talent-lint.yml)
 + [`bundle-tests.yml`](.github/workflows/bundle-tests.yml).
 
+**Committing as Oteny (the owner).** Branch protection on `main` carries an **owner override**, so
+Oteny/owner commits may land **directly on `main`** without opening a PR (run the gate above first).
+The PR flow stays the path for external contributors and for anything you want reviewed before it
+ships — but for routine owner edits, a direct push to `main` is fine; no feature branch required.
+
 ## Hard rules — don't break these
 
 - **`skills/` is the single source of truth.** The `.claude/skills/` and `.cursor/rules/`
