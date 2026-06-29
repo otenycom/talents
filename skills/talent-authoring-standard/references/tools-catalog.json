@@ -38,6 +38,15 @@
       "cost": "low"
     },
     {
+      "name": "flight_status",
+      "requestable_name": "flight_status",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
       "name": "parse_document",
       "requestable_name": "parse_document",
       "request_via": "tools.required",

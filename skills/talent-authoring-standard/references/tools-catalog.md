@@ -24,6 +24,7 @@ that may be absent as `stubbed` only if it is genuinely off — never stub a **l
 | `x_search` | `tools.required` | oteny-web-search | live | A fraction of a cent | 🐦 What's happening on X, grounded in live posts. |
 | `youtube_transcript` | `tools.required` | oteny-youtube-transcript | live | A fraction of a cent | 📺 Read, summarize, or monitor any YouTube video. |
 | `travel` | `tools.required` | oteny-travel | live | A fraction of a cent | 🗺️ Routes, transit with live delays, flights & full itineraries — grounded in Google Maps. |
+| `flight_status` | `tools.required` | oteny-travel | live | A fraction of a cent | ✈️ Live flight status, gate, terminal & delay by flight number. |
 
 ## Read & understand what you send
 

@@ -13,9 +13,15 @@ deeplink** from `maplink.py` (below). This file is the recipe book; the hard rul
 |---|---|---|
 | public transport door-to-door (train/bus/tram/metro, transfers, the itinerary) | `transit` | plain origin + destination place names (+ "now"/a time) |
 | "when's the next one? / is there an earlier (or later) tram/train?" — the live departures board | `departures` | origin + destination place names |
-| a flight option or status, or any free-form journey/itinerary question | `plan` | the whole question in `query` (e.g. "flights AMS→LIS 10 Sep morning, status of TP661 today") |
+| flight **options** / booking / a free-form journey or itinerary question | `plan` | the whole question in `query` (e.g. "flights AMS→LIS 10 Sep morning") |
 | driving distance / time between two places | `distance` | the two place names |
 | "where/what is X", a place/station lookup | `place_lookup` | the place name |
+
+**A specific flight's live STATUS / gate / terminal / delay / cancellation is NOT a `travel`
+action — call the dedicated `flight_status` tool** (pass the flight number, e.g. `KL1001`). It
+returns structured status/gate/delay from an aviation feed; **never** `web_search` or `travel
+plan` a flight's status (those invent gates and numbers). If a flight isn't found or the feed
+is down, it says so + gives a Google Flights link — hand that, never a guessed gate.
 
 Ferry, walk and bike legs ride inside a `transit`/`plan` query ("…including the ferry").
 **Rental cars**: research with `plan` (options/depots) + `web_search` for prices; link out.

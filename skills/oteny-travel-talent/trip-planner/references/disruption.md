@@ -29,15 +29,17 @@ before** the first departure through **1 day after** the trip ends (to catch a l
 or an airline-claim window). The planner sizes it as a day-bounded cron expression (never an
 open interval, so a far-future trip costs nothing until its window opens), and the script
 gates it. The deterministic backbone is `scripts/monitor_transport.py`; the LLM only calls
-`travel` and messages on a change.
+the status tool and messages on a change — **`flight_status` for a flight leg** (structured
+gate/delay), `travel` for a train.
 
 1. List the legs due a check:
    ```bash
    python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/monitor_transport.py --due
    ```
    `NONE DUE` → reply `[SILENT]`. Stop. (That is how a far-future trip costs nothing.)
-2. For **each** due leg, call the **`travel` tool** for the live status (flight/train no. +
-   date). A failed lookup is an **error to surface**, never an empty "on time".
+2. For **each** due leg, fetch the live status — **`flight_status` for a flight** (flight no.;
+   structured status/gate/delay), `travel` for a train. A failed lookup is an **error to
+   surface**, never an empty "on time"; never `web_search` a gate/status.
 3. Record each fetched status (the diff is deterministic):
    ```bash
    python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/monitor_transport.py --update --leg <id> --status "delayed 40m, gate B7"
@@ -61,14 +63,16 @@ gates it. The deterministic backbone is `scripts/monitor_transport.py`; the LLM 
 
 Adapted from Wilma's Step 6. Runs the day after a monitored flight's arrival; or on demand.
 
-1. **Re-pull actual vs scheduled arrival** via `travel`/`web_search` for the exact flight
-   number + date. On time → `[SILENT]`. Never fabricate a delay.
+1. **Re-pull the live flight via the `flight_status` tool** (pass the flight number) — it
+   returns structured `status`, `delay_min`, `cancelled`, terminal/gate, and great-circle
+   `distance_km`. On time → `[SILENT]`. Never fabricate a delay, and **never `web_search` a
+   gate/status** (it invents them) — `flight_status` is the source.
 2. **Eligibility** — EU261/2004 applies to a flight **departing an EU/EEA airport** (any
    airline) **or arriving in the EU/EEA on an EU/EEA airline**, when the **arrival delay is
    ≥ 3 hours**, the flight was **cancelled** (<14 days' notice), or boarding was denied —
    and the cause was **not** an extraordinary circumstance (most weather/ATC strikes are
    exempt). State eligibility in one line; if borderline, say "likely eligible, confirm".
-3. **Amount by great-circle distance** (quarantined thresholds):
+3. **Amount by great-circle distance** (use `flight_status`'s `distance_km`; quarantined thresholds):
    - ≤ 1500 km → **€250**
    - 1500–3500 km, **and all intra-EU flights > 1500 km** → **€400**
    - > 3500 km (non-intra-EU) → **€600**
