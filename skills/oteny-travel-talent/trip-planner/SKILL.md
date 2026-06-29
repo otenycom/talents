@@ -118,16 +118,34 @@ on time", driving time, "what's the fastest way". Do **not** answer from memory.
 
 1. Get the active trip + `home_city` from preflight (origin defaults to `home_city`;
    destination from the trip or the message).
-2. **Call the `travel` tool this turn** (never `web_search` for routes; never invent a
-   time). Pick the action (`references/transit.md`): `transit` for door-to-door public
-   transport (routes, transfers, **live delays/platform**), `plan` for a free-form
-   flight/journey question, `distance` for driving time. A failed call surfaces an
-   **actionable error** — never an empty "all clear".
+2. **Call the `travel` tool — exactly ONCE this turn** (never `web_search` for routes;
+   never invent a time). Pick the action (`references/transit.md`): `transit` for
+   door-to-door public transport (routes, transfers, **live delays/platform**), `plan` for
+   a free-form flight/journey question, `distance` for driving time. If the call **fails**,
+   surface the error + the deeplink (step 5) and **STOP** — do not fall back to
+   `web_search`, do not retry, do not probe variations. Budget: **≤2 tool calls** for a
+   transit turn.
 3. **Quote the tool's result** — depart/arrive times, line/platform, transfers, duration —
-   and translate jargon for a newcomer (`references/glossary.md`).
+   and translate jargon for a newcomer (`references/glossary.md`). If `travel` did **not**
+   return a confident, specific boarding stop / line, say so plainly and let the deeplink
+   carry the routing — **never** name a stop, a line↔stop assignment, a network change, or
+   a closure from memory (hard rules below).
 4. If it's a leg they've **booked**, offer to save it (BOOKING) and to `monitor=1` it. If
    they ask "remind me when to leave", that's leave-by math → §ITINERARY / `schedule.md`.
-5. Link out for tickets; **never book or pay**.
+5. **End with the map deeplink(s).** Run `maplink.py` and paste its links — the live,
+   authoritative routing in the user's own app, the source of truth:
+
+   ```bash
+   python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/maplink.py --origin "<origin>" --destination "<destination>" --mode transit
+   ```
+
+   Pass `--apple` only if `memory.md`/`overrides.md` records an iPhone-user preference; pass
+   `--no-nl` for a non-NL trip. Link out for tickets; **never book or pay**.
+6. **(NL pay-as-you-go) OFFER a check-out reminder.** If the route plausibly uses a
+   check-in/check-out fare system (NL public transport by default) AND `memory.md` has no
+   "never remind" preference, end with a one-line offer to nudge them to **check out** just
+   before arrival (`references/checklists.md` §CHECKOUT). It's an OFFER — never imposed; a
+   season ticket / cash / day-pass needs no check-out.
 
 ### §ITINERARY — build / edit the day-by-day schedule
 
@@ -137,7 +155,8 @@ on time", driving time, "what's the fastest way". Do **not** answer from memory.
    source/assumption in `notes`. One `sqlite3` call per statement.
 3. For a timed item with a travel leg, compute **leave-by** = scheduled start − live
    door-to-door duration (re-pull via `travel`, hard rule ②) − a buffer; tell them the
-   leave-by time, not just the event time.
+   leave-by time, not just the event time. End that leg's directions with the `maplink.py`
+   deeplink (hard rule ⑤).
 4. **Verify** with a separate SELECT; reply with the day laid out in order, quoting times.
 
 ## ⚠️ HARD RULE: No vibe-served facts
@@ -153,6 +172,53 @@ me check" and run it. A failed tool call is an **error to surface**, never a fab
 Flight/train/bus times **change**. Before any leave-by, departure reminder, or "you're
 fine" on a booked leg, **re-pull the live status via `travel`** (and for a monitored leg,
 record it with `monitor_transport.py`). Yesterday's status is not today's.
+
+## ⚠️ HARD RULE: Every "getting somewhere" reply ends with a real map deeplink
+
+**End every route/transit/walking/driving answer with the deeplink(s) from `maplink.py`.**
+The deeplink is the user's live, authoritative routing **in their own map app** — it stays
+correct even when your prose is wrong, and the user explicitly asked for it on every travel
+advice. Build it with the script, never by hand:
+
+```bash
+python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/maplink.py --origin "<origin>" --destination "<destination>" --mode transit
+```
+
+Use `--mode walking`/`driving` to match; `--no-nl` for a non-NL trip; `--apple` only when an
+iPhone-user preference is recorded in `memory.md`/`overrides.md` (never auto-detect the
+platform). The script URL-encodes the names and builds the slugs — **don't** assemble a map
+URL yourself (a missing `%2C` breaks it).
+
+## ⚠️ HARD RULE: Never generate an AI image as a map or route
+
+**Never use `image_generate` to depict a map, a route, or directions.** A generated picture
+that *looks* like navigation encodes nothing real — it is actively misleading for
+wayfinding. When asked for a map, emit the `maplink.py` deeplinks instead. *(A
+deterministic **data** render — the trip-card PNG from real DB rows — is fine; the ban is on
+**AI-fabricated** imagery, not on drawing real data on a canvas.)*
+
+## ⚠️ HARD RULE: One `travel` call per route — never `web_search` a route, no retry storm
+
+**A route question gets exactly ONE `travel` call.** If it fails, surface the error + the
+deeplink and **STOP** — do **not** fall back to `web_search`, do **not** retry the same call,
+do **not** probe variations. Budget: **≤2 tool calls for a transit turn** (preflight + one
+`travel`). Grinding a dozen searches is slow, expensive, and (because `web_search` is also
+grounding) amplifies fabrication.
+
+## ⚠️ HARD RULE: Never invent a transit specific — defer to the deeplink
+
+**Never state a specific boarding stop, a line↔stop assignment, a network change, or a
+closure unless the `travel` tool confirmed it this turn.** If `travel` doesn't return a
+confident, specific boarding stop, **say so plainly and hand the user the deeplink** (which
+has the live graph) — do NOT name a stop from memory. A closure/disruption is only real if a
+live source says so. And **don't ratify a user's guessed line/stop/route with invented
+specifics** — "let me check" (or the deeplink) beats a confident wrong "you're right".
+
+## ⚠️ HARD RULE: Honest real-time — no made-up "next at 08:51"
+
+**You have no live departure board yet.** Answer "when's the next one?" with (a) the line
+**frequency** *only if grounded data gives it* ("roughly every 8–10 min"), AND (b) the 9292
+**live-departures** deeplink for that stop from `maplink.py`. **Never invent a clock time.**
 
 ## ⚠️ HARD RULE: Link out — never book or pay; advisory-only on entry/health
 
@@ -195,7 +261,12 @@ the `MIGRATIONS:` triage guard — you never hand-fix crons.
 ## Common Pitfalls
 
 - **Answering a route/time from memory.** Always call `travel` this turn and quote it.
-- **`web_search` for a route.** Steer all "getting somewhere" intent to the `travel` tool.
+- **`web_search` for a route.** Steer all "getting somewhere" intent to the `travel` tool —
+  exactly one call, then STOP (no retry storm, no `web_search` fallback).
+- **A route reply with no map deeplink.** Every "getting somewhere" answer ends with
+  `maplink.py` links — and **never** an `image_generate` "map" (that's a fabrication).
+- **Inventing a stop / line / closure** when `travel` wasn't specific. Defer to the deeplink;
+  never name one from memory, never ratify a user's wrong guess with invented specifics.
 - **Chaining INSERT+SELECT** in one `sqlite3` call — split them; verify with a separate read.
 - **Forcing a group.** A bot can't create a group or add humans; DM is the default. Group
   behaviours apply only when `group_chat_id` is set.

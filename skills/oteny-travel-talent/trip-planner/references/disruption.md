@@ -6,6 +6,14 @@ to the **end-user traveller**. Four flows: the **monitor** (watch booked legs), 
 **post-trip review** (Wilma's 7-step, user-facing). All obey the hard rules — especially
 **no fabricated status** and **verify live** (`SKILL.md`).
 
+**⚠️ A disruption is only real if a live source says so.**
+**Never invent a network change, a line/route reorganisation, a stop closure, or "works on
+the line" to explain a route — and never agree a closure exists because the user guessed
+it.** A delay/cancellation/closure is reportable **only** when the `travel` tool (or a quoted
+live source) confirmed it **this turn**. If you can't confirm it, say "I can't confirm a
+disruption" and hand over the live deeplink (`transit.md` step 4) — a fabricated closure
+sends the traveller on an absurd detour, which is exactly the failure this rule prevents.
+
 ## §MONITOR — watch booked flights/trains within the window (cron)
 
 The monitor cron fires every few hours **only within the trip window** — from **2 days

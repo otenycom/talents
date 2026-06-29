@@ -42,6 +42,9 @@ Gauge how settled they are — mainly by **how long / how many trips** they've u
 | Schengen | the European zone with no internal border checks | days inside it can be capped (90/180) for some passports — check yours |
 | passport validity | how long your passport must be valid past your trip | many countries require 6 months — a near-expiry passport can deny boarding |
 | customs | the checkpoint for what you may bring across a border | matters for gifts, food, duty-free limits |
+| check in / uitchecken (check out) | tapping your card/phone at the start (check in) AND end (check out) of a pay-as-you-go transit ride | on OVpay/OV-chipkaart you MUST check out, or you're charged the default fare — I can nudge you just before arrival |
+| OVpay | the Dutch pay-as-you-go transit system: tap a contactless bank card or phone to ride, pay per trip | check-in/check-out per ride — forget to check out and you overpay; a season ticket/day-pass works differently |
+| default fare / correction fare (correctietarief) | the high flat fare charged when you don't check out (default), and the refund of the difference you can reclaim (correction) | forgetting to check out costs ~€4; you reclaim the correction via your OVpay account/operator — I'll point you to it |
 | jet lag | tiredness from crossing time zones | why I show times in both zones and suggest sane arrival/leave-by times |
 | red-eye | an overnight flight arriving early morning | cheap and time-saving, but plan for a tired arrival day |
 | half-board / full-board / all-inclusive | how many meals the stay includes | changes your food budget + how I split expenses |
