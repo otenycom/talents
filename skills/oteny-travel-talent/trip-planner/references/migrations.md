@@ -52,3 +52,21 @@ ones, per active/future trip.
    ```bash
    python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/migrate.py --mark 0001_windowed_trip_crons
    ```
+
+## 0002_structured_board_diff
+
+**Why.** W1 (v1.6.0) adds the NL live-board push: the departure-imminent monitor needs to
+detect a **track change** (and dedupe the push) deterministically, so `bookings` gains
+structured `track` + `delay_min` columns. This is a **deterministic `sql` migration** — no
+cron/chat work, so you (or the auto-runner) just **apply** it; it's an idempotent
+`ALTER TABLE` (a re-run after a crash is a clean no-op).
+
+**Step.**
+
+```bash
+python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/migrate.py --apply 0002_structured_board_diff
+```
+
+It prints `APPLIED: 0002_structured_board_diff (sql)` and records itself. Nothing else to do —
+the new `track-watch` crons that use these columns are registered by the normal
+`provision_cron.py` flow (a fresh `0001`-style re-plan also picks them up for an active trip).

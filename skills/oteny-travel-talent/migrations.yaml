@@ -13,3 +13,13 @@ migrations:
     summary: >-
       Replace open-interval monitor / unbounded-daily briefing crons (which fired far from
       the trip) with day-bounded windowed crons over start-2d … end+1d, per active trip.
+  - id: 0002_structured_board_diff
+    kind: sql         # deterministic → migrate.py --apply runs it (idempotent ALTER TABLE)
+    ref: trip-planner/references/migrations.md#0002_structured_board_diff
+    summary: >-
+      W1 (v1.6.0) live-board push: add structured `track` + `delay_min` columns to bookings so
+      the new departure-imminent monitor detects a TRACK CHANGE (and dedupes the push)
+      deterministically, instead of eyeballing the free-text status. Idempotent.
+    sql: |
+      ALTER TABLE bookings ADD COLUMN track TEXT;
+      ALTER TABLE bookings ADD COLUMN delay_min INTEGER;

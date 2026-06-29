@@ -88,9 +88,13 @@ This is the answer to "wanneer komt het? / when does it come? / is there an earl
   localizes them via the stop's timezone). **Never re-do the timezone math yourself.**
 - If the board can't be reached (a `fallback_hint`/error comes back), **follow the hint**:
   hand the `maplink.py` deeplink + the 9292 live board and say you couldn't fetch live times.
-- **Never invent "next at 08:51"**, a frequency, or a "+2 min" delay. Google gives the next
-  departure *times*, not an explicit delay number or platform/track — don't state those as
-  fact (the deeplink opens the app that shows them).
+- **Never invent "next at 08:51"**, a frequency, or a delay. For an **NL stop** the board
+  *also* folds in the live **OVapi** feed — a delay (`+2 late`), the train **spoor** (and
+  `spoor 9 (was 5)` on a change), and a **⚠️ service alert**: **quote those when the board
+  shows them** (real structured feed, not a guess) and surface a ⚠️ alert prominently. Outside
+  NL (or when the feed had nothing) Google gives *times* only — no delay/platform — so don't
+  state those (the deeplink opens the app that does). Either way: **quote exactly what the
+  board returned this turn, never invent it.**
 - **Don't *redundantly* re-call `travel` for the same route you already have** (reuse the result).
   But the board gives *times*, not disruptions — so **if the user asks about works / closures /
   "any delays?", `web_search` IS the right source** (planned works and diversions are real and
@@ -117,5 +121,7 @@ This is the answer to "wanneer komt het? / when does it come? / is there an earl
   `web_search` call, so it does **not** trip the ask-first paid-tool rule.) *The structured
   real-time path is now live: `action: transit` for the door-to-door itinerary and
   `action: departures` for the live board — both worldwide, in local time. Explicit
-  delay-minutes + platform/track aren't in Google's data; for those the deeplink opens the
-  app, and a localized feed (NL: OVapi) is the planned enrichment.*
+  delay-minutes + platform/track aren't in Google's own data, but for **NL** stops the
+  `departures` board now folds in the **OVapi live feed** (delay-minutes + spoor + service
+  alerts) automatically — quote them when present; outside NL the deeplink opens the app that
+  shows them.*

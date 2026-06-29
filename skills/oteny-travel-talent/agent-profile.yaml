@@ -6,7 +6,7 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-version: 1.5.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.6.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -37,6 +37,13 @@ version: 1.5.0   # Talent semver — a label over the delivered commit; bump on 
                  # + useful, and a web check correctly overrode a stale closure sign. So web_search IS a
                  # valid disruption source — rule flipped to cite-it + frame-as-a-report + never-invent-a-
                  # specific-the-source-didn't-give + treat-a-photo-as-possibly-stale. Behavior, no migration.
+                 # 1.6.0: W1 — the NL live board. The `departures` board now folds in the free OVapi
+                 # GTFS-RT feed for NL stops (delay-minutes "+2 late", train spoor "spoor 9 (was 5)",
+                 # ⚠️ service alerts) — broker-side + fail-open, so the rules flip from "Google has no
+                 # delay/platform, never state them" to "quote them WHEN the board returns them this
+                 # turn (NL live feed), never invent." Plus a proactive board card + a tight
+                 # departure-imminent monitor that pushes a track-change on a booked leg → migration
+                 # 0002 (structured board diff: platform/track/delay columns). MINOR (new migration id).
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
 skills:

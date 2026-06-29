@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   carrier TEXT,                    -- airline / rail operator / hotel chain
   booking_ref TEXT,                -- PNR / confirmation; the leg's natural number too (e.g. flight no.)
   status TEXT,                     -- last-known live status (on-time/delayed Nm/cancelled/gate X/...)
+  track TEXT,                      -- last-seen actual platform/spoor (W1: the imminent-monitor track-change diff)
+  delay_min INTEGER,               -- last-seen delay in minutes (structured, for the deterministic push gate)
   monitor INTEGER NOT NULL DEFAULT 0,   -- 1 = watched by the disruption cron
   deeplink TEXT,                   -- the link we surface (we link out, never book/pay)
   cost REAL,

@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -359,6 +359,78 @@ def test_monitor_update_diffs_and_errors(tmp_path):
     con.close()
 
 
+def test_monitor_imminent_window_gates(tmp_path):
+    """W1 --imminent: only a leg departing in the next ~50 min (tenant tz → UTC default in
+    tests) is returned; a same-trip leg hours away is not."""
+    con = _make_db(tmp_path / "trips.db")
+    con.execute("INSERT INTO trips (id,name,start_date,end_date,status) VALUES "
+                "(1,'Now',date('now','-1 day'),date('now','+2 days'),'active')")
+    soon = (datetime.now(timezone.utc) + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M")
+    far = (datetime.now(timezone.utc) + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M")
+    con.execute("INSERT INTO bookings (trip_id,kind,carrier,booking_ref,monitor,start_ts) "
+                "VALUES (1,'train','NS','IC-soon',1,?)", (soon,))
+    con.execute("INSERT INTO bookings (trip_id,kind,carrier,booking_ref,monitor,start_ts) "
+                "VALUES (1,'train','NS','IC-far',1,?)", (far,))
+    con.commit()
+    refs = {d["booking_ref"] for d in mt.due_legs(con, imminent=True)}
+    con.close()
+    assert refs == {"IC-soon"}                 # only the imminently-departing leg
+
+
+def test_monitor_track_change_diff_and_dedupe(tmp_path):
+    """update_leg --track detects a spoor change deterministically + dedupes (a repeat of the
+    same track is not a change → no re-push)."""
+    con = _make_db(tmp_path / "trips.db")
+    con.execute("INSERT INTO trips (id,name) VALUES (1,'T')")
+    con.execute("INSERT INTO bookings (id,trip_id,kind,monitor,status) "
+                "VALUES (7,1,'train',1,'on-time')")
+    con.commit()
+    first = mt.update_leg(con, 7, "spoor 5", track="5", delay_min=0)
+    assert first["track_changed"] is True and first["prior_track"] is None  # a new value seen
+    chg = mt.update_leg(con, 7, "spoor 9 (was 5)", track="9", delay_min=2)
+    assert chg["track_changed"] is True and chg["prior_track"] == "5"        # 5 → 9
+    again = mt.update_leg(con, 7, "spoor 9", track="9", delay_min=2)
+    assert again["track_changed"] is False     # dedupe: 9 → 9 is not a new change
+    con.close()
+
+
+def test_imminent_cron_spec_for_train_leg():
+    """build_imminent_spec emits a self-expiring per-leg track-watch around the departure
+    band; None for a dateless leg."""
+    trip = {"id": 1, "name": "NL hop"}
+    spec = pc.build_imminent_spec(
+        trip, {"id": 3, "kind": "train", "booking_ref": "IC700",
+               "start_ts": "2026-06-30T14:05"}, model="assistant", provider="router")
+    assert spec is not None and spec["kind"] == "monitor"
+    assert "track-watch" in spec["name"] and "IC700" in spec["name"]
+    assert spec["schedule"] == "*/15 13-14 30-30 6 *"   # the 2-hour band on the departure day
+    assert spec["repeat"] == 8                       # 2 h × 4 ticks/h, self-expiring
+    assert "--imminent" in spec["prompt"] and "TRACK CHANGED" in spec["prompt"]
+    assert pc.build_imminent_spec(trip, {"id": 4, "kind": "train"}) is None  # dateless
+
+
+def test_migration_0002_is_sql_and_adds_columns(tmp_path):
+    """0002 is a deterministic sql migration adding the structured push columns; init.sql and
+    the migration agree, and re-applying the ALTER is the idempotent 'duplicate column' no-op
+    migrate.py._apply_one tolerates."""
+    man = yaml.safe_load((TRAVEL / "migrations.yaml").read_text())
+    m2 = next(m for m in man["migrations"] if m["id"] == "0002_structured_board_diff")
+    assert m2["kind"] == "sql"
+    assert "ADD COLUMN track" in m2["sql"] and "ADD COLUMN delay_min" in m2["sql"]
+    # a fresh init.sql db already carries the columns (the two agree) and they're writable
+    con = _make_db(tmp_path / "trips.db")
+    con.execute("INSERT INTO trips (id,name) VALUES (1,'T')")
+    con.execute("INSERT INTO bookings (id,trip_id,kind,monitor,track,delay_min) "
+                "VALUES (1,1,'train',1,'9',3)")
+    con.commit()
+    row = con.execute("SELECT track, delay_min FROM bookings WHERE id=1").fetchone()
+    assert row["track"] == "9" and row["delay_min"] == 3
+    # re-running the migration's ALTER on the existing columns → the tolerated no-op
+    with pytest.raises(sqlite3.OperationalError, match="duplicate column"):
+        con.executescript(m2["sql"])
+    con.close()
+
+
 # --------------------------------------------------------------------------- #
 # settle_up — split math                                                       #
 # --------------------------------------------------------------------------- #
@@ -609,6 +681,11 @@ def test_hard_rule_strings_present_in_skill():
     # (f) cite or stand down — honor the tool's fallback_hint; attribute every live claim
     assert "cite or stand down" in skill
     assert "fallback_hint" in skill
+    # (g) W1 (v1.6.0) — NL live board: quote the OVapi delay/spoor/alert WHEN the board
+    #     returns them this turn, never invent (the premise flipped from "Google has none")
+    assert "ovapi" in skill
+    assert "spoor" in skill
+    assert "quote exactly what the board returned this turn, never invent it" in skill
 
 
 def test_source_dont_invent_disruptions():

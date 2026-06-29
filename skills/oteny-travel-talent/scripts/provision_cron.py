@@ -69,6 +69,11 @@ _FALLBACK_PROVIDER = "router"
 MONITOR_EVERY_H = 6        # disruption check cadence within the window
 MONITOR_MARGIN_DAYS = 2    # start watching this many days BEFORE departure
 END_MARGIN_DAYS = 1        # keep watching this many days AFTER the trip ends (late arrivals + airline claims)
+# The departure-imminent track watch (W1): a tight, PER-TRAIN-LEG cron firing every few
+# minutes only in the ~2-hour band around that leg's departure (self-expiring), so the
+# spoor-change push costs a handful of cheap ticks per train, not a fleet-wide poll. The
+# minute-precise gate is monitor_transport.py --imminent; this just sizes the firing band.
+IMMINENT_EVERY_MIN = 15    # poll cadence inside a train leg's departure band
 BRIEFING_HH, BRIEFING_MM = 7, 30   # daily briefing local time
 REVIEW_HH = 10             # post-trip review local time (day after end_date)
 CLAIM_HH = 12              # EU261 claim local time (day after each flight's arrival)
@@ -95,6 +100,15 @@ def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:
 def _pdate(s) -> date | None:
     try:
         return date.fromisoformat(str(s)[:10])
+    except (ValueError, TypeError):
+        return None
+
+
+def _pdatetime(s) -> datetime | None:
+    """Parse a booking's ISO-local start_ts ("2026-06-30T14:05" / "…14:05:00" / "… 14:05")
+    → a naive datetime (the box's local frame); None if dateless/unparseable."""
+    try:
+        return datetime.fromisoformat(str(s).replace(" ", "T", 1))
     except (ValueError, TypeError):
         return None
 
@@ -259,6 +273,48 @@ def build_flight_claim_spec(trip: dict, booking: dict, *, model: str | None = No
     }
 
 
+def build_imminent_spec(trip: dict, leg: dict, *, model: str | None = None,
+                        provider: str | None = None) -> dict | None:
+    """The W1 departure-imminent TRACK WATCH for one booked train leg: a recurring cron
+    that fires every IMMINENT_EVERY_MIN minutes ONLY in the ~2-hour band around the leg's
+    departure (self-expiring via a bounded ``repeat``), so the NL spoor-change push costs a
+    handful of cheap ticks per train, not a fleet-wide poll. Returns None for a dateless leg.
+
+    The cron only sizes the *band*; the minute-precise gate (depart-in-next-50-min, in the
+    owner's timezone) lives in monitor_transport.py --imminent, and the *push* fires only when
+    --update prints TRACK CHANGED (deduped by the stored track). Outside that band every tick
+    is a cheap [SILENT]."""
+    dep = _pdatetime(leg.get("start_ts"))
+    if dep is None:
+        return None
+    model = model or _FALLBACK_MODEL
+    provider = provider or _FALLBACK_PROVIDER
+    h = dep.hour
+    lo = max(0, h - 1)                 # cover the hour before + the hour of departure
+    per_hour = 60 // IMMINENT_EVERY_MIN
+    ref = leg.get("booking_ref") or leg.get("carrier") or f"leg{leg.get('id')}"
+    tag = f"{trip.get('name')} (#{trip.get('id')})"
+    specs = _windowed_specs(
+        base_name=f"OtenyTravelTalent track-watch — {tag} {ref}", kind="monitor",
+        minute=f"*/{IMMINENT_EVERY_MIN}", hour=f"{lo}-{h}", per_day=(h - lo + 1) * per_hour,
+        win_start=dep.date(), win_end=dep.date(), model=model, provider=provider,
+        skills=["trip-planner", "travel-concierge-voice"], toolsets=["terminal", "web"],
+        prompt=(
+            "Departure-imminent track watch (W1). Load trip-planner; run "
+            "scripts/monitor_transport.py --due --imminent to list legs leaving very soon. "
+            "For each, call the `travel` tool with action=departures (origin+destination) — "
+            "for an NL stop the board flags a track change as 'spoor X (was Y)'. ONLY when the "
+            "board shows '(was ...)' (a real change) or a cancellation: record it with "
+            "monitor_transport.py --update --leg <id> --status \"<short summary>\" --track <X> "
+            "--delay <minutes>, and message the trip group/DM IF it prints TRACK CHANGED "
+            "(\"your train now departs spoor X, not Y — walk to that end\"); that dedupes so you "
+            "push a given change once. No '(was ...)' on the board, nothing imminent, or it "
+            "prints UNCHANGED -> [SILENT]. Never invent a track/delay."),
+    )
+    # A single-day band yields exactly one month-segment spec — hand back that one job.
+    return specs[0] if specs else None
+
+
 def existing_job_names(jobs_path: str) -> set[str]:
     p = Path(jobs_path)
     if not p.exists():
@@ -271,13 +327,18 @@ def existing_job_names(jobs_path: str) -> set[str]:
 
 
 def plan_for_trip(trip: dict, flights: list[dict], jobs_path: str, *,
+                  train_legs: list[dict] | None = None,
                   model: str | None = None, provider: str | None = None,
                   ref: datetime | None = None) -> dict:
-    """List-first plan: trip jobs + a claim job per monitored flight, minus any whose
-    name is already registered."""
+    """List-first plan: trip jobs + a claim job per monitored flight + a departure-imminent
+    track-watch per monitored train leg (W1), minus any whose name is already registered."""
     specs = build_trip_specs(trip, model=model, provider=provider, ref=ref)
     for fl in flights:
         spec = build_flight_claim_spec(trip, fl, model=model, provider=provider)
+        if spec is not None:
+            specs.append(spec)
+    for leg in (train_legs or []):
+        spec = build_imminent_spec(trip, leg, model=model, provider=provider)
         if spec is not None:
             specs.append(spec)
     have = existing_job_names(jobs_path)
@@ -285,10 +346,13 @@ def plan_for_trip(trip: dict, flights: list[dict], jobs_path: str, *,
             "existing": [s["name"] for s in specs if s["name"] in have]}
 
 
-def _load_trip_and_flights(db_path: str, trip_id: int | None) -> tuple[dict | None, list[dict]]:
+def _load_trip_and_flights(
+        db_path: str, trip_id: int | None) -> tuple[dict | None, list[dict], list[dict]]:
+    """Load the trip + its monitored flight legs (EU261) + its monitored train legs (the W1
+    departure-imminent track watch). Empty lists on any db error."""
     p = Path(db_path)
     if not p.exists():
-        return None, []
+        return None, [], []
     con = sqlite3.connect(str(p))
     con.row_factory = sqlite3.Row
     try:
@@ -300,14 +364,17 @@ def _load_trip_and_flights(db_path: str, trip_id: int | None) -> tuple[dict | No
                 "AND (end_date IS NULL OR end_date >= date('now')) "
                 "ORDER BY start_date LIMIT 1").fetchone()
         if row is None:
-            return None, []
+            return None, [], []
         trip = dict(row)
         flights = [dict(r) for r in con.execute(
             "SELECT * FROM bookings WHERE trip_id=? AND kind IN ('flight') "
             "AND monitor=1", (trip["id"],)).fetchall()]
-        return trip, flights
+        train_legs = [dict(r) for r in con.execute(
+            "SELECT * FROM bookings WHERE trip_id=? AND kind='train' "
+            "AND monitor=1 AND start_ts IS NOT NULL", (trip["id"],)).fetchall()]
+        return trip, flights, train_legs
     except sqlite3.Error:
-        return None, []
+        return None, [], []
     finally:
         con.close()
 
@@ -321,14 +388,15 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
-    trip, flights = _load_trip_and_flights(args.db, args.trip)
+    trip, flights, train_legs = _load_trip_and_flights(args.db, args.trip)
     if trip is None:
         msg = "no active/soonest trip found — nothing to schedule"
         print(json.dumps({"to_create": [], "existing": [], "note": msg}) if args.json else msg)
         return 0
 
     model, provider = read_model_provider(args.config)
-    p = plan_for_trip(trip, flights, args.jobs, model=model, provider=provider)
+    p = plan_for_trip(trip, flights, args.jobs, train_legs=train_legs,
+                      model=model, provider=provider)
     if args.json:
         print(json.dumps(p, indent=2))
         return 0
