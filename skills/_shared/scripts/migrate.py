@@ -182,12 +182,23 @@ def _apply_one(manifest: dict, mig: dict) -> dict:
         return {"result": "ERROR", "id": mid, "reason": f"db not found at {db}"}
     con = sqlite3.connect(str(db))
     try:
-        con.executescript(sql)
+        # Apply statement-by-statement (NOT executescript, which is all-or-nothing on a re-run):
+        # a partial prior apply (e.g. crash between two ALTERs) must let an already-applied
+        # statement be skipped while a not-yet-applied one in the same migration still runs.
+        # DDL migrations carry no string-literal ';', so a plain split is safe.
+        for stmt in sql.split(";"):
+            s = stmt.strip()
+            if not s:
+                continue
+            try:
+                con.execute(s)
+            except sqlite3.OperationalError as e:
+                # idempotent PER STATEMENT: an already-applied change is a clean no-op
+                if not any(k in str(e).lower() for k in ("duplicate column", "already exists")):
+                    raise
         con.commit()
     except sqlite3.OperationalError as e:
-        # idempotent: a re-run after a crash must not fail on an already-applied change
-        if not any(k in str(e).lower() for k in ("duplicate column", "already exists")):
-            return {"result": "ERROR", "id": mid, "reason": f"sql failed: {e}"}
+        return {"result": "ERROR", "id": mid, "reason": f"sql failed: {e}"}
     finally:
         con.close()
     _mark(bot, [mid])

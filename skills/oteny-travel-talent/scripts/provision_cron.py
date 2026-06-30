@@ -274,7 +274,8 @@ def build_flight_claim_spec(trip: dict, booking: dict, *, model: str | None = No
 
 
 def build_imminent_spec(trip: dict, leg: dict, *, model: str | None = None,
-                        provider: str | None = None) -> dict | None:
+                        provider: str | None = None,
+                        ref: datetime | None = None) -> dict | None:
     """The W1 departure-imminent TRACK WATCH for one booked train leg: a recurring cron
     that fires every IMMINENT_EVERY_MIN minutes ONLY in the ~2-hour band around the leg's
     departure (self-expiring via a bounded ``repeat``), so the NL spoor-change push costs a
@@ -286,6 +287,10 @@ def build_imminent_spec(trip: dict, leg: dict, *, model: str | None = None,
     is a cheap [SILENT]."""
     dep = _pdatetime(leg.get("start_ts"))
     if dep is None:
+        return None
+    # No cron for an already-departed leg: a day-of-month+month expr has no year, so a past-day
+    # band would not fire today but would linger ~a year until that dom+month recurs.
+    if dep.date() < (ref or datetime.now()).date():
         return None
     model = model or _FALLBACK_MODEL
     provider = provider or _FALLBACK_PROVIDER
@@ -303,13 +308,14 @@ def build_imminent_spec(trip: dict, leg: dict, *, model: str | None = None,
             "Departure-imminent track watch (W1). Load trip-planner; run "
             "scripts/monitor_transport.py --due --imminent to list legs leaving very soon. "
             "For each, call the `travel` tool with action=departures (origin+destination) — "
-            "for an NL stop the board flags a track change as 'spoor X (was Y)'. ONLY when the "
-            "board shows '(was ...)' (a real change) or a cancellation: record it with "
-            "monitor_transport.py --update --leg <id> --status \"<short summary>\" --track <X> "
-            "--delay <minutes>, and message the trip group/DM IF it prints TRACK CHANGED "
-            "(\"your train now departs spoor X, not Y — walk to that end\"); that dedupes so you "
-            "push a given change once. No '(was ...)' on the board, nothing imminent, or it "
-            "prints UNCHANGED -> [SILENT]. Never invent a track/delay."),
+            "for an NL stop the board flags a track change as 'spoor X (was Y)'. Record what "
+            "the board showed: monitor_transport.py --update --leg <id> --status \"<short "
+            "summary>\" --track <the live spoor X> --scheduled <the (was Y) value, or the same "
+            "as X if the board shows no '(was ...)'>  --delay <minutes>. The SCRIPT decides "
+            "deterministically: message the trip group/DM ONLY if it prints TRACK CHANGED "
+            "(\"your train now departs spoor X, not Y — walk to that end\"); it dedupes so a "
+            "given change pushes once. Otherwise (UNCHANGED, nothing imminent) -> [SILENT]. "
+            "Never invent a track/delay."),
     )
     # A single-day band yields exactly one month-segment spec — hand back that one job.
     return specs[0] if specs else None
@@ -338,7 +344,7 @@ def plan_for_trip(trip: dict, flights: list[dict], jobs_path: str, *,
         if spec is not None:
             specs.append(spec)
     for leg in (train_legs or []):
-        spec = build_imminent_spec(trip, leg, model=model, provider=provider)
+        spec = build_imminent_spec(trip, leg, model=model, provider=provider, ref=ref)
         if spec is not None:
             specs.append(spec)
     have = existing_job_names(jobs_path)
@@ -371,7 +377,10 @@ def _load_trip_and_flights(
             "AND monitor=1", (trip["id"],)).fetchall()]
         train_legs = [dict(r) for r in con.execute(
             "SELECT * FROM bookings WHERE trip_id=? AND kind='train' "
-            "AND monitor=1 AND start_ts IS NOT NULL", (trip["id"],)).fetchall()]
+            "AND monitor=1 AND start_ts IS NOT NULL "
+            # drop an already-departed leg so its windowed cron isn't emitted for a past day
+            # (a generous -1d margin absorbs the local-vs-UTC skew; build_imminent_spec is exact)
+            "AND start_ts >= datetime('now', '-1 day')", (trip["id"],)).fetchall()]
         return trip, flights, train_legs
     except sqlite3.Error:
         return None, [], []

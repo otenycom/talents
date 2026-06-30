@@ -24,6 +24,7 @@ TABLES = {"trips", "members", "bookings", "itinerary", "todos", "expenses"}
 
 pc = load(TRAVEL / "scripts" / "provision_cron.py", "tt_provision_cron")
 mt = load(TRAVEL / "scripts" / "monitor_transport.py", "tt_monitor_transport")
+mg = load(TRAVEL / "scripts" / "migrate.py", "tt_migrate")
 su = load(TRAVEL / "scripts" / "settle_up.py", "tt_settle_up")
 pf = load(TRAVEL / "scripts" / "preflight.py", "tt_preflight")
 sc = load(SHARED / "selfcheck.py", "tt_sc_travel")
@@ -377,36 +378,81 @@ def test_monitor_imminent_window_gates(tmp_path):
     assert refs == {"IC-soon"}                 # only the imminently-departing leg
 
 
-def test_monitor_track_change_diff_and_dedupe(tmp_path):
-    """update_leg --track detects a spoor change deterministically + dedupes (a repeat of the
-    same track is not a change → no re-push)."""
+def test_monitor_track_change_diff_dedupe_and_blank_guard(tmp_path):
+    """update_leg detects a spoor change DETERMINISTICALLY (actual≠scheduled, and not already
+    pushed) and dedupes; a blank --track never wipes the stored baseline; the scheduled
+    platform on time is not a change."""
     con = _make_db(tmp_path / "trips.db")
     con.execute("INSERT INTO trips (id,name) VALUES (1,'T')")
     con.execute("INSERT INTO bookings (id,trip_id,kind,monitor,status) "
                 "VALUES (7,1,'train',1,'on-time')")
     con.commit()
-    first = mt.update_leg(con, 7, "spoor 5", track="5", delay_min=0)
-    assert first["track_changed"] is True and first["prior_track"] is None  # a new value seen
-    chg = mt.update_leg(con, 7, "spoor 9 (was 5)", track="9", delay_min=2)
-    assert chg["track_changed"] is True and chg["prior_track"] == "5"        # 5 → 9
-    again = mt.update_leg(con, 7, "spoor 9", track="9", delay_min=2)
-    assert again["track_changed"] is False     # dedupe: 9 → 9 is not a new change
+    on_time = mt.update_leg(con, 7, "spoor 5", track="5", scheduled="5")
+    assert on_time["track_changed"] is False       # actual==scheduled → not a change (seeds 5)
+    chg = mt.update_leg(con, 7, "spoor 9 (was 5)", track="9", scheduled="5")
+    assert chg["track_changed"] is True            # 9 ≠ scheduled 5 and ≠ stored 5 → push once
+    again = mt.update_leg(con, 7, "spoor 9", track="9", scheduled="5")
+    assert again["track_changed"] is False         # dedupe: 9 == stored 9
+    blank = mt.update_leg(con, 7, "no clear spoor", track="", scheduled="")
+    assert blank["track_changed"] is False
+    stored = con.execute("SELECT track FROM bookings WHERE id=7").fetchone()[0]
+    assert stored == "9"                            # the blank did NOT wipe the dedupe baseline
+    assert mt.update_leg(con, 7, "spoor 9", track="9", scheduled="5")["track_changed"] is False
+    con.close()
+
+
+def test_monitor_track_change_on_first_sighting_still_pushes(tmp_path):
+    """No miss: a track already changed before the imminent window opened (prior_track NULL,
+    actual≠scheduled) must still push once — the deterministic signal is actual-vs-scheduled,
+    not first-vs-second-poll."""
+    con = _make_db(tmp_path / "trips.db")
+    con.execute("INSERT INTO trips (id,name) VALUES (1,'T')")
+    con.execute("INSERT INTO bookings (id,trip_id,kind,monitor,status) "
+                "VALUES (9,1,'train',1,'x')")
+    con.commit()
+    first = mt.update_leg(con, 9, "spoor 9 (was 5)", track="9", scheduled="5")
+    assert first["track_changed"] is True and first["prior_track"] is None
     con.close()
 
 
 def test_imminent_cron_spec_for_train_leg():
     """build_imminent_spec emits a self-expiring per-leg track-watch around the departure
-    band; None for a dateless leg."""
+    band; None for a dateless OR already-past leg."""
     trip = {"id": 1, "name": "NL hop"}
+    ref = datetime(2026, 6, 30, 9, 0)
     spec = pc.build_imminent_spec(
         trip, {"id": 3, "kind": "train", "booking_ref": "IC700",
-               "start_ts": "2026-06-30T14:05"}, model="assistant", provider="router")
+               "start_ts": "2026-06-30T14:05"}, model="assistant", provider="router", ref=ref)
     assert spec is not None and spec["kind"] == "monitor"
     assert "track-watch" in spec["name"] and "IC700" in spec["name"]
     assert spec["schedule"] == "*/15 13-14 30-30 6 *"   # the 2-hour band on the departure day
     assert spec["repeat"] == 8                       # 2 h × 4 ticks/h, self-expiring
     assert "--imminent" in spec["prompt"] and "TRACK CHANGED" in spec["prompt"]
-    assert pc.build_imminent_spec(trip, {"id": 4, "kind": "train"}) is None  # dateless
+    assert "--scheduled" in spec["prompt"]
+    assert pc.build_imminent_spec(trip, {"id": 4, "kind": "train"}, ref=ref) is None  # dateless
+    # a leg that already departed (yesterday) gets NO cron (no ~1yr-lingering stale job)
+    past = {"id": 5, "kind": "train", "booking_ref": "OLD", "start_ts": "2026-06-29T14:05"}
+    assert pc.build_imminent_spec(trip, past, ref=ref) is None
+
+
+def test_migration_0002_idempotent_under_partial_apply(tmp_path, monkeypatch):
+    """0002 must finish a PARTIAL prior apply: if only `track` landed (crash between the two
+    ALTERs), re-applying still adds `delay_min` (statement-by-statement, not all-or-nothing)."""
+    monkeypatch.setenv("HH_HERMES_HOME", str(tmp_path / ".hermes"))
+    db = tmp_path / ".hermes" / "data" / "oteny-travel-talent" / "trips.db"
+    db.parent.mkdir(parents=True)
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE bookings (id INTEGER PRIMARY KEY, track TEXT)")  # track only
+    con.commit()
+    con.close()
+    man = yaml.safe_load((TRAVEL / "migrations.yaml").read_text())
+    m2 = next(m for m in man["migrations"] if m["id"] == "0002_structured_board_diff")
+    res = mg._apply_one({"bot": "oteny-travel-talent", "db": "trips.db"}, m2)
+    assert res["result"] == "APPLIED"
+    con = sqlite3.connect(db)
+    cols = {r[1] for r in con.execute("PRAGMA table_info(bookings)")}
+    con.close()
+    assert "track" in cols and "delay_min" in cols   # the not-yet-applied ALTER still ran
 
 
 def test_migration_0002_is_sql_and_adds_columns(tmp_path):

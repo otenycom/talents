@@ -13,17 +13,19 @@ monitor cron checklist is therefore:
     4. (LLM) message the group/DM ONLY on CHANGED, and offer a reroute
 
 W1 adds a tighter **departure-imminent** loop for the NL live board's track changes:
-``--due --imminent`` returns only legs leaving in the next ~50 min, and ``--update`` takes a
-structured ``--track`` (the spoor the enriched board returned) so the diff prints
-``TRACK CHANGED: '5' -> '9'`` deterministically — the model pushes "your train now departs
-spoor 9, not 5" on that, and dedupes (the stored track means a repeat tick is UNCHANGED).
+``--due --imminent`` returns only legs leaving in the next ~50 min, and ``--update`` takes the
+board's structured ``--track`` (live actual spoor) + ``--scheduled`` (the ``(was X)`` value) so
+the diff prints ``TRACK CHANGED: '5' -> '9'`` **deterministically** (actual≠scheduled, and not
+already pushed) — the model pushes "your train now departs spoor 9, not 5" on that, and dedupes
+(the stored actual means a repeat tick is UNCHANGED). A first sighting or actual==scheduled
+seeds the baseline silently.
 
 Keeping selection + diff + persistence in a script (not the weak model) is the
 deterministic guard against a missed or hallucinated delay. A failed lookup must surface
 as an actionable error — NEVER as an empty "all clear" (that silently mis-routes).
 
     python3 monitor_transport.py --due [--imminent] [--json]
-    python3 monitor_transport.py --update --leg 12 --status "delayed 5m" --track 9 --delay 5
+    python3 monitor_transport.py --update --leg 12 --status "now spoor 9" --track 9 --scheduled 5 --delay 5
 
 Exit code is always 0 (a non-zero would make the LLM's terminal call look failed); the
 outcome is in the output. Paths resolve through the same env overrides as preflight.py.
@@ -139,18 +141,22 @@ def _norm(s) -> str:
     return " ".join(str(s or "").split()).strip().lower()
 
 
-def update_leg(con, leg_id: int, status: str,
-               track: str | None = None, delay_min: int | None = None) -> dict:
+def update_leg(con, leg_id: int, status: str, track: str | None = None,
+               scheduled: str | None = None, delay_min: int | None = None) -> dict:
     """Persist a freshly-fetched status and report whether it CHANGED vs the stored one.
 
     Returns a result dict; a missing/unmonitored leg is an actionable ERROR, never a
     silent no-op (the semantic-errors-never-fake-empty-data discipline).
 
-    W1: when ``track`` is given (the departure-imminent monitor), also persist the structured
-    ``track``/``delay_min`` and report ``track_changed`` — a deterministic platform/spoor diff
-    vs the last seen one (the dedupe + the high-value push signal), so the model pushes on a
-    real track change, not on every wording wobble of the free-text status. The plain
-    status-only path (the 6h monitor, and pre-migration dbs) never touches the new columns."""
+    W1: when ``track`` (the live actual platform) is given — the departure-imminent monitor —
+    also persist the structured ``track``/``delay_min`` and report ``track_changed``. A real
+    change is DETERMINISTIC here, not delegated to the model: the live ``track`` differs from
+    the ``scheduled`` one the board also returned (``spoor 9 (was 5)`` → track=9 scheduled=5),
+    AND it differs from the last actual we stored (dedupe, so a given change pushes once). A
+    first sighting, or actual==scheduled (on the booked platform), is NOT a change → no push,
+    it just seeds the baseline. A blank ``track`` never overwrites the stored one (a poll with
+    no clear spoor must not wipe the dedupe baseline and re-fire). The plain status-only path
+    (the 6h monitor, and pre-migration dbs) never touches the new columns."""
     row = con.execute(
         "SELECT id, monitor, status, carrier, booking_ref FROM bookings WHERE id=?",
         (leg_id,)).fetchone()
@@ -165,9 +171,15 @@ def update_leg(con, leg_id: int, status: str,
     if track is not None:  # the imminent path — track/delay_min columns exist (migration 0002)
         tr = con.execute("SELECT track FROM bookings WHERE id=?", (leg_id,)).fetchone()
         prior_track = tr["track"] if tr else None
-        track_changed = bool(track.strip()) and _norm(prior_track) != _norm(track)
-        con.execute("UPDATE bookings SET status=?, track=?, delay_min=? WHERE id=?",
-                    (status, track, delay_min, leg_id))
+        actual, sched = track.strip(), (scheduled or "").strip()
+        track_changed = bool(actual and sched and _norm(actual) != _norm(sched)
+                             and _norm(actual) != _norm(prior_track))
+        if actual:  # never wipe the stored track with a blank → dedupe stays durable
+            con.execute("UPDATE bookings SET status=?, track=?, delay_min=? WHERE id=?",
+                        (status, actual, delay_min, leg_id))
+        else:
+            con.execute("UPDATE bookings SET status=?, delay_min=? WHERE id=?",
+                        (status, delay_min, leg_id))
     else:
         con.execute("UPDATE bookings SET status=? WHERE id=?", (status, leg_id))
     con.commit()
@@ -207,7 +219,8 @@ def main(argv=None) -> int:
     ap.add_argument("--update", action="store_true", help="record a fetched status")
     ap.add_argument("--leg", type=int, help="booking id (with --update)")
     ap.add_argument("--status", help="the live status text (with --update)")
-    ap.add_argument("--track", help="the live platform/spoor (with --update; W1 push diff)")
+    ap.add_argument("--track", help="the live actual platform/spoor (with --update; W1 push diff)")
+    ap.add_argument("--scheduled", help="the scheduled platform the board shows as '(was X)'")
     ap.add_argument("--delay", type=int, help="the live delay in minutes (with --update)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
@@ -224,8 +237,8 @@ def main(argv=None) -> int:
                 _emit({"result": "ERROR", "leg": args.leg or 0,
                        "reason": "--update needs --leg and --status"}, args.json)
             else:
-                _emit(update_leg(con, args.leg, args.status,
-                                 track=args.track, delay_min=args.delay), args.json)
+                _emit(update_leg(con, args.leg, args.status, track=args.track,
+                                 scheduled=args.scheduled, delay_min=args.delay), args.json)
         else:  # default action is --due
             _emit(due_legs(con, imminent=args.imminent), args.json)
     finally:
