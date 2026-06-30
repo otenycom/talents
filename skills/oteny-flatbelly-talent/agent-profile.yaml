@@ -6,8 +6,32 @@
 bot: oteny-flatbelly-talent
 display_name: FlatbellyBot
 tagline: "Your private flat-belly coach — real food, protein timing, sleep, evidence-based."
-version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+# The landing-page "what it does" body (oteny.com/bots/flatbelly) — plain paragraphs, escaped,
+# split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
+# value, plain English, honest. Re-seeded from this file on every catalog seed.
+long_md: |
+  Tell FlatbellyBot what you ate and it does the rest — a private coach in your own chat
+  that turns one quick line ("88 kg, slept 81, salmon and three eggs") into a full picture
+  of your day. No app to open, no forms to fill — just text it like you'd text a friend.
+
+  It breaks every meal into calories, protein and the rest of the macros, and tracks
+  leucine — the amino acid that flips on the muscle-keeping switch — so you hold onto muscle
+  while you lose the fat. After each meal it tells you exactly how much protein you have left
+  to hit your target, and what to eat to get there.
+
+  Weigh in each morning and it reads the trend, not the daily noise: a true slope in kilos
+  per week, and whether you're in the healthy range. It tracks your sleep, steps, workouts
+  and waist too — and every Sunday it drops a weight-and-waist chart so you can watch the
+  line go the right way.
+
+  The coaching is warm and never preachy, grounded in evidence rather than fads. It's
+  coaching, not medical advice — and if something you log looks like a red flag, it'll tell
+  you to check with a doctor.
+version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.1: marketing copy only — a `long_md` landing body for the website
+                 # (the macro/leucine breakdown, the morning weight trend, the Sunday chart,
+                 # and the coaching-not-medical boundary). No runtime/behavior change.
 
 # The skills delivered together (Option A: separately installable).
 skills:

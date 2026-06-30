@@ -5,8 +5,30 @@
 bot: oteny-stock-talent
 display_name: StockBot
 tagline: "Terse, numbers-first stock research grounded in live prices + All-In distillation."
-version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+# The landing-page "what it does" body (oteny.com/bots/stock) — plain paragraphs, escaped,
+# split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
+# value, plain English, honest. Re-seeded from this file on every catalog seed.
+long_md: |
+  Ask StockBot about a ticker and you get a straight, numbers-first read — no waffle, no
+  filler. It pulls live prices the moment you ask, so every take is grounded in where the
+  stock actually is right now, not last week's headline.
+
+  For each name it gives you a clear Buy or Hold with the reasoning in a line or two — the
+  next catalyst, the analyst targets, what's moving it today. Use it in a private chat, or
+  in a group of friends where anyone can ask and everyone sees the same answer.
+
+  It also distills the All-In podcast for you: paste an episode (or point it at one) and it
+  boils a two-hour show down to the core thesis, the key takeaways, and which companies and
+  tickers came up — so you get the signal without the listen.
+
+  Want a standing briefing? Ask for a daily market brief and it'll post a terse,
+  numbers-first summary at the time you pick, every day. It's research and education, not
+  financial advice — it lays out the numbers and the thinking; the call is always yours.
+version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.1: marketing copy only — a `long_md` landing body for the website
+                 # (live-price research, the per-ticker Buy/Hold, All-In distillation, the
+                 # daily brief, and the research-not-advice boundary). No runtime/behavior change.
 
 skills:
   - oteny-stock-talent          # umbrella persona + operating rules + density tiers

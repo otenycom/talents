@@ -6,8 +6,31 @@
 bot: oteny-shopbot-talent
 display_name: ShopBot
 tagline: "One shared grocery list the whole house keeps live — sorted by aisle so you never crisscross the store."
-version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+# The landing-page "what it does" body (oteny.com/bots/shopbot) — plain paragraphs, escaped,
+# split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
+# value, plain English, honest. Re-seeded from this file on every catalog seed.
+long_md: |
+  Share ShopBot with the people you live with and you all keep one grocery list, live. Add
+  to it from anywhere — the couch, the office, the school run — and whoever's at the shop
+  sees the same list update the moment you do.
+
+  Drop in whatever you need, however you type it ("skyr, blueberries, spinach, eggs x12"),
+  and it files each item under the right aisle. When you head out it hands you the list
+  sorted section by section, so you walk the store top to bottom — no crisscrossing, no
+  forgotten corner.
+
+  Shopping across more than one store? Just say where each thing goes — "ribeye at the
+  butcher" — and it keeps a separate list per shop, your default store first. Check items
+  off as you grab them (text the number, that's it), and because everyone shares the list,
+  two of you out at the same time won't buy the same thing twice.
+
+  It quietly tracks who added what and drops bought items off the active list, so the list
+  is always right without anyone having to ask "did you get the milk?"
+version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.1: marketing copy only — a `long_md` landing body for the website
+                 # (the shared live list, aisle ordering, per-store routing, and check-off).
+                 # No runtime/behavior change.
 
 # A single umbrella skill (the shopping-list engine: persona + operating rules + the
 # per-intent checklists). No child skills needed.
