@@ -6,7 +6,28 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-version: 1.6.1   # Talent semver — a label over the delivered commit; bump on every change,
+# The landing-page "what it does" body (oteny.com/bots/travel) — plain paragraphs, escaped,
+# split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
+# value, plain English, honest. Re-seeded from this file on every catalog seed.
+long_md: |
+  Tell TravelBot where you're going and it plans the trip, maps the way, and keeps watch
+  while you travel — in a private chat, or in a group chat with the people you're going with.
+
+  Ask "when's my next tram?" and it reads the live board, not a printed timetable. In the
+  Netherlands it shows the real countdown with the actual delay, the platform (spoor) — and
+  warns you the moment it changes ("now spoor 9, not 5") — plus any service alert, like a
+  replacement bus. Everywhere else you get Google's live departures. Every answer comes with a
+  tap-to-open map link, so you're never stuck on a number that's quietly wrong.
+
+  Booked a flight? Paste the number and it tracks the status, gate, terminal and delay, and
+  pings the chat the moment something moves. If an EU flight is cancelled or badly delayed, it
+  even drafts your EU261 compensation claim.
+
+  On a group trip, add it to the group: it keeps everyone's plan in sync, tracks who paid for
+  what, and settles up at the end — greeting each traveller by name. It surfaces options and
+  links but never books or pays for you, and visa, entry and health answers are advisory —
+  always confirm with the official source.
+version: 1.6.2   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -51,6 +72,9 @@ version: 1.6.1   # Talent semver — a label over the delivered commit; bump on 
                  # the baseline silently (no "spoor X, not None"), and a blank --track never wipes the
                  # dedupe baseline. No imminent cron for an already-departed leg (no ~1yr stale job).
                  # PATCH (bug fixes, no new migration id).
+                 # 1.6.2: marketing copy only — a `long_md` landing body for oteny.com/bots/travel
+                 # (now bundle-sourced + re-seeded, like the teaser) that explains the live NL board,
+                 # flight watch, group costs + the link-out boundary. No runtime/behavior change.
 
 # The skills delivered together. Four child skills: engine + onboarding + voice + visual.
 skills:
