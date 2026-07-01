@@ -119,6 +119,69 @@ deploy can run the whole suite live with zero real-world action. Mock-backend sc
 still assert the deterministic layer offline in CI; anything only the live channel can
 judge (reply quality, the Discuss round-trip) is recorded `SKIP` offline and proven live.
 
+## 6. The bot as a workflow executor (checks 5 + 6)
+
+A business bot need not only *answer* a team in chat; it can be the **executor of a
+workflow transition** — one isolated agent turn per bot-owned transition. The pattern: the
+business's Odoo owns a state machine, and specific states/transitions belong to the bot; a
+generic **harness** on the control plane drives the bot through them.
+
+- **The work queue.** The harness reads a queue of bot-owned records — the records sitting
+  in a state whose workflow declares it the bot's to advance. Each item carries a **task
+  spec** (which skill to load, the prompt, the record's DTO) that the workflow shape emits,
+  not a hard-coded reference.
+- **The idempotent claim.** The harness fires **one fresh agent turn per item** and then
+  **claims** the record (advances it out of the queue state). The claim is idempotent — a
+  re-run of the same item is a no-op, so a harness that crashes and retries never
+  double-acts. The turn does its one job (file, send, record) over the `/json/2/` uplink and
+  the transition advances.
+- **Generic role flags, not xml-ids.** The workflow declares which states and transitions
+  are the bot's via **generic role flags** on the states/transitions (a state is a queue / a
+  work-in-progress / a watch state; a transition is claim / work / escalate). The harness
+  resolves the bot's work purely from those flags and the workflow shape — it never
+  hard-codes a specific state or transition, so any workflow-bearing model becomes
+  bot-drivable just by flagging its states.
+- **The escalate hand-back.** When the agent cannot finish (a rejection, an unexpected
+  state), it takes the **escalate** transition — the bot's own failure hand-back to a human.
+  This is the agent reporting "I can't", distinct from the reaper below.
+
+### The timeout reaper — the owner's backstop
+
+The claim/escalate pair covers the cases where the harness *runs*. It cannot cover a harness
+that **died mid-run and never reported back** — a record stuck in the work-in-progress state
+forever. The backstop is a **timeout reaper**: an Odoo scheduled action, owned by the
+business's Odoo (not the bot), that finds work-in-progress records stuck past an
+**SLA timeout** and hands them back to a human through the state's timeout exit.
+
+- The reaper is the **safety belt for a dead harness**, distinct from the `escalate`
+  hand-back (which is the agent's *own* admission of failure while alive). One is the owner's
+  Odoo reclaiming a stuck record; the other is the agent voluntarily giving one back.
+- Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
+  reaper for that state.
+
+## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
+
+A B2C bot's activity is visible only to its owner in chat. A business bot serves a *team*,
+and the owner needs to review **every exchange** from inside their own Odoo — the
+external-bot analog of a native in-Odoo agent's logs. The bot writes each exchange back:
+
+- **The write-back.** After each turn, the bot records **one session** into the business's
+  Odoo over `/json/2/` — the exchange (turns, outcome) plus an **advisory soft-ref** to the
+  record it was about (an origin model + id). The session is soft-linked, not a hard foreign
+  key: the addon is domain-agnostic and the bot already has write access to those records.
+- **Idempotent bot identity.** The bot lives *outside* the owner's Odoo, so nothing
+  pre-seeds its record there — the bot **upserts its own identity** on first activity (keyed
+  by its uplink reference, race-safe via a unique constraint). The log then appears the
+  moment the bot first acts.
+- **Best-effort, never fatal.** Recording the activity is best-effort — a logging failure
+  **must not fail the transition** the bot just did. The write-back wraps the real work; if
+  the log write throws, the work still stands.
+- **The trust model.** The log is the bot's **self-report**, scoped to its own bot identity
+  (matched by its uplink reference — an uplink reaches only its own owner's Odoo, so there is
+  no cross-tenant reach). The origin soft-ref is advisory and unvalidated. The owner reviews
+  the sessions from a **smart button on the record** the bot worked, or a per-bot activity
+  view — every exchange, in their own Odoo, without touching the bot host.
+
 ## Grading deltas (run alongside the 14 checks)
 
 - **Routing** — `routing.channel: discuss`, a team-channel `channel_prompt`, no Telegram
@@ -134,3 +197,9 @@ judge (reply quality, the Discuss round-trip) is recorded `SKIP` offline and pro
 - **Tests** — `tests/scenarios/*.yaml` drive the live Discuss channel and assert ground
   truth over `/json/2/`; the suite is safe to run live because non-prod is stubbed.
   (PASS/FAIL)
+- **Workflow executor** — if the bot advances a workflow, its states/transitions are marked
+  by generic role flags (queue/work/watch, claim/work/escalate), the claim is idempotent, and
+  a timeout reaper on the owner's Odoo backstops a dead harness. (PASS/FAIL / N/A)
+- **Owner-visibility** — the bot records each exchange as a session in the owner's Odoo over
+  `/json/2/` (soft-linked to the record, idempotent bot identity, best-effort so a log
+  failure can't fail the work); reviewable from a smart button on the record. (PASS/FAIL / N/A)
