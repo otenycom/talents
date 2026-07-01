@@ -123,21 +123,36 @@ judge (reply quality, the Discuss round-trip) is recorded `SKIP` offline and pro
 
 A business bot need not only *answer* a team in chat; it can be the **executor of a
 workflow transition** — one isolated agent turn per bot-owned transition. The pattern: the
-business's Odoo owns a state machine, and specific states/transitions belong to the bot; a
-generic **harness** on the control plane drives the bot through them.
+business's Odoo owns a state machine, and specific states/transitions belong to the bot;
+each bot-owned record is driven through them by a **fresh isolated turn** — its own session,
+not the team's running conversation.
 
-- **The work queue.** The harness reads a queue of bot-owned records — the records sitting
-  in a state whose workflow declares it the bot's to advance. Each item carries a **task
-  spec** (which skill to load, the prompt, the record's DTO) that the workflow shape emits,
-  not a hard-coded reference.
-- **The idempotent claim.** The harness fires **one fresh agent turn per item** and then
-  **claims** the record (advances it out of the queue state). The claim is idempotent — a
-  re-run of the same item is a no-op, so a harness that crashes and retries never
-  double-acts. The turn does its one job (file, send, record) over the `/json/2/` uplink and
+- **The dispatch trigger — the owner's Odoo asks over the bot's own channel.** The primary
+  trigger needs **no external poller and no inbound webhook**: the owner's Odoo iterates its
+  own queue of bot-owned records (the ones in a state whose workflow declares it the bot's to
+  advance) and, for each, **posts a flagged message into the bot's own chat channel**. The
+  bot's *existing* channel poll — the same one it uses to answer the team — picks the flagged
+  message up and runs it as a **fresh isolated turn**. Odoo asks; the bot's own poll answers.
+- **A flagged message runs isolated.** A leading sentinel on the message marks it *isolated*:
+  the adapter strips the sentinel and gives that turn a **unique per-message chat id**, so the
+  gateway keys it to a **fresh session** — the same isolation a per-delivery webhook turn
+  would get, over the chat channel. An unflagged message keeps the shared channel chat id, so
+  the team's conversation still accumulates in one session. The sentinel string is a **pinned
+  wire contract** — the owner-Odoo side that writes it and the bot-adapter side that parses it
+  must agree on the exact literal.
+- **The thin prompt — name the record, not its data.** The dispatch prompt is deliberately
+  **thin**: it names the skill to load and the record ("record #id"), and **nothing else**.
+  The bot fetches the record's DTO itself over its `/json/2/` uplink, so no business data (PII)
+  ever rides the chat channel. The workflow shape emits the prompt from generic role flags, not
+  a hard-coded reference.
+- **The idempotent claim.** Before (or as) it dispatches, the owner's Odoo **claims** the
+  record — advances it out of the queue state (e.g. into a visible "working" state). The claim
+  is idempotent and removes the record from the queue, so a re-run never dispatches the same
+  record twice. The turn does its one job (file, send, record) over the `/json/2/` uplink and
   the transition advances.
 - **Generic role flags, not xml-ids.** The workflow declares which states and transitions
   are the bot's via **generic role flags** on the states/transitions (a state is a queue / a
-  work-in-progress / a watch state; a transition is claim / work / escalate). The harness
+  work-in-progress / a watch state; a transition is claim / work / escalate). The dispatch
   resolves the bot's work purely from those flags and the workflow shape — it never
   hard-codes a specific state or transition, so any workflow-bearing model becomes
   bot-drivable just by flagging its states.
@@ -145,15 +160,22 @@ generic **harness** on the control plane drives the bot through them.
   state), it takes the **escalate** transition — the bot's own failure hand-back to a human.
   This is the agent reporting "I can't", distinct from the reaper below.
 
+An **inbound webhook + a manual per-record dispatch command** remain as an operator
+**escape hatch** for backfill and recovery, but the two triggers must not both run
+automatically at once — each would claim and fire the same record (a double side effect). The
+channel-dispatch trigger is the primary automatic path; any automatic webhook/timer belt stays
+off while it is live.
+
 ### The timeout reaper — the owner's backstop
 
-The claim/escalate pair covers the cases where the harness *runs*. It cannot cover a harness
-that **died mid-run and never reported back** — a record stuck in the work-in-progress state
-forever. The backstop is a **timeout reaper**: an Odoo scheduled action, owned by the
-business's Odoo (not the bot), that finds work-in-progress records stuck past an
-**SLA timeout** and hands them back to a human through the state's timeout exit.
+The claim/escalate pair covers the cases where the dispatched turn *runs*. It cannot cover a
+turn that **died mid-run and never reported back** — the gateway crashed, or never received
+the dispatch — leaving a record stuck in the work-in-progress state forever. The backstop is a
+**timeout reaper**: an Odoo scheduled action, owned by the business's Odoo (not the bot), that
+finds work-in-progress records stuck past an **SLA timeout** and hands them back to a human
+through the state's timeout exit.
 
-- The reaper is the **safety belt for a dead harness**, distinct from the `escalate`
+- The reaper is the **safety belt for a dead run**, distinct from the `escalate`
   hand-back (which is the agent's *own* admission of failure while alive). One is the owner's
   Odoo reclaiming a stuck record; the other is the agent voluntarily giving one back.
 - Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
@@ -198,8 +220,11 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   truth over `/json/2/`; the suite is safe to run live because non-prod is stubbed.
   (PASS/FAIL)
 - **Workflow executor** — if the bot advances a workflow, its states/transitions are marked
-  by generic role flags (queue/work/watch, claim/work/escalate), the claim is idempotent, and
-  a timeout reaper on the owner's Odoo backstops a dead harness. (PASS/FAIL / N/A)
+  by generic role flags (queue/work/watch, claim/work/escalate); the owner's Odoo dispatches a
+  transition by posting a flagged (isolated-sentinel) thin prompt — record id, not its data —
+  into the bot's own channel, which the bot's existing poll runs as a fresh isolated turn (no
+  external poller, no inbound webhook); the claim is idempotent, and a timeout reaper on the
+  owner's Odoo backstops a dead run. (PASS/FAIL / N/A)
 - **Owner-visibility** — the bot records each exchange as a session in the owner's Odoo over
   `/json/2/` (soft-linked to the record, idempotent bot identity, best-effort so a log
   failure can't fail the work); reviewable from a smart button on the record. (PASS/FAIL / N/A)
