@@ -81,6 +81,28 @@ test   --ref hh00231 --bundle oteny-flatbelly-talent      # the result you trust
 reap   --ref hh00231                                       # done
 ```
 
+## Business-bot Talents (Discuss / a workflow trigger, not a chat DM)
+
+A **business-bot** Talent (one whose `routing.channel` is an Odoo `discuss` channel and whose
+source of truth is a business Odoo over the `/json/2/` uplink, not a local sqlite db) tests the
+same way, with three differences:
+
+- **Scenarios are `live_only`** and assert **`uplink`** ground truth, not `state` over a local
+  db — the effect lives in the business Odoo, so a turn declares
+  `expect.uplink: [{model, domain, equals/count}]` (read back over the uplink) instead of a
+  `state` query. There is no mock backend to seed.
+- **A `hand_off` turn triggers the REAL workflow path.** Instead of `user:` (a chat message), a
+  turn may declare `hand_off: {model, domain, to_state}` + an optional `reply_timeout`: the
+  driver writes the record into its bot-queue state over the uplink — exactly as a human hand-off
+  does — which fires the platform's own token-fenced dispatch, then waits for the bot's channel
+  narration. Use `hand_off` (not a driver-posted flagged message) so the scenario exercises the
+  real claim fence, not a legacy path. Fixture must match **exactly one** record (seed/reset it).
+- **The clone points its uplink at a STAGING business Odoo** (never prod), and `neutralize.yaml`
+  repoints the seam + confirms any side-effecting adapter (portal/browser/mailbox) is the stub.
+
+`test --ref <clone> --bundle <slug>` runs these the same way; the driver skips the gateway's
+progress frames ("⏳ Working…") and grades the final narration + the uplink asserts.
+
 ## Proving a migration (the case a fresh box can't cover)
 
 Ship the migration the normal way (append a `migrations.yaml` entry + a
@@ -113,6 +135,26 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   to a Lite subscription or is reaped.
 - **Traces are yours.** `traces`/`logs` and the **Author Logs portal** show only
   your own (and granted/demo) bots — the same record-rule boundary, two front-ends.
+
+## Troubleshooting (read the failure, don't guess)
+
+- **`test` red, reply matcher failed** — read `traces --ref <clone>` for that turn: the reply
+  is graded on `contains`/`not_contains`/`regex`; a genuine refusal or a differently-phrased
+  success both show there. Loosen a brittle `contains` to a trace/`uplink` assertion (the
+  behavioral truth) rather than pinning exact wording.
+- **`test` red, trace marker missing/unexpected** — the tool you expected didn't run (or a
+  forbidden one did). `logs --ref <clone>` shows `tool <name> completed`; a missing
+  toolset means the platform lock or a `check_fn` gate dropped it (a business bot mounts only
+  its `toolset_contribution`).
+- **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
+  one matching record in the *from* state (reset a consumed one) before the run.
+- **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
+  still points at prod, or a required stub is missing). Fix `neutralize.yaml`; a clone never
+  serves un-neutralized.
+- **A long run is reaped mid-task** — the agent budget (`agent.max_turns`) is too low for the
+  Talent's work; raise it per-tenant (an operator `config_overrides` knob) and re-run.
+- **`clone`/`test`/`traces` says "not permitted"** — you can only touch your own + granted +
+  Oteny demo bots; `clone --from` a source outside that scope is refused by the record rules.
 
 ## Publish gate
 
