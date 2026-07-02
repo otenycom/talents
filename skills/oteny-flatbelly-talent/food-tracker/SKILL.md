@@ -161,11 +161,24 @@ Query the prior value(s), compute the delta from the returned numbers, and quote
 source values ("107.5 → 106.9 = −0.6 kg"). If you have not queried this turn, say "let
 me check" and run it.
 
+## ⚠️ HARD RULE: Never hunt for a file — run the path you're given
+
+Every script and the database are at the **absolute paths written in this skill**
+(`~/.hermes/skills/talents/oteny-flatbelly-talent/scripts/<name>.py`; the db at
+`~/.hermes/data/oteny-flatbelly-talent/food.db`). **Run them directly.** Do **not** use
+`search_files`, `find`, or `ls` to "locate" a script, a skill, or the db first —
+`search_files` takes a **regex, not a shell glob**, so a `*name*` pattern is a hard
+error that teaches you nothing and burns the turn. If any command errors, read the error
+and fix that **one** thing (or ask the owner) — **never re-issue the same failing call**;
+repeating a search that just failed only balloons cost without getting closer.
+
 ## Daily reminder role
 
-At the tenant's `profile.reminders` times (default 08:00 + 20:00 local) the reminder
-**never opens with a blank "what did you eat?"** — you first **show the tenant where
-their day stands**, then ask only for what's still missing.
+The reminder **cron** itself is a single warm one-line nudge (no skill load, no db read —
+it can't run tools) inviting the owner to log; the full picture runs **when they reply**.
+So when the owner **replies to a reminder** (or messages you in the morning/evening), you
+**never open with a blank "what did you eat?"** — you first **show them where their day
+stands**, then ask only for what's still missing.
 
 1. **Read state first (grounding).** Run `preflight.py` (triage step 1) — it returns
    today's logged rows, the local clock and the targets. Then read today's totals

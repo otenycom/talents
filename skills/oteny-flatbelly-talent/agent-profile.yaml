@@ -27,8 +27,14 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.1.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.1.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.1.1: ship the missing `scripts/migrate.py` — its absence silently made
+                 # preflight report `MIGRATIONS: none`, so `0003_cron_localtime` never surfaced
+                 # and the live reminder crons stayed the old heavy protocol (looped to the
+                 # 90-iteration brake on Gemini-Flash). Adds a "never hunt for a file" hard rule
+                 # to food-tracker (the observed glob-vs-regex `search_files` runaway) and
+                 # reconciles the reminder-role copy with the thin-nudge design.
                  # 1.1.0: cron cost reshape (talent-model-steering W3/W4/W6). The daily
                  # reminders are now single cheap `lite` nudges (no skill load); the full
                  # wrap-up runs when the owner REPLIES (chat path, via channel_prompt). Adds
