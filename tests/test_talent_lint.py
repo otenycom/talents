@@ -213,6 +213,67 @@ def test_flatbelly_neutralize_is_well_shaped():
     assert lint._neutralize_findings(FLATBELLY) == []
 
 
+# --------------------------------------------------------------------------- #
+# scheduled-cron cost policy (check 14)                                         #
+# --------------------------------------------------------------------------- #
+def _crons(policy_yaml: str) -> str:
+    """A profile_extra `crons:` block (prepended into the test talent's agent-profile)."""
+    return "crons:\n" + policy_yaml
+
+
+def test_required_cron_without_policy_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT)   # required cron, no crons: policy
+    assert any("no cost policy" in f for f in lint.lint_bundle(b))
+
+
+def test_cron_without_max_turns_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: daily\n    model: lite\n'))
+    assert any("bound the turn" in f for f in lint.lint_bundle(b))
+
+
+def test_daily_cron_above_lite_without_justification_is_a_finding(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: daily\n    model: builder\n    max_turns: 4\n'))
+    assert any("model_justification" in f for f in lint.lint_bundle(b))
+
+
+def test_daily_cron_above_lite_with_justification_is_clean(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: daily\n    model: builder\n'
+        '    max_turns: 4\n    model_justification: "weekly board synthesis needs Sonnet"\n'))
+    assert not any("model_justification" in f for f in lint.lint_bundle(b))
+
+
+def test_daily_lite_cron_needs_no_justification(tmp_path):
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: daily\n    model: lite\n    max_turns: 3\n'))
+    findings = lint.lint_bundle(b)
+    assert not any("model_justification" in f for f in findings)
+    assert not any("bound the turn" in f for f in findings)
+    assert not any("no cost policy" in f for f in findings)
+
+
+def test_weekly_cron_above_lite_needs_no_justification(tmp_path):
+    # weekly is not daily-or-more, so a costlier persona needs no written justification
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: weekly\n    model: builder\n    max_turns: 15\n'))
+    assert not any("model_justification" in f for f in lint.lint_bundle(b))
+
+
+def test_orphan_cron_policy_name_is_a_finding(tmp_path):
+    # a crons: entry naming a job not declared in required_artifacts jobs: is name drift
+    b = _talent(tmp_path, artifacts=_CRON_ARTIFACT, profile_extra=_crons(
+        '  - name: "OtenyX daily nudge"\n    frequency: daily\n    model: lite\n    max_turns: 3\n'
+        '  - name: "OtenyX typo job"\n    frequency: daily\n    model: lite\n    max_turns: 3\n'))
+    assert any("name drift" in f for f in lint.lint_bundle(b))
+
+
+def test_flatbelly_cron_policy_is_clean():
+    # the shipped FlatBelly bundle satisfies the scheduled-cron cost policy
+    assert lint._cron_policy_findings(FLATBELLY) == []
+
+
 def test_all_real_talents_lint_clean():
     bundles = [str(p) for p in sorted(CATALOG.glob("*-talent"))]
     assert bundles

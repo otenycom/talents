@@ -8,12 +8,15 @@ the first-run section feeds to the ``cronjob`` tool, **list-first** (only the jo
 already present). Keeping the schedule math in a script (not the LLM) is the
 deterministic backbone; the LLM only executes the registration.
 
-Reads ``~/.hermes/data/oteny-flatbelly-talent/profile.yaml`` for ``timezone`` and ``reminders``. Prints a
-human plan, or ``--json`` with ``to_create`` (full specs) + ``existing``.
+Reads ``~/.hermes/data/oteny-flatbelly-talent/profile.yaml`` for ``timezone`` and ``reminders``, and the
+Talent's own ``agent-profile.yaml`` ``crons:`` block for the per-job cost policy (model +
+max_turns). Prints a human plan, or ``--json`` with ``to_create`` (full specs) + ``existing``.
 
-DST caveat: Hermes cron expressions are interpreted in UTC, so the computed UTC hour
-is correct for the *current* offset. Re-run this planner after a DST change (or use
-Hermes-native tz scheduling if the box exposes it) to keep the wall-clock fixed.
+Timezone: Hermes' scheduler evaluates a cron expression in the tenant's CONFIGURED
+timezone (config.yaml ``timezone:`` → ``hermes_time.now()`` → the croniter base), NOT
+UTC. So the schedule is the local wall-clock time verbatim — no conversion. The prior
+UTC conversion fired reminders off by the tenant's UTC offset (2 h early in CEST summer);
+writing local wall-clock is DST-invariant (08:00 local stays 08:00 local year-round).
 """
 from __future__ import annotations
 
@@ -28,14 +31,13 @@ try:
     import yaml
 except ImportError:
     yaml = None
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:  # pragma: no cover
-    ZoneInfo = None
 
 DEFAULT_PROFILE = os.path.expanduser("~/.hermes/data/oteny-flatbelly-talent/profile.yaml")
 DEFAULT_JOBS = os.path.expanduser("~/.hermes/cron/jobs.json")
 DEFAULT_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
+# The Talent's own manifest (bundle root, beside this scripts/ dir) — the single source
+# of the per-job cron cost policy the lint enforces and this planner emits from.
+DEFAULT_AGENT_PROFILE = Path(__file__).resolve().parent.parent / "agent-profile.yaml"
 
 # Cron jobs MUST pin their model + provider. Hermes' cron scheduler resolves an
 # un-pinned job's model from config.yaml's `model.default` (NOT `model.model`, the
@@ -72,25 +74,39 @@ def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:
     return _FALLBACK_MODEL, _FALLBACK_PROVIDER
 
 
-def utc_cron(local_hh: int, local_mm: int, tz: str, dow: int | None = None,
-             ref: datetime | None = None) -> str:
-    """Return a 5-field cron expr (UTC) for a wall-clock time in ``tz``.
+def local_cron(local_hh: int, local_mm: int, dow: int | None = None) -> str:
+    """Return a 5-field cron expr in the tenant's LOCAL wall-clock.
+
+    Hermes' scheduler evaluates the expression in the tenant's configured timezone
+    (config.yaml ``timezone:`` → ``hermes_time.now()`` → the croniter base), NOT UTC, so
+    the schedule IS the local time verbatim — no conversion. The prior UTC conversion
+    fired reminders off by the tenant's UTC offset; local wall-clock is DST-invariant.
 
     ``dow``: cron day-of-week (0=Sun) for weekly jobs; None for daily.
-    ``ref``: reference date (defaults to today) — DST offset is taken from it.
     """
-    if ZoneInfo is None:
-        raise RuntimeError("zoneinfo unavailable")
-    base = (ref or datetime.now()).replace(hour=local_hh, minute=local_mm,
-                                           second=0, microsecond=0)
-    local = base.replace(tzinfo=ZoneInfo(tz))
-    u = local.astimezone(ZoneInfo("UTC"))
     if dow is None:
-        return f"{u.minute} {u.hour} * * *"
-    # shift the cron weekday if the UTC conversion crossed midnight
-    shift = (u.date() - base.date()).days
-    udow = (dow + shift) % 7
-    return f"{u.minute} {u.hour} * * {udow}"
+        return f"{local_mm} {local_hh} * * *"
+    return f"{local_mm} {local_hh} * * {dow}"
+
+
+def read_cron_policy(profile_path=DEFAULT_AGENT_PROFILE) -> dict:
+    """Per-job cron cost policy from agent-profile.yaml's ``crons:`` block, keyed by job
+    name: ``{name: {model, max_turns, expected_cost, ...}}`` ({} if absent/unreadable).
+
+    This is the SAME source the build-time lint enforces, so the emitted model/max_turns
+    can never drift from the declared+linted policy (talent-model-steering W4/W5).
+    """
+    if yaml is None:
+        return {}
+    try:
+        data = yaml.safe_load(Path(profile_path).read_text()) or {}
+    except Exception:
+        return {}
+    out = {}
+    for c in (data.get("crons") or []):
+        if isinstance(c, dict) and c.get("name"):
+            out[c["name"]] = c
+    return out
 
 
 def _hhmm(s, default):
@@ -102,7 +118,15 @@ def _hhmm(s, default):
 
 
 def build_specs(profile: dict, ref: datetime | None = None,
-                model: str | None = None, provider: str | None = None) -> list[dict]:
+                model: str | None = None, provider: str | None = None,
+                cron_policy: dict | None = None,
+                emit_max_turns: bool = False) -> list[dict]:
+    """The cron job specs. Per-job model + max_turns come from the Talent's ``crons:``
+    policy (agent-profile.yaml) — the reminders are cheap ``lite`` pings regardless of the
+    owner's chat persona (W3/W5). ``model``/``provider`` (from config.yaml) are the fallback
+    for any job the policy doesn't pin. ``max_turns`` is EMITTED only when ``emit_max_turns``
+    (a deployed Hermes that honors a per-cron cap, W6) — otherwise it stays declared+linted.
+    """
     tz = profile.get("timezone") or "Europe/Amsterdam"
     rem = profile.get("reminders") or {}
     m_hh, m_mm = _hhmm(rem.get("morning", "08:00"), (8, 0))
@@ -113,51 +137,63 @@ def build_specs(profile: dict, ref: datetime | None = None,
     # to the router and 400s (the scheduler reads model.default, not model.model).
     model = model or _FALLBACK_MODEL
     provider = provider or _FALLBACK_PROVIDER
+    if cron_policy is None:
+        cron_policy = read_cron_policy()
+
+    def _spec(name, schedule, local, skills, prompt, **extra):
+        pol = cron_policy.get(name, {})
+        spec = {
+            "name": name,
+            "schedule": schedule,
+            "local": local,
+            "skills": skills,
+            # W3/W5: the Talent's declared per-job persona (cheap `lite`) wins over the
+            # owner's chat model; falls back to the config.yaml model if unpinned.
+            "model": pol.get("model") or model,
+            "provider": provider,
+            "prompt": prompt,
+        }
+        spec.update(extra)
+        # W6: emit the per-cron cap only where a deployed Hermes honors it (no released
+        # version does yet), so an older gateway never gets an unknown `max_turns` field.
+        mt = pol.get("max_turns")
+        if emit_max_turns and isinstance(mt, int) and mt > 0:
+            spec["max_turns"] = mt
+        return spec
+
     return [
-        {
-            "name": "OtenyFlatBellyTalent daily morning log",
-            "schedule": utc_cron(m_hh, m_mm, tz, ref=ref),
-            "local": f"{m_hh:02d}:{m_mm:02d} {tz} daily",
-            "skills": ["food-tracker", "flatbelly-coach-voice"],
-            "model": model,
-            "provider": provider,
-            "prompt": ("Morning log reminder. Load food-tracker first and run "
-                       "preflight.py to read today's logged state. OPEN with the compact "
-                       "'day so far' summary in the regular layout (Daily reminder role: "
-                       "weight+trend, food totals, steps, sleep, workout, waist — ✅ "
-                       "logged, — open), grounded in a fresh DB read; if the day is still "
-                       "empty anchor on yesterday's close. THEN ask (in their language) "
-                       "for the morning weight + plan for the day. Do NOT pre-fill or "
-                       "invent numbers."),
-        },
-        {
-            "name": "OtenyFlatBellyTalent daily evening log",
-            "schedule": utc_cron(e_hh, e_mm, tz, ref=ref),
-            "local": f"{e_hh:02d}:{e_mm:02d} {tz} daily",
-            "skills": ["food-tracker", "flatbelly-coach-voice"],
-            "model": model,
-            "provider": provider,
-            "prompt": ("Evening log reminder. Load food-tracker first and run "
-                       "preflight.py to read today's logged state. OPEN with the compact "
-                       "'day so far' summary in the regular layout (Daily reminder role: "
-                       "weight+trend, food totals with leucine compliance, steps, sleep, "
-                       "workout, waist — ✅ logged, — open), grounded in a fresh DB read "
-                       "(no vibe-served numbers). THEN ask only for what's still missing; "
-                       "write the rows and give the grounded day total with leucine "
-                       "compliance."),
-        },
-        {
-            "name": "OtenyFlatBellyTalent weekly dashboard",
-            "schedule": utc_cron(w_hh, w_mm, tz, dow=0, ref=ref),
-            "local": f"Sun {w_hh:02d}:{w_mm:02d} {tz} weekly",
-            "skills": ["weight-progress-dashboard", "food-tracker"],
-            "enabled_toolsets": ["terminal", "file"],
-            "model": model,
-            "provider": provider,
-            "prompt": ("Run weight-progress-dashboard/scripts/generate.py, then write a "
-                       "4–6 line Telegram caption grounded in a fresh DB read (no "
-                       "vibe-served facts) and deliver the PNG via MEDIA:<path>."),
-        },
+        _spec(
+            "OtenyFlatBellyTalent daily morning log",
+            local_cron(m_hh, m_mm),
+            f"{m_hh:02d}:{m_mm:02d} {tz} daily",
+            [],  # W3: no skill load — a single cheap nudge; the log runs on the reply
+            ("Morning nudge. Send the owner ONE short, warm good-morning message in "
+             "their language (one or two friendly lines) inviting them to log their "
+             "morning weight and plan for the day. Personal and light, like a coach who "
+             "cares — not a form. Do NOT load skills, read the DB, run scripts, or "
+             "invent numbers; the full log runs when they reply."),
+        ),
+        _spec(
+            "OtenyFlatBellyTalent daily evening log",
+            local_cron(e_hh, e_mm),
+            f"{e_hh:02d}:{e_mm:02d} {tz} daily",
+            [],  # W3: no skill load — a single cheap nudge; the wrap-up runs on the reply
+            ("Evening nudge. Send the owner ONE short, warm evening message in their "
+             "language (one or two friendly lines) inviting them to log tonight's meals, "
+             "any workout, and how the day went. Personal and encouraging — not a form. "
+             "Do NOT load skills, read the DB, run scripts, or compute totals; the full "
+             "wrap-up (macros, leucine, day total) runs when they reply."),
+        ),
+        _spec(
+            "OtenyFlatBellyTalent weekly dashboard",
+            local_cron(w_hh, w_mm, dow=0),
+            f"Sun {w_hh:02d}:{w_mm:02d} {tz} weekly",
+            ["weight-progress-dashboard", "food-tracker"],
+            ("Run weight-progress-dashboard/scripts/generate.py, then write a "
+             "4–6 line Telegram caption grounded in a fresh DB read (no "
+             "vibe-served facts) and deliver the PNG via MEDIA:<path>."),
+            enabled_toolsets=["terminal", "file"],
+        ),
     ]
 
 
@@ -170,8 +206,10 @@ def existing_job_names(jobs_path: str) -> set[str]:
 
 
 def plan(profile: dict, jobs_path: str, ref: datetime | None = None,
-         model: str | None = None, provider: str | None = None) -> dict:
-    specs = build_specs(profile, ref=ref, model=model, provider=provider)
+         model: str | None = None, provider: str | None = None,
+         cron_policy: dict | None = None, emit_max_turns: bool = False) -> dict:
+    specs = build_specs(profile, ref=ref, model=model, provider=provider,
+                        cron_policy=cron_policy, emit_max_turns=emit_max_turns)
     have = existing_job_names(jobs_path)
     to_create = [s for s in specs if s["name"] not in have]
     return {"to_create": to_create,
@@ -183,6 +221,11 @@ def main(argv=None) -> int:
     ap.add_argument("--profile", default=DEFAULT_PROFILE)
     ap.add_argument("--jobs", default=DEFAULT_JOBS)
     ap.add_argument("--config", default=DEFAULT_CONFIG)
+    ap.add_argument("--agent-profile", default=str(DEFAULT_AGENT_PROFILE))
+    # W6: emit the per-cron max_turns cap only where the deployed Hermes honors it (no
+    # released version does yet). Off by default; the control plane flips it once a
+    # pinned Hermes supports a per-job cap so an older gateway never gets an unknown field.
+    ap.add_argument("--emit-max-turns", action="store_true")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
@@ -191,18 +234,22 @@ def main(argv=None) -> int:
         profile = yaml.safe_load(Path(args.profile).read_text()) or {}
 
     model, provider = read_model_provider(args.config)
-    p = plan(profile, args.jobs, model=model, provider=provider)
+    cron_policy = read_cron_policy(args.agent_profile)
+    p = plan(profile, args.jobs, model=model, provider=provider,
+             cron_policy=cron_policy, emit_max_turns=args.emit_max_turns)
     if args.json:
         print(json.dumps(p, indent=2))
         return 0
     if not p["to_create"]:
         print("all OtenyFlatBellyTalent crons already registered:", p["existing"])
         return 0
-    print(f"Create these jobs via the `cronjob` tool (list-first — these are absent). "
-          f"Pin model='{model}' provider='{provider}' on EACH (un-pinned cron 400s):")
+    print("Create these jobs via the `cronjob` tool (list-first — these are absent). "
+          "Pin the model+provider shown on EACH (un-pinned cron 400s); the cron string is "
+          "the tenant's LOCAL wall-clock (the scheduler reads config.yaml timezone):")
     for s in p["to_create"]:
-        print(f"  • {s['name']}  [{s['local']}]  cron(UTC)='{s['schedule']}'  "
-              f"skills={s['skills']}  model={s['model']}  provider={s['provider']}")
+        mt = f"  max_turns={s['max_turns']}" if "max_turns" in s else ""
+        print(f"  • {s['name']}  [{s['local']}]  cron(local)='{s['schedule']}'  "
+              f"skills={s['skills']}  model={s['model']}  provider={s['provider']}{mt}")
     if p["existing"]:
         print("already present:", p["existing"])
     return 0

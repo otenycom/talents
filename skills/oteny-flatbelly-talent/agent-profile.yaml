@@ -27,11 +27,14 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.1.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
-                 # 1.0.1: marketing copy only — a `long_md` landing body for the website
-                 # (the macro/leucine breakdown, the morning weight trend, the Sunday chart,
-                 # and the coaching-not-medical boundary). No runtime/behavior change.
+                 # 1.1.0: cron cost reshape (talent-model-steering W3/W4/W6). The daily
+                 # reminders are now single cheap `lite` nudges (no skill load); the full
+                 # wrap-up runs when the owner REPLIES (chat path, via channel_prompt). Adds
+                 # the per-job `crons:` cost policy (model/max_turns/expected_cost) + a
+                 # `0003_cron_localtime` migration that fixes the off-by-offset schedule and
+                 # re-registers live crons. (1.0.1: marketing copy only.)
 
 # The skills delivered together (Option A: separately installable).
 skills:
@@ -43,10 +46,14 @@ skills:
 voice_skill: flatbelly-coach-voice          # the persona; loaded on demand, NOT in SOUL
 
 base_language: en
-model_tier: assistant                    # GLOBAL (Gemini-Flash v1); a heavy cron may override per-job
+model_tier: assistant                    # GLOBAL chat persona (Gemini-Flash); crons pin their own per-job model below
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 delivery: baked                          # delivered with the bot
 price: free                              # free on-ramp for the paid-retention pilot
+# Verify budget (talent-model-steering W4): the whole scenario-suite staging run must
+# stay under this measured spend or the dev-loop verify holds the Talent for review
+# (a runaway can't go green). OTC = internal credits; tune from measured runs.
+expected_cost_otc: 2.0
 
 # Routing declaration — APPLIED by the index-reconciler, never hand-edited into SOUL.
 # The group is resolved at runtime from channel_directory.json (never a hardcoded id).
@@ -72,6 +79,33 @@ routing:
     Telegram-friendly. Honor the medical safety boundary (not medical advice; red-flag
     escalation; no invented diagnoses).
   signature: "oteny-flatbelly-talent"
+
+# Per-job cron cost policy (talent-model-steering W4/W6 — "the Talent spec is THE knob").
+# The single source of truth the lint enforces AND provision_cron emits from; every name
+# must match a required cron in required_artifacts.yaml. Each job pins its own `model`
+# (a reminder is cheap `lite`, not the owner's chat persona) and a `max_turns` cap (an
+# unbounded cron turn can loop and drain credits — the runaway that ate 28% of a pilot
+# owner's spend). `expected_cost.per_fire_otc` is the author's budget for one fire (used
+# by the author cost-per-Talent report). `max_turns` is DECLARED + linted now; it is only
+# EMITTED to the cronjob tool once a deployed Hermes honors a per-cron cap (W6) — until
+# then the lint + the dev-loop cost grade enforce it at authoring time. A daily-or-more
+# job pinned above `lite` must carry a written `model_justification:` (lint-enforced).
+crons:
+  - name: "OtenyFlatBellyTalent daily morning log"
+    frequency: daily
+    model: lite
+    max_turns: 3
+    expected_cost: { per_fire_otc: 0.05 }
+  - name: "OtenyFlatBellyTalent daily evening log"
+    frequency: daily
+    model: lite
+    max_turns: 3
+    expected_cost: { per_fire_otc: 0.05 }
+  - name: "OtenyFlatBellyTalent weekly dashboard"
+    frequency: weekly
+    model: lite
+    max_turns: 15
+    expected_cost: { per_fire_otc: 0.30 }
 
 # Shared tenant profile (name/language/timezone) + this bot's extension
 # (goal/height/targets) live in ~/.hermes/data/oteny-flatbelly-talent/profile.yaml, produced by first-run.

@@ -196,40 +196,73 @@ def test_cron_plan_three_jobs_listfirst(tmp_path):
     assert len(p2["to_create"]) == 2
 
 
-def test_cron_jobs_pin_model_and_provider(tmp_path):
-    # Every cron job MUST carry a model+provider — an un-pinned job fires with an
-    # empty model and the router 400s (D40: scheduler reads model.default, not
-    # model.model). The planner reads them from config.yaml.
-    # config.yaml carries the persona alias `assistant` (what render_config_yaml
-    # writes) — NOT the raw OpenRouter slug, which the router rejects (D55).
+def test_cron_jobs_pin_declared_lite_model(tmp_path):
+    # W3/W5: every cron job pins the Talent's DECLARED per-job model (the crons: policy
+    # in agent-profile.yaml) — cheap `lite`, NOT the owner's chat persona. An un-pinned
+    # job would fire with an empty model and the router 400s (D40). The config model is
+    # only the fallback for a job the policy doesn't pin.
     cfg = tmp_path / "config.yaml"
-    cfg.write_text("model:\n  provider: router\n  model: assistant\n")
+    cfg.write_text("model:\n  provider: router\n  model: builder\n")   # owner picked builder for chat
     model, provider = pc.read_model_provider(str(cfg))
-    assert model == "assistant" and provider == "router"
+    assert model == "builder" and provider == "router"
     p = pc.plan({"timezone": "Europe/Amsterdam"}, str(tmp_path / "nojobs.json"),
-                model=model, provider=provider, ref=datetime(2026, 7, 1))
+                model=model, provider=provider)   # reads the real FlatBelly crons: policy
     assert p["to_create"], "expected jobs to plan"
     for s in p["to_create"]:
-        assert s.get("model") == "assistant"
+        assert s.get("model") == "lite", s["name"]   # policy wins over the builder chat model
         assert s.get("provider") == "router"
 
 
-def test_cron_model_provider_fallback_when_no_config(tmp_path):
-    # Missing/unreadable config still yields a working model+provider, never empty —
-    # and the fallback MUST be a persona alias the router accepts (never the raw
-    # OpenRouter slug, which 400s as `unknown model`). Cron routes to `assistant`.
+def test_cron_model_fallback_when_no_policy(tmp_path):
+    # A job with NO declared policy falls back to the config-read model — which MUST be a
+    # persona alias the router accepts (never the raw OpenRouter slug, which 400s). With an
+    # empty policy the fallback `assistant` is used, so a spec is never un-pinned.
     model, provider = pc.read_model_provider(str(tmp_path / "absent.yaml"))
     assert model == "assistant" and provider == "router"
-    for s in pc.build_specs({"timezone": "Europe/Amsterdam"}, ref=datetime(2026, 7, 1)):
+    for s in pc.build_specs({"timezone": "Europe/Amsterdam"}, cron_policy={}):
         assert s["model"] == "assistant" and s["provider"] == "router"
 
 
-def test_cron_utc_conversion_summer_offset():
-    # CEST (UTC+2): 08:00 local -> 06:00 UTC; Sun 12:00 -> 10:00 UTC ("0 10 * * 0")
-    assert pc.utc_cron(8, 0, "Europe/Amsterdam", ref=datetime(2026, 7, 1)) == "0 6 * * *"
-    assert pc.utc_cron(12, 0, "Europe/Amsterdam", dow=0, ref=datetime(2026, 7, 1)) == "0 10 * * 0"
-    # CET (UTC+1): 08:00 local -> 07:00 UTC
-    assert pc.utc_cron(8, 0, "Europe/Amsterdam", ref=datetime(2026, 1, 1)) == "0 7 * * *"
+def test_cron_schedule_is_local_wall_clock():
+    # W3 tz fix: the scheduler evaluates a cron expr in the tenant's configured timezone
+    # (config.yaml timezone → hermes_time.now()), NOT UTC — so the schedule is the local
+    # wall-clock verbatim. The prior UTC conversion fired reminders off by the UTC offset.
+    assert pc.local_cron(8, 0) == "0 8 * * *"
+    assert pc.local_cron(20, 0) == "0 20 * * *"
+    assert pc.local_cron(12, 0, dow=0) == "0 12 * * 0"
+    # DST-invariant: the schedule string has no offset, so it never drifts across DST.
+    prof = {"timezone": "Europe/Amsterdam",
+            "reminders": {"morning": "08:00", "evening": "20:00"}}
+    specs = {s["name"]: s for s in pc.build_specs(prof)}
+    assert specs["OtenyFlatBellyTalent daily morning log"]["schedule"] == "0 8 * * *"
+    assert specs["OtenyFlatBellyTalent daily evening log"]["schedule"] == "0 20 * * *"
+
+
+def test_cron_daily_reminders_are_thin_no_skill_load():
+    # W3: the daily nudges are ONE cheap call — no skill load, no DB read/scripts. The
+    # heavy wrap-up runs when the owner replies (chat path). The weekly dashboard stays
+    # the only multi-call job (it loads the dashboard + food-tracker skills).
+    specs = {s["name"]: s for s in pc.build_specs({"timezone": "Europe/Amsterdam"})}
+    for daily in ("OtenyFlatBellyTalent daily morning log",
+                  "OtenyFlatBellyTalent daily evening log"):
+        s = specs[daily]
+        assert s["skills"] == []                            # no skill load
+        assert "do not load skills" in s["prompt"].lower()  # explicitly thin
+        assert "preflight" not in s["prompt"].lower()       # no script run
+    assert specs["OtenyFlatBellyTalent weekly dashboard"]["skills"] == [
+        "weight-progress-dashboard", "food-tracker"]
+
+
+def test_cron_max_turns_declared_but_not_emitted_by_default():
+    # W6: max_turns is declared in the crons: policy + linted, but only EMITTED to the
+    # cronjob tool when a deployed Hermes honors a per-cron cap (no released version does
+    # yet), so an older gateway never receives an unknown field.
+    default = pc.build_specs({"timezone": "Europe/Amsterdam"})
+    assert all("max_turns" not in s for s in default)
+    emitted = {s["name"]: s for s in
+               pc.build_specs({"timezone": "Europe/Amsterdam"}, emit_max_turns=True)}
+    assert emitted["OtenyFlatBellyTalent daily morning log"]["max_turns"] == 3
+    assert emitted["OtenyFlatBellyTalent weekly dashboard"]["max_turns"] == 15
 
 
 # ---- D34: data relocation + per-bot memory split ----

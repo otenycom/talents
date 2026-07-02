@@ -36,3 +36,17 @@ migrations:
                COALESCE(SUM(calories),  0)
         FROM meals
         GROUP BY date;
+
+  - id: 0003_cron_localtime
+    kind: checklist
+    summary: >-
+      Re-register the three reminder crons. Hermes' scheduler evaluates a cron expression
+      in the tenant's CONFIGURED timezone (config.yaml timezone), not UTC, so the old
+      UTC-converted schedule fired the reminders off by the tenant's UTC offset (2 h early
+      in CEST summer). This also lands the cost reshape: the daily reminders become single
+      cheap `lite` nudges (no skill load — the full log runs when the owner replies), and
+      every job pins its declared per-job model. The agent DELETEs the three existing jobs
+      via the cronjob tool, re-runs provision_cron.py (list-first → now all absent), and
+      re-creates each from the fresh spec. Cron jobs live in ~/.hermes/cron/jobs.json + the
+      in-process scheduler, not food.db, so this is a checklist (agent judgement), not sql.
+    ref: food-tracker/references/migrations.md

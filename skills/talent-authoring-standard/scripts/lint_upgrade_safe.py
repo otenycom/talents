@@ -71,6 +71,18 @@ NEUTRALIZE SAFETY (Talent only — a clone of real state must not fire a live ac
      it.) Without it, a disposable clone of a real tenant inherits live crons/seams and DMs
      the real owner or files a real form — the whole point of P4's fail-closed gate.
 
+SCHEDULED-CRON COST POLICY (Talent only — a recurring cron is the fleet's biggest cost
+footgun; an unbounded or costly-persona reminder loop drained ~20-28% of a pilot owner's
+spend):
+ 14. every REQUIRED cron (the always-on ``jobs:`` schedule) carries a cost policy in
+     ``agent-profile.yaml`` ``crons:`` — a ``model:`` and a positive ``max_turns:`` (an
+     unbounded cron turn can loop and drain credits) — and a daily-or-more job pinned ABOVE
+     the cheap ``lite`` tier ships a written ``model_justification:`` (default to ``lite``;
+     justify anything above it). The ``crons:`` names must match the required job names (a
+     typo'd policy never binds). (Needs PyYAML; CI installs it.) ``max_turns`` is declared +
+     linted here even though a per-cron cap is only EMITTED to the scheduler once a deployed
+     Hermes honors it — the authoring gate is the enforcement point until then.
+
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
   Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
@@ -279,6 +291,14 @@ def _migration_shape_findings(bundle: Path) -> list[str]:
     return out
 
 
+# (14) Scheduled-cron cost policy. Persona cost ladder (cheapest first) — a daily-or-more
+# cron pinned above the cheap `lite` tier is the recurring-cost footgun (an unpinned or
+# costly-persona reminder loop drained ~20-28% of a pilot owner's spend). `lite` is the
+# floor; anything above it on a daily+ schedule must be justified in writing.
+_PERSONA_RANK = {"lite": 0, "assistant": 1, "researcher": 2, "builder": 2}
+_DAILY_OR_MORE = {"minutely", "hourly", "daily"}   # frequency tokens that fire >= daily
+
+
 def required_cron_jobs(bundle: Path) -> list[str]:
     """Declared REQUIRED cron job names (the ``cron`` artifact's ``jobs:`` list) — the
     outbound DM schedule a clone must NOT inherit. [] if no required_artifacts / PyYAML
@@ -373,6 +393,61 @@ def _neutralize_findings(bundle: Path) -> list[str]:
     return out
 
 
+def _cron_policy_entries(bundle: Path) -> list[dict]:
+    """The per-job cron cost policy declared in agent-profile.yaml's ``crons:`` list
+    ([] if none / PyYAML absent). Each entry: ``name`` + ``frequency`` + ``model`` +
+    ``max_turns`` (+ optional ``model_justification`` / ``expected_cost``)."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return []
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    crons = data.get("crons")
+    return [c for c in crons if isinstance(c, dict)] if isinstance(crons, list) else []
+
+
+def _cron_policy_findings(bundle: Path) -> list[str]:
+    """(14) Scheduled-cron cost policy. Every REQUIRED cron (the always-on ``jobs:``
+    schedule, same scope as the neutralize gate — gated opt-in jobs are out of scope)
+    must carry a cost policy in agent-profile.yaml ``crons:``: a ``model:`` and a positive
+    ``max_turns:`` (an unbounded cron turn can loop and drain credits). A daily-or-more job
+    pinned ABOVE the cheap ``lite`` tier must ship a written ``model_justification:`` (a
+    costly persona on a recurring schedule is the cron cost footgun — default to ``lite``,
+    justify anything above it). Also cross-checks that the ``crons:`` policy names match the
+    required job names (a typo'd policy never binds to a real job)."""
+    if yaml is None:
+        return []          # needs PyYAML to read the policy; CI installs it, so it runs there
+    required = required_cron_jobs(bundle)
+    policy = {c["name"]: c for c in _cron_policy_entries(bundle) if c.get("name")}
+    out: list[str] = []
+    for name in required:
+        c = policy.get(name)
+        if c is None:
+            out.append(f"cron '{name}': no cost policy in agent-profile.yaml `crons:` — every "
+                       "scheduled cron must declare `model:` + a positive `max_turns:` (an "
+                       "unbounded cron can loop and drain credits)")
+            continue
+        mt = c.get("max_turns")
+        if not isinstance(mt, int) or mt <= 0:
+            out.append(f"cron '{name}': no positive `max_turns:` — bound the turn (an "
+                       "unbounded cron can loop and drain credits)")
+        freq = str(c.get("frequency") or "").strip().lower()
+        model = str(c.get("model") or "assistant").strip().lower()
+        if (freq in _DAILY_OR_MORE
+                and _PERSONA_RANK.get(model, 1) > _PERSONA_RANK["lite"]
+                and not str(c.get("model_justification") or "").strip()):
+            out.append(f"cron '{name}': {freq} job pinned to '{model}' (above `lite`) with no "
+                       "`model_justification:` — a costly persona on a daily+ schedule is a "
+                       "recurring cost; pin `lite` or justify it in writing")
+    for name in policy:
+        if name not in required:
+            out.append(f"agent-profile.yaml `crons:` names '{name}' with no matching required "
+                       "cron in required_artifacts.yaml (name drift — the policy never binds)")
+    return out
+
+
 def _semver_tuple(v: str | None):
     if not v or not _SEMVER.match(v):
         return None
@@ -452,6 +527,7 @@ def lint_bundle(bundle: Path) -> list[str]:
     if is_talent:
         findings += _migration_shape_findings(bundle)
         findings += _neutralize_findings(bundle)   # (13) outbound-action Talent must de-fang clones
+        findings += _cron_policy_findings(bundle)  # (14) scheduled-cron cost policy
 
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):
