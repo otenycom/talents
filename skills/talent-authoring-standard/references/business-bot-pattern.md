@@ -31,7 +31,13 @@ routing:
 - **No public inbound, no separate app** — the chat is inside the business's Odoo.
 - The `channel_prompt` is the standing instruction injected every turn — same discipline
   as a B2C bot (who it is, which skill to load first, the hard rules), tuned for a team
-  channel rather than a 1:1 DM.
+  channel rather than a 1:1 DM. The platform renders it into the box keyed by the bot's
+  home channel on **every delivery** — delivery = activation, so pushing a Talent change
+  changes who the bot *is* with no extra step.
+- Add **`preload_skills:`** (top-level, beside `skills:`) naming the persona/umbrella
+  skill + the main working skill: the platform injects their full text at the top of
+  every fresh session — including each dispatched isolated run — so the job starts with
+  its procedure in the cached prefix instead of spending calls on `skill_view`.
 
 ## 2. Minimal locked toolset (checks 1 + 9)
 

@@ -98,7 +98,15 @@ A few fields are worth naming plainly:
 - **`toolset_contribution:`** — the tool allowlist. The single most important line for
   a scoped bot (see §3).
 - **`routing:`** — where and how the bot converses (see §4). `channel_prompt` is the
-  standing instruction injected for the bot in that channel.
+  standing instruction injected for the bot in that channel. For a Discuss business bot
+  the platform renders it into the box's config at every delivery keyed by the bot's
+  home channel — **delivery = activation**: push a new prompt, the bot *becomes* it.
+- **`preload_skills:`** — optional list of skill names the platform injects, full text,
+  at the top of every **fresh** session (each dispatched isolated run is one). Use it
+  for the skills every job needs anyway (the persona/umbrella skill + the main working
+  skill): the run starts with them in its stable prefix — cached across the turn's tool
+  calls instead of spending calls on `skill_view` — while rarely-used skills stay
+  on-demand via the index.
 - **`seed_memory:`** — an optional starter memory file. Leave it `null` and let
   per-bot state accrue in the data plane; never bake one person's data into the bundle.
 
