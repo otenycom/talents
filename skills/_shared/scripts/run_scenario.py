@@ -458,6 +458,42 @@ def assert_state_live(driver, spec: dict) -> dict:
         return {"kind": "state", "ok": False, "spec": spec, "reason": f"{type(e).__name__}: {e}"}
 
 
+def _drive_turn(driver, turn: dict) -> tuple[str, dict | None]:
+    """Deliver ONE live turn and return ``(reply_text, failure)``.
+
+    Two trigger shapes:
+
+    * ``user:`` — the conversational turn: the driver posts the human text and waits
+      for the bot's reply.
+    * ``hand_off:`` — a WORKFLOW trigger (business bot): the driver performs the real
+      hand-off over the bot's business-Odoo uplink (``{model, domain, to_state}`` — e.g.
+      write an MFNL service into its bot queue state), which fires the platform's own
+      dispatch (token-fenced claim + flagged channel message), then waits for the bot's
+      narration in the channel. This exercises the REAL dispatch path — a driver-posted
+      flagged message would bypass the claim fence and test a legacy path.
+
+    ``reply_timeout`` (seconds) on the turn overrides the driver's default wait — an
+    isolated business-bot run (e.g. a full MFNL filing) takes many minutes.
+    A driver without ``hand_off`` support fails the turn, never crashes the runner.
+    """
+    timeout = turn.get("reply_timeout")
+    if turn.get("hand_off"):
+        if not hasattr(driver, "hand_off"):
+            return "", {"kind": "hand_off", "ok": False, "spec": turn["hand_off"],
+                        "reason": "driver has no hand_off (run via the sidecar test verb "
+                                  "on a business-bot clone)"}
+        try:
+            return driver.hand_off(turn["hand_off"], timeout), None
+        except Exception as e:  # a hand-off error is a test failure, not a runner crash
+            return "", {"kind": "hand_off", "ok": False, "spec": turn["hand_off"],
+                        "reason": f"{type(e).__name__}: {e}"}
+    if turn.get("user"):
+        if timeout is not None:
+            return driver.send(turn["user"], timeout), None
+        return driver.send(turn["user"]), None
+    return "", None
+
+
 def run_scenario_live(path: Path, driver, bundle_override: str | None = None) -> dict:
     """Drive ONE scenario against a real clone via ``driver``; return the result DTO. The
     deterministic ``state`` assertions run live too; ``reply``/``trace`` are asserted with
@@ -468,9 +504,16 @@ def run_scenario_live(path: Path, driver, bundle_override: str | None = None) ->
               "passed": 0, "failed": 0, "skipped_count": 0, "turns": [], "error": None}
     db_name = _resolve_db_name(resolve_bundle(path, bundle_override), scenario)
     for turn in scenario.get("turns", []):
-        tres = {"user": turn.get("user", ""), "results": []}
+        label = turn.get("user") or (
+            f"(hand_off) {turn['hand_off']}" if turn.get("hand_off") else "")
+        tres = {"user": label, "results": []}
         expect = turn.get("expect") or {}
-        reply_text = driver.send(turn.get("user", "")) if turn.get("user") else ""
+        reply_text, hand_off_failure = _drive_turn(driver, turn)
+        if hand_off_failure:
+            tres["results"].append(hand_off_failure)
+            result["failed"] += 1
+            result["turns"].append(tres)
+            continue
         if "reply" in expect:
             r = assert_reply(reply_text, expect["reply"])
             tres["results"].append(r)
@@ -585,6 +628,16 @@ def run_scenario(path: Path, backend: str = "mock", bundle_override: str | None 
         for turn in scenario.get("turns", []):
             tres = {"user": turn.get("user", ""), "results": []}
             expect = turn.get("expect") or {}
+
+            # 0. a hand_off turn is live-only (a real business-Odoo hand-off over the
+            #    uplink — the mock has no uplink): the whole turn SKIPS here.
+            if turn.get("hand_off"):
+                tres["user"] = f"(hand_off) {turn['hand_off']}"
+                tres["results"].append(
+                    {"kind": "hand_off", "ok": None, "skipped": "live_only"})
+                result["skipped_count"] += 1
+                result["turns"].append(tres)
+                continue
 
             # 1. execute canned tool-calls (the deterministic backend).
             for tc in expect.get("tool_calls", []):

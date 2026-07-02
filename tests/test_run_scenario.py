@@ -217,6 +217,75 @@ def test_live_backend_fails_on_loop_marker_and_wrong_reply():
 
 
 # --------------------------------------------------------------------------- #
+# hand_off turns — the business-bot workflow trigger (live) / skip (mock)      #
+# --------------------------------------------------------------------------- #
+_HAND_OFF_SCENARIO = """\
+    bot: oteny-sample-talent
+    live_only: true
+    turns:
+      - hand_off:
+          model: riverflow.service
+          domain: [["res_name", "ilike", "Becoy"]]
+          to_state: "With Barney"
+        reply_timeout: 42
+        expect:
+          reply:
+            contains: ["Filed"]
+"""
+
+
+class _HandOffDriver(_FakeDriver):
+    """A FakeDriver that also supports the business-bot hand_off trigger."""
+
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.hand_offs = []
+
+    def hand_off(self, spec, timeout):
+        self.hand_offs.append((spec, timeout))
+        return self.reply
+
+
+def test_live_hand_off_turn_drives_the_workflow_trigger(tmp_path):
+    bundle = _synthetic_bundle(tmp_path)
+    scenario = _write(bundle / "tests" / "scenarios" / "hand_off.yaml", _HAND_OFF_SCENARIO)
+    driver = _HandOffDriver(reply="MFNL Filed — awaiting confirmation")
+    rs.set_live_driver(driver)
+    try:
+        rep = rs.run_scenario(scenario, "live")
+    finally:
+        rs.set_live_driver(None)
+    assert rep["error"] is None and rep["failed"] == 0, rep
+    # the driver received the spec + the declared reply_timeout; nothing was DM'd
+    assert driver.hand_offs == [({"model": "riverflow.service",
+                                  "domain": [["res_name", "ilike", "Becoy"]],
+                                  "to_state": "With Barney"}, 42)]
+    assert driver.sent == []
+
+
+def test_live_hand_off_without_driver_support_fails_not_crashes(tmp_path):
+    bundle = _synthetic_bundle(tmp_path)
+    scenario = _write(bundle / "tests" / "scenarios" / "hand_off.yaml", _HAND_OFF_SCENARIO)
+    rs.set_live_driver(_FakeDriver())          # no hand_off method
+    try:
+        rep = rs.run_scenario(scenario, "live")
+    finally:
+        rs.set_live_driver(None)
+    assert rep["error"] is None, rep
+    assert rep["failed"] == 1, rep
+    assert "hand_off" in str(rep["turns"][0]["results"][0]), rep
+
+
+def test_mock_backend_skips_a_hand_off_turn(tmp_path):
+    bundle = _synthetic_bundle(tmp_path)
+    scenario = _write(bundle / "tests" / "scenarios" / "hand_off.yaml",
+                      _HAND_OFF_SCENARIO.replace("    live_only: true\n", ""))
+    rep = rs.run_scenario(scenario, "mock")
+    assert rep["error"] is None and rep["failed"] == 0, rep
+    assert rep["skipped_count"] == 1, rep
+
+
+# --------------------------------------------------------------------------- #
 # flatbelly — the reference Talent's shipped scenarios                          #
 # --------------------------------------------------------------------------- #
 def test_flatbelly_weight_log_scenario_passes():
