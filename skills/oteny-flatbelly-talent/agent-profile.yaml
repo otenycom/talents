@@ -27,8 +27,15 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.1.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.1.2   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.1.2: every cron pins its TOOL surface (`enabled_toolsets` in the crons:
+                 # policy; provision_cron emits it). Reminders = `[no_mcp]` → zero tools
+                 # (live-verified: request carries no tools array — a tool-loop is now truly
+                 # structurally impossible); weekly = [terminal, file] matching its skill's
+                 # demands. Closes the impossible-task gap behind the 2026-07-02 90-iteration
+                 # runaway (job fell back to the terminal-less platform_toolsets.cron cap
+                 # while the skill demanded script execution).
                  # 1.1.1: ship the missing `scripts/migrate.py` — its absence silently made
                  # preflight report `MIGRATIONS: none`, so `0003_cron_localtime` never surfaced
                  # and the live reminder crons stayed the old heavy protocol (looped to the
@@ -96,21 +103,36 @@ routing:
 # EMITTED to the cronjob tool once a deployed Hermes honors a per-cron cap (W6) — until
 # then the lint + the dev-loop cost grade enforce it at authoring time. A daily-or-more
 # job pinned above `lite` must carry a written `model_justification:` (lint-enforced).
+#
+# `enabled_toolsets` pins each job's TOOL surface, and every job MUST declare it — an
+# omitted list falls back to the tenant's `platform_toolsets.cron` cap, which is how the
+# 2026-07-02 hh00067 runaway happened: that cap has NO terminal, the reminder prompt's
+# skill demanded script execution (an impossible task), and the model burned 90
+# iterations hunting with search_files. The reminders are pure text nudges, so they get
+# ZERO tools via the `no_mcp` sentinel: a literal empty list is FALSY upstream
+# (cron/scheduler.py falls back to the platform cap), while `[no_mcp]` passes the
+# truthiness gate and the MCP-merge strips it, leaving a true empty allowlist — verified
+# live 2026-07-02 (captured request carries no tools array; a tool-loop is structurally
+# impossible). The weekly dashboard genuinely runs a script + sqlite, so it declares
+# terminal+file — matching what the skill instructs, never less.
 crons:
   - name: "OtenyFlatBellyTalent daily morning log"
     frequency: daily
     model: lite
     max_turns: 3
+    enabled_toolsets: [no_mcp]   # zero tools: a nudge only speaks
     expected_cost: { per_fire_otc: 0.05 }
   - name: "OtenyFlatBellyTalent daily evening log"
     frequency: daily
     model: lite
     max_turns: 3
+    enabled_toolsets: [no_mcp]   # zero tools: a nudge only speaks
     expected_cost: { per_fire_otc: 0.05 }
   - name: "OtenyFlatBellyTalent weekly dashboard"
     frequency: weekly
     model: lite
     max_turns: 15
+    enabled_toolsets: [terminal, file]   # runs generate.py + reads the DB — must match the skill's demands
     expected_cost: { per_fire_otc: 0.30 }
 
 # Shared tenant profile (name/language/timezone) + this bot's extension

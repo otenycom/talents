@@ -154,6 +154,16 @@ def build_specs(profile: dict, ref: datetime | None = None,
             "prompt": prompt,
         }
         spec.update(extra)
+        # Per-job tool surface — the policy (agent-profile.yaml `crons:`) is the single
+        # source. EVERY job must pin it: an omitted list falls back to the tenant's
+        # platform_toolsets.cron cap, which is how the 2026-07-02 runaway happened (no
+        # terminal + a skill demanding script execution = an impossible task the model
+        # flailed on for 90 iterations). A reminder pins `[no_mcp]` = ZERO tools (a
+        # literal [] is falsy upstream and would fall back; `no_mcp` passes the
+        # truthiness gate and the MCP-merge strips it, leaving a true empty allowlist).
+        ets = pol.get("enabled_toolsets")
+        if isinstance(ets, list) and ets:
+            spec["enabled_toolsets"] = [str(t) for t in ets]
         # W6: emit the per-cron cap only where a deployed Hermes honors it (no released
         # version does yet), so an older gateway never gets an unknown `max_turns` field.
         mt = pol.get("max_turns")

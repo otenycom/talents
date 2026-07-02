@@ -253,6 +253,34 @@ def test_cron_daily_reminders_are_thin_no_skill_load():
         "weight-progress-dashboard", "food-tracker"]
 
 
+def test_cron_jobs_pin_their_tool_surface():
+    # 2026-07-02 hh00067 runaway: a job that omits enabled_toolsets falls back to the
+    # tenant's platform_toolsets.cron cap (NO terminal) while the skill demands script
+    # execution — an impossible task the model flailed on for 90 iterations. So EVERY
+    # job pins its tool surface from the crons: policy. The reminders pin the `no_mcp`
+    # sentinel = ZERO tools (a literal [] is falsy upstream and would silently fall
+    # back to the platform cap; `no_mcp` passes the truthiness gate and the MCP-merge
+    # strips it, leaving a true empty allowlist — live-verified: the captured request
+    # carries no tools array). The weekly declares exactly what its skill instructs.
+    specs = {s["name"]: s for s in pc.build_specs({"timezone": "Europe/Amsterdam"})}
+    for daily in ("OtenyFlatBellyTalent daily morning log",
+                  "OtenyFlatBellyTalent daily evening log"):
+        assert specs[daily]["enabled_toolsets"] == ["no_mcp"]
+    assert specs["OtenyFlatBellyTalent weekly dashboard"]["enabled_toolsets"] == [
+        "terminal", "file"]
+
+
+def test_cron_policy_declares_toolsets_for_every_job():
+    # The agent-profile crons: policy is the single source — every declared cron
+    # carries a non-empty enabled_toolsets (an omitted one falls back to the platform
+    # cap, re-opening the impossible-task class of bug).
+    policy = pc.read_cron_policy()
+    assert policy, "flatbelly crons: policy missing"
+    for name, pol in policy.items():
+        ets = pol.get("enabled_toolsets")
+        assert isinstance(ets, list) and ets, f"{name} does not pin enabled_toolsets"
+
+
 def test_cron_max_turns_declared_but_not_emitted_by_default():
     # W6: max_turns is declared in the crons: policy + linted, but only EMITTED to the
     # cronjob tool when a deployed Hermes honors a per-cron cap (no released version does
