@@ -171,28 +171,33 @@ def build_specs(profile: dict, ref: datetime | None = None,
             spec["max_turns"] = mt
         return spec
 
+    # The daily reminders are the ORIGINAL rich "day so far" status summaries
+    # (v1.2.0 restore): the cron loads food-tracker, runs preflight + a fresh DB
+    # read, opens with the grounded summary, and asks only for what's missing —
+    # per the skill's "Daily reminder role". They were temporarily thinned to a
+    # no-tool nudge (v1.1.x) ONLY because of since-fixed environment bugs (a
+    # platform-level cron toolset cap, since reverted host-side; a file-search
+    # hidden-dir blindness, fixed upstream); the cost steering stays: model
+    # pinned `lite`, a lean per-job
+    # toolset, and a declared max_turns from the measured healthy profile.
     return [
         _spec(
             "OtenyFlatBellyTalent daily morning log",
             local_cron(m_hh, m_mm),
             f"{m_hh:02d}:{m_mm:02d} {tz} daily",
-            [],  # W3: no skill load — a single cheap nudge; the log runs on the reply
-            ("Morning nudge. Send the owner ONE short, warm good-morning message in "
-             "their language (one or two friendly lines) inviting them to log their "
-             "morning weight and plan for the day. Personal and light, like a coach who "
-             "cares — not a form. Do NOT load skills, read the DB, run scripts, or "
-             "invent numbers; the full log runs when they reply."),
+            ["food-tracker", "flatbelly-coach-voice"],
+            ("Morning log reminder. Ask the tenant (in their language) for their "
+             "morning weight and what they have eaten/plan to eat; do NOT pre-fill. "
+             "Load food-tracker first."),
         ),
         _spec(
             "OtenyFlatBellyTalent daily evening log",
             local_cron(e_hh, e_mm),
             f"{e_hh:02d}:{e_mm:02d} {tz} daily",
-            [],  # W3: no skill load — a single cheap nudge; the wrap-up runs on the reply
-            ("Evening nudge. Send the owner ONE short, warm evening message in their "
-             "language (one or two friendly lines) inviting them to log tonight's meals, "
-             "any workout, and how the day went. Personal and encouraging — not a form. "
-             "Do NOT load skills, read the DB, run scripts, or compute totals; the full "
-             "wrap-up (macros, leucine, day total) runs when they reply."),
+            ["food-tracker", "flatbelly-coach-voice"],
+            ("Evening log reminder. Ask for the full day's food + any "
+             "sleep/steps/workout; then write the rows and give a grounded day "
+             "total with leucine compliance. Load food-tracker first."),
         ),
         _spec(
             "OtenyFlatBellyTalent weekly dashboard",

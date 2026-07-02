@@ -27,8 +27,17 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.1.2   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.0: the daily reminders are the RICH "day so far" status summaries
+                 # again (original behavior restored — the v1.1.x zero-tool nudge was a
+                 # workaround for since-fixed environment bugs: the platform-level cron
+                 # toolset cap (reverted host-side) and a file-search blindness (fixed
+                 # upstream)).
+                 # Reminders load food-tracker, run preflight + a fresh DB read, open with
+                 # the grounded summary, ask only what's missing. Steering kept: `lite`
+                 # model, lean per-job toolsets [terminal, file, skills], max_turns 15
+                 # declared from the measured healthy profile (4–9 calls/fire).
                  # 1.1.2: every cron pins its TOOL surface (`enabled_toolsets` in the crons:
                  # policy; provision_cron emits it). Reminders = `[no_mcp]` → zero tools
                  # (live-verified: request carries no tools array — a tool-loop is now truly
@@ -116,18 +125,29 @@ routing:
 # impossible). The weekly dashboard genuinely runs a script + sqlite, so it declares
 # terminal+file — matching what the skill instructs, never less.
 crons:
+  # v1.2.0: the daily reminders are the ORIGINAL rich "day so far" status
+  # summaries again (preflight + fresh DB read + grounded summary + ask only
+  # what's missing). The v1.1.x zero-tool nudge was a temporary workaround for
+  # since-fixed environment bugs (the platform-level cron toolset cap, reverted
+  # host-side; a file-search hidden-dir blindness, fixed upstream) — not a
+  # product choice.
+  # Cost steering stays: `lite` model, a lean per-job toolset matching exactly
+  # what the skill instructs (terminal for preflight/sqlite, file, skills for
+  # skill_view references), and max_turns from the measured healthy profile
+  # (rich fires measured 4–9 calls; 15 = alarm headroom, declared + linted,
+  # emitted only once a deployed Hermes honors a per-cron cap — W6).
   - name: "OtenyFlatBellyTalent daily morning log"
     frequency: daily
     model: lite
-    max_turns: 3
-    enabled_toolsets: [no_mcp]   # zero tools: a nudge only speaks
-    expected_cost: { per_fire_otc: 0.05 }
+    max_turns: 15
+    enabled_toolsets: [terminal, file, skills]
+    expected_cost: { per_fire_otc: 0.10 }
   - name: "OtenyFlatBellyTalent daily evening log"
     frequency: daily
     model: lite
-    max_turns: 3
-    enabled_toolsets: [no_mcp]   # zero tools: a nudge only speaks
-    expected_cost: { per_fire_otc: 0.05 }
+    max_turns: 15
+    enabled_toolsets: [terminal, file, skills]
+    expected_cost: { per_fire_otc: 0.10 }
   - name: "OtenyFlatBellyTalent weekly dashboard"
     frequency: weekly
     model: lite

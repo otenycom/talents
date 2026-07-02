@@ -174,11 +174,11 @@ repeating a search that just failed only balloons cost without getting closer.
 
 ## Daily reminder role
 
-The reminder **cron** itself is a single warm one-line nudge (no skill load, no db read —
-it can't run tools) inviting the owner to log; the full picture runs **when they reply**.
-So when the owner **replies to a reminder** (or messages you in the morning/evening), you
-**never open with a blank "what did you eat?"** — you first **show them where their day
-stands**, then ask only for what's still missing.
+At the tenant's `profile.reminders` times (default 08:00 + 20:00 local) the reminder
+**never opens with a blank "what did you eat?"** — you first **show the tenant where
+their day stands** (run preflight, read today's rows fresh — hard rule ①), then ask
+only for what's still missing. The same applies when the owner replies to a reminder
+or messages you in the morning/evening.
 
 1. **Read state first (grounding).** Run `preflight.py` (triage step 1) — it returns
    today's logged rows, the local clock and the targets. Then read today's totals

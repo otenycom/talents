@@ -238,17 +238,18 @@ def test_cron_schedule_is_local_wall_clock():
     assert specs["OtenyFlatBellyTalent daily evening log"]["schedule"] == "0 20 * * *"
 
 
-def test_cron_daily_reminders_are_thin_no_skill_load():
-    # W3: the daily nudges are ONE cheap call — no skill load, no DB read/scripts. The
-    # heavy wrap-up runs when the owner replies (chat path). The weekly dashboard stays
-    # the only multi-call job (it loads the dashboard + food-tracker skills).
+def test_cron_daily_reminders_are_rich_status_summaries():
+    # v1.2.0 restore: the daily reminders load food-tracker and run the grounded
+    # "day so far" summary (the ORIGINAL behavior — the v1.1.x zero-tool nudge was
+    # a workaround for the since-fixed terminal-less cron cap + search_files
+    # blindness, not a product choice). Cost steering stays via the crons: policy
+    # (lite model + lean toolsets + declared max_turns), not via thinning.
     specs = {s["name"]: s for s in pc.build_specs({"timezone": "Europe/Amsterdam"})}
     for daily in ("OtenyFlatBellyTalent daily morning log",
                   "OtenyFlatBellyTalent daily evening log"):
         s = specs[daily]
-        assert s["skills"] == []                            # no skill load
-        assert "do not load skills" in s["prompt"].lower()  # explicitly thin
-        assert "preflight" not in s["prompt"].lower()       # no script run
+        assert s["skills"] == ["food-tracker", "flatbelly-coach-voice"]
+        assert "load food-tracker first" in s["prompt"].lower()
     assert specs["OtenyFlatBellyTalent weekly dashboard"]["skills"] == [
         "weight-progress-dashboard", "food-tracker"]
 
@@ -265,7 +266,9 @@ def test_cron_jobs_pin_their_tool_surface():
     specs = {s["name"]: s for s in pc.build_specs({"timezone": "Europe/Amsterdam"})}
     for daily in ("OtenyFlatBellyTalent daily morning log",
                   "OtenyFlatBellyTalent daily evening log"):
-        assert specs[daily]["enabled_toolsets"] == ["no_mcp"]
+        # v1.2.0: the rich summary runs preflight/sqlite (terminal), reads
+        # references (skills) — exactly what the skill instructs, never less.
+        assert specs[daily]["enabled_toolsets"] == ["terminal", "file", "skills"]
     assert specs["OtenyFlatBellyTalent weekly dashboard"]["enabled_toolsets"] == [
         "terminal", "file"]
 
@@ -289,7 +292,7 @@ def test_cron_max_turns_declared_but_not_emitted_by_default():
     assert all("max_turns" not in s for s in default)
     emitted = {s["name"]: s for s in
                pc.build_specs({"timezone": "Europe/Amsterdam"}, emit_max_turns=True)}
-    assert emitted["OtenyFlatBellyTalent daily morning log"]["max_turns"] == 3
+    assert emitted["OtenyFlatBellyTalent daily morning log"]["max_turns"] == 15
     assert emitted["OtenyFlatBellyTalent weekly dashboard"]["max_turns"] == 15
 
 
