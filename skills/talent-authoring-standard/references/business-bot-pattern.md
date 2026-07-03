@@ -165,6 +165,19 @@ not the team's running conversation.
 - **The escalate hand-back.** When the agent cannot finish (a rejection, an unexpected
   state), it takes the **escalate** transition — the bot's own failure hand-back to a human.
   This is the agent reporting "I can't", distinct from the reaper below.
+- **Watching a dispatched run — the verbose debug flag.** An isolated dispatched turn is
+  **silent by design**: its unique per-message chat id is a throwaway session, so its reply
+  never lands in the channel. To diagnose one, the dispatch may carry an **optional verbose
+  flag** — a second pinned sentinel after the isolated one — and the adapter then streams a
+  live trace into the channel: an immediate "starting…" ack (before the first, slow model
+  call), one line per uplink tool call (✅ on success / ⚠️ + the failure class on error), and a
+  "still working" heartbeat when a run goes quiet past an idle threshold. Each line is **plain
+  text with an emoji marker** (Discuss renders a body as-authored — never inject HTML, it
+  surfaces as literal tags) and is prefixed with the run's **work-token** so overlapping /
+  parallel runs stay attributable in one channel. It is a **debug aid** — chatty and it costs
+  channel writes — so it is **off** unless the workflow turns it on (Barney carries the flag on
+  its claim transition); enable it to watch a filing run, disable it once the workflow's
+  run-health is trusted.
 
 An **inbound webhook + a manual per-record dispatch command** remain as an operator
 **escape hatch** for backfill and recovery, but the two triggers must not both run

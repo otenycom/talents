@@ -146,6 +146,13 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   forbidden one did). `logs --ref <clone>` shows `tool <name> completed`; a missing
   toolset means the platform lock or a `check_fn` gate dropped it (a business bot mounts only
   its `toolset_contribution`).
+- **The run looks "silent" — no reply, or a near-empty `()`** — not a lost run; a **silent
+  failure**. Read `traces --ref <clone>` for the turn: the tell is tool calls whose results
+  carried **no signal** (an ACL/403 error, an empty envelope) followed by a near-empty final
+  reply. Judge each tool/`uplink` result's error class, not just the reply — fix the cause (a
+  missing grant, a wrong call shape), don't loosen the matcher. (`traces` is authoritative here:
+  the gateway `logs` log successes as name + result-size only, so a run of silent no-signal
+  results is invisible there.)
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
 - **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
