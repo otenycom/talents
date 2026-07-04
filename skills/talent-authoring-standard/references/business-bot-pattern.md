@@ -45,8 +45,11 @@ A B2C assistant requests the wide set (`[terminal, execute_code, cron, send_mess
 breadth *is* the product. A business bot requests **only the tools its one job needs**, and
 the generic toolsets are **OFF**:
 
-- **OFF for a scoped bot:** `terminal`, `execute_code`, `skills`, filesystem, and the
-  open-web search tools. None of these mount unless the job genuinely needs them.
+- **OFF for a scoped bot:** `terminal`, `execute_code`, filesystem, and the open-web
+  search tools. None of these mount unless the job genuinely needs them. (The gateway
+  keeps a small `skills`/`clarify` **read floor** mounted — `skill_view` must work for the
+  bot to load its own composing skills; what's off is skill *creation/self-editing*, see
+  the lockdown below.)
 - **ON, named explicitly:** the `/json/2/` Odoo client (the data plane, §3); optionally the
   secure browser (`browser` + `browser_request_human` + `browser_download`) for portal
   filing; optionally a mailbox reader for an inbox round-trip; optionally a knowledge
@@ -63,6 +66,16 @@ mounted to call. The allowlist is your declaration of intent; the gateway is enf
 together they make "<bot> has no terminal" a structural property, not a hope. Never rely on
 a `channel_prompt` line ("don't run shell") to keep a bot safe; rely on **not requesting**
 the tool.
+
+**No self-modification (the lockdown).** On a locked instance the platform *also* disables
+cross-session self-learning: the post-turn self-improvement review never spawns, persistent
+memory and the user profile are off, the skill curator is off, and the delivered Talent
+tree is **read-only** on disk between deliveries. So a business-bot Talent must never
+depend on `skill_manage`, runtime memory, or editing its own files — **all improvement
+ships through the source repo → lint → delivery**, exactly like code. (This exists because
+a live bot once rewrote its own delivered playbook mid-run; on a locked bot that is now
+structurally impossible. A B2C assistant keeps self-improvement — there it *is* the
+product.)
 
 ## 3. The `/json/2/` uplink is the data plane (checks 2 + 6)
 
@@ -107,6 +120,33 @@ Which one mounts is bound by the **uplink tier below the Talent, not by the bund
 - This is the stub-and-degrade contract of **check 9**, extended to side effects: declare
   the real adapter as the dependency, ship the stub as the non-prod double; the persona
   reads identically against either.
+
+## 4b. Fail closed — never fabricate a side effect (checks 7 + 14)
+
+The worst failure a business bot can produce is not a crash — it is a **confident lie**: a
+run that could not perform the real-world action but *reports success anyway* (an invented
+confirmation number, a record advanced to "done" with nothing behind it). A weak-tier model
+under pressure will improvise exactly this. Two rules, both mandatory:
+
+- **The Talent fails closed.** Any external identifier or proof (a filing number, a booking
+  reference, a receipt) is **READ from the external system's confirmation** — never
+  constructed, templated, or guessed. If the adapter is blocked/unreachable/errored/timed
+  out, or a read returns 403, the action **did not happen**: write nothing, advance
+  nothing, take the **escalate** transition to a human, and say why. A 403 is a STOP —
+  never a method-name-guessing loop. Give the skill the **exact escalate call** (the same
+  advance method through the escalate transition) — a model told to "escalate" without the
+  mechanics will invent method names hunting for one.
+- **The server refuses an unproven "done" (the claim guard).** Don't only trust the
+  Talent's discipline: the workflow's single advance choke point exposes a guard hook, and
+  the domain layer refuses the success transition unless the **proof record actually
+  exists** (e.g. a captured, non-placeholder filing number on the credential). A run that
+  skips the proof — on *any* model — is refused server-side, stays in-progress, and the
+  timeout reaper hands it to a human. Escalation is **never** blocked by the guard: a stuck
+  run must always be able to reach a person.
+
+Grade both with **adversarial red scenarios** (below): induce the failure (portal down, a
+revoked grant) and assert the *negative* ground truth — the record did NOT advance, no
+proof exists, the reply escalates and never claims success.
 
 ## 5. Testing — the live Discuss driver (check 14)
 
@@ -238,6 +278,11 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
 - **Tests** — `tests/scenarios/*.yaml` drive the live Discuss channel and assert ground
   truth over `/json/2/`; the suite is safe to run live because non-prod is stubbed.
   (PASS/FAIL)
+- **Fail-closed** — every external proof is read from the confirmation, never constructed;
+  a blocked adapter or a 403 escalates (with the exact escalate call in the skill); the
+  success transition is server-guarded on the proof record; the bundle ships at least one
+  **adversarial red scenario** inducing the failure and asserting the negative ground
+  truth. (PASS/FAIL)
 - **Workflow executor** — if the bot advances a workflow, its states/transitions are marked
   by generic role flags (queue/work/watch, claim/work/escalate); the owner's Odoo dispatches a
   transition by posting a flagged (isolated-sentinel) thin prompt — record id, not its data —

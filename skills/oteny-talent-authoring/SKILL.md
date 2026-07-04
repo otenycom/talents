@@ -51,7 +51,10 @@ skill, which I read first.
 
 Don't use for: one-off tasks (just do them); editing an Oteny Talent already
 installed (those are control-plane managed and replaced on upgrade — customize via the
-override file, see rule 7).
+override file, see rule 7); a **scope-locked business bot** — its platform disables in-box
+skill creation, runtime memory, and edits to the delivered Talent tree (read-only), so its
+Talents are authored in the source repo and delivered, never built in chat (see the
+authoring standard's `business-bot-pattern.md`).
 
 ## Step 0 — defer to the native authoring skill
 

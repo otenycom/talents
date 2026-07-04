@@ -139,6 +139,13 @@ same way, with three differences:
   real claim fence, not a legacy path. Fixture must match **exactly one** record (seed/reset it).
 - **The clone points its uplink at a STAGING business Odoo** (never prod), and `neutralize.yaml`
   repoints the seam + confirms any side-effecting adapter (portal/browser/mailbox) is the stub.
+- **Adversarial red scenarios run in their OWN invocation.** A red scenario (the fail-closed
+  proof — see the authoring standard's `behavioral-scenarios.md`) needs its failure **induced
+  at converge/setup** (point the clone's portal env at a down/blocked URL, or revoke the bot
+  user's grant on a needed model), each with its own fresh `hand_off` fixture. Red and happy
+  classes need **opposite** portal/grant states, so never run them in one `test` invocation.
+  A fail-closed run is SHORT — the pass condition is the record did **not** advance and no
+  proof was written, with an escalating reply.
 
 `test --ref <clone> --bundle <slug>` runs these the same way; the driver skips the gateway's
 progress frames ("⏳ Working…") and grades the final narration + the uplink asserts.
@@ -202,6 +209,9 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   Talent's work; raise it per-tenant (an operator `config_overrides` knob) and re-run.
 - **`clone`/`test`/`traces` says "not permitted"** — you can only touch your own + granted +
   Oteny demo bots; `clone --from` a source outside that scope is refused by the record rules.
+- **A red scenario passes when it shouldn't / the happy path is red** — you ran the
+  portal-up and portal-down scenario classes in one invocation; they are mutually exclusive
+  (opposite induced states). Re-run each class under its own converge-time config.
 
 ## Publish gate
 

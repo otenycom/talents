@@ -68,9 +68,9 @@ both for any bundle:
 
 ## The checklist-first bar (the airline-pilot rule)
 
-The bot runs on the tenant's **global model tier** — usually a small, fast model
-(Gemini-Flash), reliable **only when it follows a checklist**, not when it
-improvises from prose. So author every task as a **numbered, verifiable checklist** — an
+The bot runs on the tier the Talent declares (`model_tier` in `agent-profile.yaml`;
+default the tenant's global tier — usually a small, fast model like Gemini-Flash),
+reliable **only when it follows a checklist**, not when it improvises from prose. So author every task as a **numbered, verifiable checklist** — an
 airline pilot's pre-flight list, **decision = the checklist, not the model's judgement**.
 This is the durable **cost lever**: a checklist-structured skill runs correctly on the
 cheap tier; prose forces a bigger model or a costly loop.
@@ -124,8 +124,11 @@ add **context-aware reads** (not keyword matches) — see
   `version`). `description` is a **sharp ≤60-char trigger** — the index truncates it
   to 60, and the model self-selects on it (the words a matching message contains).
 - `agent-profile.yaml` (voice/persona, `channel_prompt` text, toolset
-  *contribution*, baked|purchased, price). Model tier is **global, not per-bot**. A
-  Talent (a bundle with `required_artifacts.yaml`) **must** ship one.
+  *contribution*, baked|purchased, price). **`model_tier` is honored** — the delivery
+  threads it into the bot's runtime default model (an operator per-tenant override
+  still wins). Declare the cheapest tier the job passes its scenarios (incl. the red
+  ones) on; a records-reasoning business bot typically needs `builder`. A Talent (a
+  bundle with `required_artifacts.yaml`) **must** ship one.
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.

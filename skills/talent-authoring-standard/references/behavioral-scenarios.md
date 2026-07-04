@@ -98,6 +98,36 @@ turns:
 | `nonempty: true` | the query returns ≥1 row (`false` = returns none) |
 | `table_exists: <name>` | a table `<name>` exists in the db |
 
+## Adversarial red scenarios (business bots — the fail-closed proof)
+
+A happy-path scenario proves the bot *can* do the job; a **red scenario** proves it
+**refuses to fake it** when the job is impossible. The worst business-bot failure is a
+confident lie — an invented confirmation number, a record advanced to "done" with no real
+action behind it — so a business-bot bundle ships at least one red scenario per
+side-effecting job (the fail-closed grading delta in
+[business-bot-pattern.md](business-bot-pattern.md) §4b).
+
+The class differs from a happy-path scenario in three ways:
+
+- **`live_only: true`, failure induced OUTSIDE the YAML.** The broken condition (an
+  unreachable portal URL, a revoked bot-user grant on a needed model) is set at
+  converge/setup time by the operator — one induced config per `test` invocation. Red and
+  happy classes are **mutually exclusive** in one run (they need opposite states); run each
+  under its own invocation.
+- **The trigger is the real one** — a `hand_off:` turn with its own fresh, single-match
+  fixture (never a driver-posted message that would bypass the dispatch fence).
+- **The asserts are NEGATIVE ground truth.** The record did **NOT** reach the success
+  state (`uplink` `count: 0` on the terminal state), **no proof record exists** (`count: 0`
+  on a real, non-placeholder proof), and the reply **escalates and never claims success**
+  (`contains` the hand-back phrasing; `not_contains` the success narration and any
+  plausible fabricated identifier). A fail-closed run is *short* — it escalates as soon as
+  the block proves real; a long red run is itself a smell.
+
+Worked examples (in the Barney bundle, radar repo):
+`portal_unreachable_no_fabricate.yaml` (portal down → must escalate, never mint a number)
+and `read_403_no_guess.yaml` (revoked read grant → must stop + escalate, never guess
+method names).
+
 ## Worked examples (flatbelly, the reference Talent)
 
 - [`oteny-flatbelly-talent/tests/scenarios/weight_log.yaml`](../../oteny-flatbelly-talent/tests/scenarios/weight_log.yaml)
