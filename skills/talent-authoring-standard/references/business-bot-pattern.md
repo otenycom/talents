@@ -148,6 +148,35 @@ Grade both with **adversarial red scenarios** (below): induce the failure (porta
 revoked grant) and assert the *negative* ground truth — the record did NOT advance, no
 proof exists, the reply escalates and never claims success.
 
+## 4c. Your test double is YOUR fixture — self-host and tunnel it (the dog-food rule)
+
+A subtle ownership failure is putting the stub double (§4) on the *platform's* infrastructure.
+Negate it: a business-bot author is **not** on the platform team, yet must be able to build, run,
+and change their own double with only their repo + a laptop. So the double **and** the real
+system's identity are **yours, in your repo**; the platform provides only the generic wiring.
+
+- **The double is a fixture in your repo** — ideally **dependency-free** (any stdlib HTTP server)
+  and shaped like the real system (its form fields, its confirmation format). You run it locally and
+  expose it at a public URL with a **dev tunnel** (`cloudflared tunnel --url http://127.0.0.1:<port>`);
+  the platform points a non-prod bot's tool at that URL through a **generic tier knob** (an env var),
+  never at a platform-hosted service. The platform hosts no double of yours.
+- **The real system's identity lives in your Talent, not the platform** — e.g. the real host a
+  portal-filing bot files on, and the hosts its browser must be **fenced** from on a non-prod tier,
+  go in the agent profile (`portal.{real_url, fence_hosts}`); the platform *binds/fences whatever you
+  named*. The platform never hard-codes a third party's address, so it stays generic across every
+  client's bot.
+
+**Rule:** *platform = mechanism, your repo = domain fixture, you self-host via a tunnel.* The
+identifier your double returns should match the **real format** (so the server-side proof guard, §4b,
+validates it), but that exact shape must **not** be disclosed to the model anywhere in the Talent — an
+undisclosed invariant a confabulation can't dress to pass.
+
+*Worked example (Barney, the Dutch posted-worker filer):* the meldloket double is a stdlib
+`http.server` in the client repo (`cuneus_barney/stubportal/`, minting a bare 9-digit number — the
+real portal's shape); the Talent declares `portal.real_url` + `portal.fence_hosts`; the server-side
+claim guard refuses a "filed" whose number isn't the right shape; and one dev command (below) starts
+the double + tunnel and points the bot at both its Odoo and the tunnelled double.
+
 ## 5. Testing — the live Discuss driver (check 14)
 
 A business bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C bot, but
@@ -164,6 +193,23 @@ Because the test instance is non-prod, its stub doubles (§4) catch every side e
 deploy can run the whole suite live with zero real-world action. Mock-backend scenarios
 still assert the deterministic layer offline in CI; anything only the live channel can
 judge (reply quality, the Discuss round-trip) is recorded `SKIP` offline and proven live.
+
+**Automate the setup — one command, not a checklist.** Dev iteration and e2e testing should be
+push-button. A single **launcher script** (the platform's "point-bot-at-local" pattern) brings up the
+whole rig: start the double (§4c) + its tunnel, tunnel your local Odoo, mint the bot's scoped key,
+resolve its channel, point the bot's uplink **and** its double at the tunnels, and re-deliver the
+Talent — so running the graded suite (or handing the bot a job) is the only step you do by hand. Make
+the launcher **idempotent** (reuse an already-running double + tunnel) so re-runs are fast, and give
+it a **stub-only** mode (start just the double + tunnel) and a **one-shot** mode (double + uplink in
+one go). The same setup can run inside a **test runner's setup phase** so the full e2e — *bring up the
+rig → run the scenarios → tear down* — is a single command. (This is control-plane orchestration, so
+the runner is a thin script or a `pytest` fixture that shells out to the launcher, **not** an in-Odoo
+`TransactionCase` — the framework test class boots one Odoo, not a tunnelled live bot.)
+
+*Worked example (Barney):* `point_barney_at_local.py` is the launcher — bare = uplink only,
+`--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
+uplink + point the bot); each is a VS Code launch config. Then `hermeshost test --ref <bot> --bundle
+<bundle>` runs the graded scenarios against the live, side-effect-safe bot.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 
