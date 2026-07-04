@@ -219,6 +219,14 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
     don't chase the called model. (A 403 that starts the bot **inventing** method names is a
     Talent bug — its rule must be "a 403 is a STOP: report the denied model and escalate"; the
     `read_403_no_guess` scenario pins it.)
+- **Empty transcript/turns, but the run spent tokens/time (and a business bot's Bot Activity is
+  stuck at "dispatched")** — different from the "silent" case above: the transcript is built from the
+  clone's persisted session, flushed when a turn **finishes**, so a run that **crashed or looped
+  without finishing** leaves it empty *even though it ran* and never wrote its result back. Read it as
+  a crash, not a no-op: `traces --ref <clone>` still carries the session's **diagnostic events** (the
+  gateway error stream — a dropped uplink/tunnel, a restart loop) and its token/model-call counters,
+  recorded independently of the transcript. Fix the cause (restore the uplink/tunnel, clear the stuck
+  process), don't re-run blind.
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
 - **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
