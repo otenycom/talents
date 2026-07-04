@@ -56,15 +56,13 @@ both for any bundle:
    build-time tool *we* may use to author and grade bundles. The bot itself never
    uses it; it runs on the tenant's Hermes. A bundle that assumes a Claude-Code
    host fails.
-2. **No new Hermes code.** A bundle is plain files — `SKILL.md`, small YAML
-   manifests, optional helper scripts — run by the tools the tenant's Hermes
-   already has (`terminal`/`execute_code`/`cronjob`, plus the set Oteny provisions:
-   web search, travel/maps, MCP servers — the menu is
-   [`tool-use`](../../../skills/tool-use/SKILL.md)). Building **on** present tools is
-   expected; what's banned is a Talent that can't run until *we* fork/patch Hermes or
-   author a **new** tool/plugin. Declare what it needs (check 9), stub charged/absent
-   tools so the persona degrades gracefully, and keep the deterministic backbone in
-   the bundle's own scripts.
+2. **No new Hermes code.** A bundle is plain files — `SKILL.md`, small YAML manifests,
+   optional helper scripts — run by the tools the tenant's Hermes already has
+   (`terminal`/`execute_code`/`cronjob` + the set Oteny provisions: web search, travel/maps,
+   MCP — the menu is [`tool-use`](../../../skills/tool-use/SKILL.md)). Building **on** present
+   tools is expected; **banned** is a Talent that can't run until *we* fork/patch Hermes or
+   author a **new** tool. Declare what it needs (check 9), stub charged/absent tools so the
+   persona degrades, and keep the deterministic backbone in the bundle's own scripts.
 
 ## The checklist-first bar (the airline-pilot rule)
 
@@ -147,36 +145,27 @@ add **context-aware reads** (not keyword matches) — see
   correctly." If you can't write a one-line check for it, it's underspecified.
 
 ### 3. First-run is mechanical, idempotent, in `references/`, and approval-clean
-- The first-run drill lives in **`references/first-run.md`** (pulled only when the
-  guard says NOT-READY), **not** in the `SKILL.md` body (D57 — it would otherwise sit
-  in context on every load). The body's triage just routes to it.
-- It is **copy-paste-exact**: literal commands, **no judgement calls left to the model**.
-- It opens with a **one-line guard** ("is setup complete?") — READY ⇒ skip & act.
-- **Declared scripts only — never improvised exec.** Create the schema by running the
-  shipped `scripts/init.sql` (`sqlite3 db < scripts/init.sql`) or a `scripts/*.py`;
-  **never** paste an inline `CREATE TABLE`, a `python3 -c "…"`, or a heredoc — Hermes'
-  approval gate flags improvised exec and the bot stalls on "Command Approval
-  Required" (the live food-tracker loop, D57). The schema lives **once**, in
-  `scripts/*.sql`; `.md` documents columns in prose.
-- Remediation is **idempotent**: `init.sql` is `CREATE TABLE IF NOT EXISTS`, cron
-  registered list-first ("create if absent"), `ON CONFLICT … DO UPDATE` for daily rows.
-- It covers **every** manifest class it declares (create db → intake →
-  register routing/cron) and **loops to a re-check** → READY.
-- **Cron jobs MUST pin `model` + `provider`** (live-proven footgun, D40). An un-pinned job
-  resolves its model from `config.yaml`'s `model.default`; with none it fires **empty** and
-  the router 400s — reminders silently fail. So the planner reads model+provider from
-  `config.yaml` and passes them on **every** job (see
-  `oteny-flatbelly-talent/scripts/provision_cron.py`). The pin is a **persona alias**
-  (`assistant`/`builder`/`researcher`, D55) — fallback `assistant`, **never** the raw
-  OpenRouter slug.
-- Honors the runtime hard rules (proven on the live `food-tracker`): **one
-  `sqlite3` invocation per terminal call; never chain INSERT+SELECT in one call;
-  keep non-ASCII out of SQL output.**
-- **Collapse the per-turn preamble** (D38): the triage's first action should be a
-  **single** `preflight`-style script call returning readiness + clock + today's
-  state + memory + targets, and the hot intents inlined into `SKILL.md` — not 4–5
-  separate probe calls + a reference load. On a weak runtime model that fan-out is
-  most of a slow turn (live: 67 calls → 5).
+- The first-run drill lives in **`references/first-run.md`** (pulled only when the guard says
+  NOT-READY), **not** the `SKILL.md` body (D57 — else it sits in context every load); the body's
+  triage just routes to it. It is **copy-paste-exact** (literal commands, no judgement calls),
+  opens with a **one-line guard** ("setup complete?" — READY ⇒ skip & act), covers **every**
+  manifest class (create db → intake → register routing/cron), and **loops to a re-check** → READY.
+- **Declared scripts only — never improvised exec.** Create the schema via the shipped
+  `scripts/init.sql` (`sqlite3 db < scripts/init.sql`) or a `scripts/*.py`; **never** an inline
+  `CREATE TABLE`/`python3 -c`/heredoc — Hermes' approval gate flags improvised exec and the bot
+  stalls on "Command Approval Required" (D57). Schema lives **once** in `scripts/*.sql`.
+  Remediation is **idempotent**: `CREATE TABLE IF NOT EXISTS`, cron list-first ("create if
+  absent"), `ON CONFLICT … DO UPDATE` for daily rows.
+- **Cron jobs MUST pin `model` + `provider`** (D40): un-pinned, a job resolves from `config.yaml`
+  `model.default` and with none fires **empty** → router 400 → silent-fail. The planner reads both
+  from `config.yaml` and passes them on **every** job
+  (`oteny-flatbelly-talent/scripts/provision_cron.py`); the pin is a **persona alias**
+  (`assistant`/`builder`/`researcher`, D55, fallback `assistant`), never the raw OpenRouter slug.
+- Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per terminal
+  call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
+- **Collapse the per-turn preamble** (D38): the triage's first action is a **single**
+  `preflight`-style call (readiness + clock + today's state + memory + targets) with hot intents
+  inlined in `SKILL.md` — not 4–5 probe calls + a reference load (live: 67 → 5 calls).
 
 ### 4. PII / secrets clean (method, not person) — and generic, not baked for one body
 - No personal data, no real tokens/keys, no hardcoded chat/user ids. Tenant

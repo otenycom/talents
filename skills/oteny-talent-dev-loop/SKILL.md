@@ -150,6 +150,18 @@ same way, with three differences:
 `test --ref <clone> --bundle <slug>` runs these the same way; the driver skips the gateway's
 progress frames ("⏳ Working…") and grades the final narration + the uplink asserts.
 
+**Reading a business-bot run (the same eye, three front-ends).** When a dispatch is running you
+get a live tool-by-tool picture — `✅`/`⚠️` per `/json/2/` call, with the method and, on a failure,
+the HTTP class **and the offending model** (e.g. `⚠️ … riverflow.service.search_read — 403
+access-denied (crewradar.site.type)`). An **operator** sees this narrated straight into the Discuss
+channel (a verbose-flagged dispatch); **you, the author, read the identical picture** — you do not
+need the operator's channel or any SSH — three ways, all record-rule-scoped to your own bots:
+`traces --ref <clone>` (per-turn, tool-by-tool), the **Author Logs portal**, and, for a business
+bot, the **Bot Activity log in the business Odoo itself** (hand the job, read the run — no CLI).
+Each failing call carries Odoo's **native** error text, which names the **denied** model, not the
+one you called — so you map a `403` straight to the missing grant (see the silent-failure entry
+below).
+
 ## Proving a migration (the case a fresh box can't cover)
 
 Ship the migration the normal way (append a `migrations.yaml` entry + a
@@ -200,6 +212,13 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   missing grant, a wrong call shape), don't loosen the matcher. (`traces` is authoritative here:
   the gateway `logs` log successes as name + result-size only, so a run of silent no-signal
   results is invisible there.)
+  - **A `403` result names the model it DENIED, not the one you called.** The result `error`
+    is Odoo's native message ("_… not allowed to access 'Ship Type' (`crewradar.site.type`)
+    records_") — e.g. a `search_read` on `riverflow.service` that pulls a computed DTO field can
+    403 on a *reference* model behind it. Grant your bot's seam user read on **that** model;
+    don't chase the called model. (A 403 that starts the bot **inventing** method names is a
+    Talent bug — its rule must be "a 403 is a STOP: report the denied model and escalate"; the
+    `read_403_no_guess` scenario pins it.)
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
 - **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
