@@ -23,6 +23,46 @@ the primitives are the Oteny dev CLI verbs + the `/json/2/` seam, all scoped by
 > (what a bundle must satisfy) and the how-to [`oteny-talent-authoring`](../oteny-talent-authoring)
 > (create → edit → package → publish). This skill is the *test/ship* rung on top.
 
+## New here? The whole journey (write → prove → ship), plain English
+
+A Talent is **content** (a persona + skills + a tool request + tests), not a server. You never
+provision anything by hand — you edit files, push, and the platform **delivers** your commit onto
+a bot. The journey has three environments, and a git ref decides which bot each reaches:
+
+| Environment | The bot | What the git ref is | How your change gets there |
+|---|---|---|---|
+| **Dev** | a **clone** you stand up (a throwaway, budgeted, *neutralized* copy of real state) — or a fixed dev bot | your working **branch** | `clone` once, then `reload` on every push (or a source in *follow* mode auto-delivers the branch HEAD) |
+| **Staging** | the staging bot | a **staging branch** (`dev`) | merge your branch → the *follow*-mode source auto-delivers |
+| **Prod** | the production bot | a **release tag** (`<talent>-v<semver>`) | cut the tag → the *pinned*-mode source delivers, on-VM gate + auto-rollback |
+
+The one loop you actually run, and what each step *does*:
+
+1. **Edit** the bundle on a branch. **Bump** `agent-profile.yaml: version:` (every change).
+2. **Lint** offline (`lint-talent --dir <bundle>`) — content sanity + safety, before you ever
+   deliver. Also runs in CI on push.
+3. **Get a container to test on** — `clone --from <a source you may touch> --bundle <slug> --branch
+   <branch> --byob <token>` mints a disposable bot (`{ref: hh0…}`). This is the "set up a dev
+   container" step — one command, no infra. (A business bot points its uplink at a **staging**
+   business Odoo; `neutralize.yaml` repoints the seam + stubs any real portal/mailbox before it
+   serves.)
+4. **Deliver your change** — `reload --ref <clone>` ships your pushed commit onto the clone
+   (stage → swap → gate → auto-rollback). This is a "talent upgrade": the same delivery prod uses.
+5. **Run the tests** — `test --ref <clone> --bundle <slug>` drives the bundle's
+   `tests/scenarios/*.yaml` **live** and grades them green/red. (Run `reinit` first for the result
+   you trust — a clean tree so a removed file can't leave a false PASS.)
+6. **Review results** — a red run tells you which turn failed and why; open `traces --ref <clone>`
+   (the tool-by-tool debug eye) or `logs --ref <clone>` (live gateway markers). Fix, push, repeat.
+   For a business bot you can also just hand the job in the business Odoo and read the bot's
+   activity log — same truth, no CLI.
+7. **Decide to promote** — green + lint-clean → **merge** to the staging branch (auto-delivers to
+   staging), shake it out live, then **tag** the release for prod. Roll back = re-tag the last good
+   version. That's the whole ladder.
+
+Everything below is the detail of those steps. Two equivalent fronts run the same machinery:
+**interactive** (you drive the verbs) and **CI** (`request-staging-run` + poll → a green/red commit
+status). All of it is scoped to **your own account's key** — you can only touch your own, granted,
+and Oteny demo bots.
+
 ## When to use
 
 - You changed a Talent (copy, a child skill, a tool request, a state-shape
