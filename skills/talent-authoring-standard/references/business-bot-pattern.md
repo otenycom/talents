@@ -160,11 +160,25 @@ system's identity are **yours, in your repo**; the platform provides only the ge
   expose it at a public URL with a **dev tunnel** (`cloudflared tunnel --url http://127.0.0.1:<port>`);
   the platform points a non-prod bot's tool at that URL through a **generic tier knob** (an env var),
   never at a platform-hosted service. The platform hosts no double of yours.
-- **The real system's identity lives in your Talent, not the platform** — e.g. the real host a
-  portal-filing bot files on, and the hosts its browser must be **fenced** from on a non-prod tier,
-  go in the agent profile (`portal.{real_url, fence_hosts}`); the platform *binds/fences whatever you
-  named*. The platform never hard-codes a third party's address, so it stays generic across every
-  client's bot.
+- **You declare your external systems in the Talent; the platform binds each by tier.** Every
+  outside-world system the bot touches is **named in the agent profile** — `external_systems:` is a
+  list of `{name, env_var, real_url, fence_hosts}`, and `portal:` is sugar for a single system bound
+  to a default env var. For each, the platform binds **one** URL by the uplink tier — **prod → the
+  Talent-declared `real_url`; any non-prod tier → the stub** — and exposes it to the bot's tool as
+  `<env_var>=<base>`; on a non-prod tier it also fences the browser off the **union** of every
+  declared `fence_hosts`. The platform *binds/fences whatever you named* and hard-codes no third
+  party's address, so it stays generic across every client's bot. **The prod identity (`real_url` +
+  `fence_hosts`) lives in your Talent** and is versioned with it; the throwaway stub value does not
+  (next bullet).
+- **The stub URL is a request-time knob — never committed, never a platform config field.** Your
+  local double's tunnel URL changes every run and is *not* part of the bundle, so you hand it to the
+  platform **at request time**: the dev launcher passes it into the spin-up as the stub endpoint for
+  the named system (keyed by the system's `name`), the platform threads it into that one converge, and
+  it is **never persisted** as a control-plane field on the bot. A later re-converge that carries no
+  spin-up config **preserves** the already-delivered non-prod stub rather than resetting it. Net: the
+  **prod address is versioned in the Talent; the ephemeral stub address is supplied per request** and
+  fenced as a non-prod double — a non-prod base that resolves to one of your Talent-fenced real hosts
+  is refused.
 
 **Rule:** *platform = mechanism, your repo = domain fixture, you self-host via a tunnel.* The
 identifier your double returns should match the **real format** (so the server-side proof guard, §4b,

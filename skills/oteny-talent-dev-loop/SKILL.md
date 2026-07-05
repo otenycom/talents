@@ -178,6 +178,21 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 
 ## The rules the loop enforces (don't fight them)
 
+- **Provisioned/active means delivered — for an inline-delivery Talent.** A private/business-bot
+  Talent (delivered from a private git bundle, not the public store) is delivered **inline at
+  commission**: when the dev tooling reports the bot **provisioned / active**, the Talent *and* its
+  tier-bound stub binding (§4c of the business-bot pattern) are already **on the box** — it is
+  e2e-ready, run the suite. This is **not** universal: a Talent delivered **out-of-band** (an async
+  delivery belt) is not on the box just because the container is active — wait for the source
+  `last_status` to read *delivered* before you test.
+- **What you can and can't see.** You diagnose your own bots — everything below is record-rule-scoped
+  to your own (and granted/demo) bots — from three windows: **`traces`** (per-turn tool calls, the
+  bot's LLM calls, and the session's **diagnostic events** — crashes/restarts, fail-close and browser
+  blocks), the **Author Logs portal**, and the source **`last_status` / `delivered_at`** (the
+  delivery outcome + timing). What you **cannot** see is the box's **effective config or filesystem** —
+  the delivered `.env`, the on-disk talents tree, the node record are operator-only (a `403`).
+  Diagnose box-config from **behavior** (a fail-close, the wrong host fenced, a stub not taking) in
+  `traces`, not by reading the box.
 - **Neutralize is default-ON.** Every clone runs the bundle's `neutralize.yaml`
   *before it serves a turn* (outbound crons off, seams repointed to staging,
   external logins swapped). If your Talent has any outbound action it **must** ship
@@ -236,6 +251,10 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   Talent's work; raise it per-tenant (an operator `config_overrides` knob) and re-run.
 - **`clone`/`test`/`traces` says "not permitted"** — you can only touch your own + granted +
   Oteny demo bots; `clone --from` a source outside that scope is refused by the record rules.
+- **A just-created bot isn't visible to your key for a moment** — right after you stand up a new
+  bot, its bot/source records may not yet fall inside your account's record-rule scope (a brief
+  staleness), so a `traces`/`test` against it can read empty or "not permitted" for a beat even
+  though the bot exists. Give it a moment / re-fetch before concluding the stand-up failed.
 - **A red scenario passes when it shouldn't / the happy path is red** — you ran the
   portal-up and portal-down scenario classes in one invocation; they are mutually exclusive
   (opposite induced states). Re-run each class under its own converge-time config.
