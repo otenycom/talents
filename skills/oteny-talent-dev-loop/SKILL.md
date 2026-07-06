@@ -207,6 +207,21 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 - **Billing.** A clone is free infra for 7 days; metered tool use bills *your*
   account from day 0 (a low spend cap bounds a runaway loop). At day 7 it converts
   to a Lite subscription or is reaped.
+- **A dev-bot request can legitimately wait several minutes.** When the shared fleet
+  is momentarily full, your request is **queued while the platform adds a server**
+  (~3–6 min) — it is NOT failing; keep polling. It fails only if capacity can't be
+  added within ~20 min ("no capacity after autoscale window"). Size your poll budget
+  to outlast that window; don't give up at a few minutes and re-request (that just
+  queues a second bot).
+- **Your dev-bot footprint self-recycles.** You can hold a bounded number of live dev
+  bots (default 5). Requesting one **at the cap recycles your own oldest dev bot**
+  automatically (it stops counting immediately; its infra is destroyed within
+  ~15 min) — you're only refused when nothing of yours is reapable. And there is
+  **one live dev bot per Discuss channel**: re-commissioning onto a channel recycles
+  your previous bot on it (two bots polling one channel answer each other's messages
+  — the platform prevents it at the source). Corollary: exit your launcher cleanly
+  (Ctrl-C / SIGTERM both tear down) so a session's bot doesn't linger until the
+  reaper catches it.
 - **Traces are yours.** `traces`/`logs` and the **Author Logs portal** show only
   your own (and granted/demo) bots — the same record-rule boundary, two front-ends.
 
