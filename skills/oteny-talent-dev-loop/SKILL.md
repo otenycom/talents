@@ -188,16 +188,25 @@ exact thing that root-causes a "why is it pointed at the wrong host" bug), `env_
 The box runs standard Linux + standard Hermes, so a shell is the highest-value primitive. You
 connect with **your own private key** (the platform never sees a secret):
 
+You reach the box through a Cloudflare tunnel with the [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+CLI (install it once), in **two steps**: run a local bridge, then SSH to it.
+
 ```
 # 1. generate a throwaway keypair (or reuse one)
 ssh-keygen -t ed25519 -f /tmp/box -N ""
 # 2. request the window with your PUBLIC key + an optional TTL (minutes; default 120, cap 480)
 request_box_access(ref="hh0xxxx", kind="shell", ssh_pubkey="<contents of /tmp/box.pub>", ttl_minutes=120)
-# 3. poll to state == "active" and read connect_info
-box_access_status(request_id=<id>)   # → {state: "active", connect_info: {hostname, proxy_command, note}}
-# 4. connect (the note field is the ready-to-paste line):
-ssh -i /tmp/box -o ProxyCommand='cloudflared access tcp --hostname <hostname> --url -' hermes@<hostname>
+# 3. poll to state == "active" and read connect_info (hostname + bridge_command + ssh_command + note)
+box_access_status(request_id=<id>)   # → {state: "active", connect_info: {hostname, bridge_command, ssh_command, note}}
+# 4a. run the bridge (a local listener on 127.0.0.1:2222) — leave it running in one terminal:
+cloudflared access tcp --hostname <hostname> --url 127.0.0.1:2222
+# 4b. in another terminal, SSH to the local port with YOUR private key:
+ssh -p 2222 -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null -i /tmp/box hermes@127.0.0.1
 ```
+
+(`accept-new` + a throwaway known-hosts file because the box's dropbear makes a fresh hostkey each
+window — there's nothing stable to pin. The `note` field in `connect_info` is the ready-to-paste
+version of both commands.)
 
 The bot's state DB is `~/.hermes/state.db` (and per-Talent dbs under `~/.hermes/data/<slug>/`);
 the image ships **no `sqlite3` binary**, so use the stdlib: `python3 -m sqlite3 ~/.hermes/state.db`.
