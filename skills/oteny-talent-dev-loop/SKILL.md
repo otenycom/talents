@@ -162,6 +162,68 @@ Each failing call carries Odoo's **native** error text, which names the **denied
 one you called — so you map a `403` straight to the missing grant (see the silent-failure entry
 below).
 
+## See inside your bot's box (inspect + shell — your box, over your account key)
+
+Sometimes the traces aren't enough: you need to see the box's **resolved config** (what URL is
+your bot's browser actually pointed at? did the stub binding land?) or query the Talent's own
+sqlite state, tail a log live, delete a poisoned row and re-dispatch. Two self-serve, out-of-band
+windows into a box **your account owns or is billed for** (dev **and** prod) — both driven over
+your account key on `hh.box_access_request`, never a bot tool:
+
+**`inspect` — a one-call, redacted snapshot.** Request it, poll to `done`, read `snapshot`:
+
+```
+request_box_access(ref="hh0xxxx", kind="inspect")     # → {accepted, request_id}
+box_access_status(request_id=<id>)                    # poll → {state: "done", snapshot: {...}}
+```
+
+The snapshot carries: `external_env` (the **resolved values** of the non-secret levers — your
+Talent's declared `OTENY_*` external-system URLs, the uplink URL/db, the discuss channel — the
+exact thing that root-causes a "why is it pointed at the wrong host" bug), `env_keys` (every other
+`.env` line as **name + length only** — a secret value is *never* returned), `manifest`,
+`talents_tree`, a scrubbed `config_yaml`, `log_tails` (agent + gateway, scrubbed), and
+`sudoers_present` (the hardened-box posture). Start here — it's cheap and answers most questions.
+
+**`shell` — an ephemeral SSH shell into the sandbox as your bot's own user (`hermes`, uid 1001).**
+The box runs standard Linux + standard Hermes, so a shell is the highest-value primitive. You
+connect with **your own private key** (the platform never sees a secret):
+
+```
+# 1. generate a throwaway keypair (or reuse one)
+ssh-keygen -t ed25519 -f /tmp/box -N ""
+# 2. request the window with your PUBLIC key + an optional TTL (minutes; default 120, cap 480)
+request_box_access(ref="hh0xxxx", kind="shell", ssh_pubkey="<contents of /tmp/box.pub>", ttl_minutes=120)
+# 3. poll to state == "active" and read connect_info
+box_access_status(request_id=<id>)   # → {state: "active", connect_info: {hostname, proxy_command, note}}
+# 4. connect (the note field is the ready-to-paste line):
+ssh -i /tmp/box -o ProxyCommand='cloudflared access tcp --hostname <hostname> --url -' hermes@<hostname>
+```
+
+The bot's state DB is `~/.hermes/state.db` (and per-Talent dbs under `~/.hermes/data/<slug>/`);
+the image ships **no `sqlite3` binary**, so use the stdlib: `python3 -m sqlite3 ~/.hermes/state.db`.
+
+**The contract you must honor:**
+- The window is **TTL-bounded and auto-reaped**. On expiry or when you `close_box_access(request_id=<id>)`,
+  the platform kills the tunnel, removes your key, and **rotates the box's model key** (you saw the
+  `.env` — it's treated disclosed). Don't leave a window open; close it when you're done.
+- Every open is an **append-only audit row** on your account.
+- **Prod etiquette:** a shell on a real customer's prod bot is snapshot-first (reversible) but it's
+  their live bot — check no dispatch is mid-run before you mutate state, and prefer `inspect` unless
+  you genuinely need to change something.
+
+`close_box_access(request_id=<id>)` tears a shell down early (don't wait for the TTL).
+
+## The readiness contract: `active` is not enough — wait for `talent_delivered`
+
+When you commission a fresh dev bot (`request_dev_bot`), poll `dev_bot_request_status` and treat a
+bot as **e2e-ready only when `state == "active"` AND `talent_delivered == true`**. `active` alone
+means the box booted (on defaults) — for an **external-Talent** bot the private bundle is delivered
+*inline* just after, so `active` can briefly precede the Talent actually being on the box (the
+skill-not-found race). `talent_delivered` is the true "your Talent is on the box" signal (a
+catalog-only bot is `true` by construction). On `active` without delivery, the async belt still
+converges it within ~5 min — poll `hh.talent.source.last_status == "delivered"` (visible to your
+account key) before you start testing, or read `talent_delivery_error` for the reason.
+
 ## Proving a migration (the case a fresh box can't cover)
 
 Ship the migration the normal way (append a `migrations.yaml` entry + a
