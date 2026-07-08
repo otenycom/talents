@@ -502,6 +502,17 @@ def run_scenario_live(path: Path, driver, bundle_override: str | None = None) ->
     bot = scenario.get("bot")
     result = {"path": str(path), "bot": bot, "backend": "live", "skipped": False,
               "passed": 0, "failed": 0, "skipped_count": 0, "turns": [], "error": None}
+    # Substrate gate (§14.5): a VM-only E2E must not run on a container clone. Skip when the
+    # driver reports a substrate that differs from the scenario's requirement; a driver that
+    # does not expose ``substrate`` runs it (the LAB gate is the real enforcement bed).
+    want_substrate = _scenario_requires_substrate(scenario)
+    have_substrate = getattr(driver, "substrate", None)
+    if want_substrate and have_substrate and have_substrate != want_substrate:
+        result["skipped"] = True
+        result["skipped_count"] = 1
+        result["skip_reason"] = (
+            f"requires substrate {want_substrate!r}, clone is {have_substrate!r}")
+        return result
     db_name = _resolve_db_name(resolve_bundle(path, bundle_override), scenario)
     for turn in scenario.get("turns", []):
         label = turn.get("user") or (
@@ -562,6 +573,15 @@ def _scenario_is_live_only(scenario: dict) -> bool:
     return lo is True or (isinstance(lo, list) and "scenario" in lo)
 
 
+def _scenario_requires_substrate(scenario: dict) -> str | None:
+    """The substrate a scenario requires (``requires: {substrate: vm}``), or None. A scenario
+    that needs a specific substrate is SKIPPED on the mock backend (no real machine) and, on
+    live, when the driver reports a DIFFERENT substrate — so a VM-only E2E never runs on a
+    container clone (§14.5). A driver that does not report its substrate runs it (advisory)."""
+    req = scenario.get("requires")
+    return (req.get("substrate") if isinstance(req, dict) else None) or None
+
+
 def run_scenario(path: Path, backend: str = "mock", bundle_override: str | None = None) -> dict:
     """Run ONE scenario; return a result DTO. Never raises on a test failure (the
     failure is in the DTO + exit code), only on a malformed scenario/runner error."""
@@ -581,6 +601,13 @@ def run_scenario(path: Path, backend: str = "mock", bundle_override: str | None 
         return run_scenario_live(path, _LIVE_DRIVER, bundle_override)
 
     if _scenario_is_live_only(scenario):
+        result["skipped"] = True
+        result["skipped_count"] = 1
+        return result
+
+    if _scenario_requires_substrate(scenario):
+        # needs a specific substrate (e.g. a dedicated VM) — the mock sandbox is neither VM
+        # nor container; skip (the live LAB `vm_website` gate on a VM lab is where it runs).
         result["skipped"] = True
         result["skipped_count"] = 1
         return result

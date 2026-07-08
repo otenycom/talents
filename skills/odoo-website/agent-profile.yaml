@@ -25,7 +25,8 @@ long_md: |
   copy, add a page, or take the site down, and it just does it.
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
-  tells you the public link every time. Best on the power plan (the site needs room to run).
+  tells you the public link every time. Runs on the Max plan — your own dedicated server, with
+  room for a real website engine alongside your agent.
 version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.0.0: first release — install Odoo CE user-space (venv + pinned nightly +
@@ -39,6 +40,16 @@ voice_skill: odoo-website
 
 base_language: en
 model_tier: builder                      # installs software + reasons about hosting/debugging → the builder tier
+# Hardware requirement (a capability, NOT a raw customer tier — substrate is internal, D26).
+# `substrate: vm` = a full kernel + dedicated machine (not a packed gVisor container): real
+# systemd supervises the app, Odoo's one-time init is minutes (no gofer tax), and the box has
+# its own egress IP. `min_tier` is the cheapest subscription that provides it today (D204:
+# max → VM); the storefront renders "Requires the Max plan" and gates purchase, the deployer
+# warns on a mismatch, and install_odoo.sh/preflight refuse at runtime as a backstop. The lint
+# enforces substrate↔min_tier consistency.
+requires:
+  substrate: vm
+  min_tier: max
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 # Brokered tools this Talent needs. host_website / unhost_website / list_hosted_websites are
 # platform defaults (the hh-sites gateway plugin, delivered to every box) — declared here so

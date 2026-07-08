@@ -333,3 +333,69 @@ def test_all_flatbelly_scenarios_pass_via_cli():
     paths = sorted(str(p) for p in SCENARIOS.glob("*.yaml"))
     assert paths, "no shipped flatbelly scenarios found"
     assert rs.main(paths) == 0
+
+
+# --------------------------------------------------------------------------- #
+# requires: {substrate} — a VM-only E2E never runs where Odoo can't fit (§14.5)  #
+# --------------------------------------------------------------------------- #
+def _vm_only_scenario(root: Path) -> Path:
+    bundle = _synthetic_bundle(root)
+    return _write(bundle / "tests" / "scenarios" / "vm_only.yaml", """\
+        bot: oteny-sample-talent
+        live_only: true
+        requires:
+          substrate: vm
+        turns:
+          - user: hello
+            expect:
+              reply:
+                contains: ["hi"]
+    """)
+
+
+class _SubstrateDriver:
+    """A minimal live driver that reports its substrate (the §14.5 gate reads it)."""
+
+    def __init__(self, substrate):
+        self.substrate = substrate
+
+    def send(self, text):
+        return "hi there"
+
+    def trace(self):
+        return ""
+
+    def scalar(self, sql):
+        return None
+
+    def rows(self, sql):
+        return []
+
+
+def test_requires_substrate_scenario_is_skipped_on_mock(tmp_path):
+    # the mock sandbox is neither a VM nor a container → a substrate-gated scenario skips.
+    scenario = _vm_only_scenario(tmp_path)
+    res = rs.run_scenario(scenario, backend="mock")
+    assert res["skipped"] is True and res["skipped_count"] == 1
+
+
+def test_requires_substrate_skips_a_mismatched_live_clone(tmp_path):
+    scenario = _vm_only_scenario(tmp_path)
+    rs.set_live_driver(_SubstrateDriver("container"))
+    try:
+        res = rs.run_scenario(scenario, backend="live")
+    finally:
+        rs.set_live_driver(None)
+    assert res["skipped"] is True
+    assert "container" in res.get("skip_reason", "")
+
+
+def test_requires_substrate_runs_on_a_matching_live_clone(tmp_path):
+    scenario = _vm_only_scenario(tmp_path)
+    rs.set_live_driver(_SubstrateDriver("vm"))
+    try:
+        res = rs.run_scenario(scenario, backend="live")
+    finally:
+        rs.set_live_driver(None)
+    assert res["skipped"] is False
+    assert res["passed"] >= 1   # the reply "hi there" matched contains: ["hi"]

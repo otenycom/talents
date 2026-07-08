@@ -67,6 +67,45 @@ def _odoo_serving() -> bool:
         return False
 
 
+def _mem_gb() -> float | None:
+    """Total memory in GiB — the cgroup v2 hard cap (the container envelope) first, then
+    /proc/meminfo (a VM's real RAM). OTENY_MEM_GB overrides (deployer injection / tests)."""
+    override = (os.environ.get("OTENY_MEM_GB") or "").strip()
+    if override:
+        try:
+            return float(override)
+        except ValueError:
+            pass
+    try:
+        v = Path("/sys/fs/cgroup/memory.max").read_text().strip()
+        if v.isdigit():
+            return int(v) / (1024 ** 3)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) / (1024 ** 2)
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def _substrate() -> str:
+    """The compute substrate: 'vm' (a dedicated machine) or 'container' (a packed gVisor
+    sandbox). The deployer injects OTENY_SUBSTRATE from the tenant's isolation_tier; else
+    probe the kernel (gVisor names itself in /proc/version). 'unknown' when neither says."""
+    env = (os.environ.get("OTENY_SUBSTRATE") or "").strip().lower()
+    if env in ("vm", "container"):
+        return env
+    try:
+        if "gvisor" in Path("/proc/version").read_text().lower():
+            return "container"
+    except Exception:  # noqa: BLE001
+        pass
+    return "unknown"
+
+
 def main() -> int:
     profile = _load_profile()
     missing = []
@@ -82,6 +121,12 @@ def main() -> int:
           f"site_name={profile.get('site_name') or '-'} "
           f"site_slug={profile.get('site_slug') or '-'} "
           f"language={profile.get('language') or '-'}")
+    # The effective envelope — so the persona (and install_odoo.sh) can refuse an
+    # under-provisioned box and tell the owner to upgrade to the Max plan (§14.2).
+    mem = _mem_gb()
+    print(f"SUBSTRATE: {_substrate()}")
+    print(f"TIER: {os.environ.get('OTENY_TIER') or '-'}")
+    print("MEM_GB: " + (f"{mem:.1f}" if mem is not None else "-"))
     if missing:
         print("MISSING: " + " ".join(missing))
     return 0

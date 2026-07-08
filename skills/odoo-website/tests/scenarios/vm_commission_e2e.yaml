@@ -1,0 +1,50 @@
+# Scenario: the FULL VM-website arc from a FRESH dedicated-VM box (no ~/odoo-site yet) —
+# "build me a website" → first-run INSTALL (install_odoo.sh + ensure_site.sh, fast on a VM,
+# no gofer tax) → BUILD the site → confirm-before-publish → host_website(8069) → poll
+# list_hosted_websites to active. This is the talent-defined counterpart to the §13 manual
+# runbook; the LAB `vm_website` gate (§15.3) wraps it with the external "serves 200 + a valid
+# *.oteny.bot cert" check (run_scenario drives the bot + reads the clone, not external HTTP).
+#
+# LIVE-ONLY + VM-ONLY: needs a dedicated VM (a full kernel — Odoo installs in minutes with
+# real systemd). `requires: {substrate: vm}` SKIPS it on the mock backend and on any
+# container clone, so it never runs where Odoo can't fit (§14.4 / §14.5).
+bot: odoo-website
+live_only: true
+requires:
+  substrate: vm
+
+turns:
+  # 1) First contact on a fresh box: the bot recognises the ask, loads the odoo-website skill,
+  #    and runs the one-time install. Fast on a VM, but still minutes — a generous timeout.
+  - user: "build me a website for my cafe — a landing page with the menu and opening hours"
+    reply_timeout: 2400
+    expect:
+      reply:
+        contains: ["cafe"]
+  # 2) Build the site content via Odoo's website builder.
+  - user: "call it Bella's Cafe and add the menu and opening hours"
+    reply_timeout: 900
+    expect:
+      reply:
+        contains: ["Bella"]
+  # 3) Publish — the site is PUBLIC, so the bot must CONFIRM before hosting.
+  - user: "put it online"
+    expect:
+      reply:
+        contains: ["public"]
+  # 4) Go-ahead → host_website(8069) opens the tunnel; the bot reports the public URL.
+  - user: "yes, go ahead"
+    reply_timeout: 300
+    expect:
+      tool_calls:
+        - tool: host_website
+      reply:
+        contains: ["oteny.bot"]
+  # 5) Status → list_hosted_websites shows it live at its public address.
+  - user: "is it up?"
+    reply_timeout: 120
+    expect:
+      tool_calls:
+        - tool: list_hosted_websites
+      reply:
+        contains: ["oteny.bot"]

@@ -82,6 +82,11 @@ spend):
      typo'd policy never binds). (Needs PyYAML; CI installs it.) ``max_turns`` is declared +
      linted here even though a per-cron cap is only EMITTED to the scheduler once a deployed
      Hermes honors it — the authoring gate is the enforcement point until then.
+ 15. A Talent that declares a hardware need — ``requires: {substrate, min_tier}`` — keeps the
+     two consistent: ``substrate`` ∈ {vm, container}, ``min_tier`` ∈ {lite, power, max}, and a
+     ``substrate: vm`` need names ``min_tier: max`` (the cheapest tier that provides a dedicated
+     VM, D204). The Talent declares a CAPABILITY, never a raw customer tier as its contract; the
+     platform resolves the tier (storefront gate + runtime self-gate). (Needs PyYAML.)
 
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
@@ -333,6 +338,54 @@ def _has_external_seam(bundle: Path) -> bool:
     return bool(data.get("seam"))
 
 
+# Check 15 — the hardware-requirement (`requires:`) block. A Talent declares a CAPABILITY it
+# needs (a substrate), never a raw customer tier as its contract; min_tier is the resolved
+# cheapest tier that provides it, kept honest here. D204: max → dedicated VM.
+_REQUIRES_SUBSTRATES = {"vm", "container"}
+_REQUIRES_MIN_TIERS = {"lite", "power", "max"}
+_SUBSTRATE_MIN_TIER = {"vm": "max"}   # the cheapest subscription tier that provides a substrate
+
+
+def _requires_findings(bundle: Path) -> list[str]:
+    """(15) A ``requires: {substrate, min_tier}`` block must be internally consistent: substrate
+    ∈ {vm, container}, min_tier ∈ {lite, power, max}, and a ``substrate: vm`` need must name
+    ``min_tier: max`` (the cheapest tier that provides a VM today, D204) — so the storefront gate
+    + the runtime self-gate resolve to a plan that actually delivers the capability. Needs PyYAML
+    (CI installs it); a bundle without the block is unaffected."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return []
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    req = data.get("requires")
+    if req is None:
+        return []
+    if not isinstance(req, dict):
+        return ["agent-profile.yaml: `requires` must be a mapping, e.g. "
+                "requires: {substrate: vm, min_tier: max}"]
+    findings: list[str] = []
+    substrate = req.get("substrate")
+    min_tier = req.get("min_tier")
+    if substrate is not None and substrate not in _REQUIRES_SUBSTRATES:
+        findings.append(f"agent-profile.yaml: requires.substrate {substrate!r} is not one of "
+                        f"{sorted(_REQUIRES_SUBSTRATES)}")
+    if min_tier is not None and min_tier not in _REQUIRES_MIN_TIERS:
+        findings.append(f"agent-profile.yaml: requires.min_tier {min_tier!r} is not one of "
+                        f"{sorted(_REQUIRES_MIN_TIERS)}")
+    need = _SUBSTRATE_MIN_TIER.get(substrate)
+    if need and min_tier != need:
+        findings.append(
+            f"agent-profile.yaml: requires.substrate: {substrate} needs min_tier: {need} (the "
+            f"cheapest tier that provides it, D204) but min_tier is {min_tier!r} — set "
+            f"min_tier: {need} so the purchase-gate resolves to a plan that delivers the VM")
+    if substrate is None and min_tier is not None:
+        findings.append("agent-profile.yaml: requires.min_tier without requires.substrate — "
+                        "declare the capability (the substrate) the tier stands for")
+    return findings
+
+
 def _neutralize_findings(bundle: Path) -> list[str]:
     """(13) An outbound-action Talent MUST ship a well-shaped neutralize.yaml that covers
     every declared required cron. A self-contained Talent with no outbound action needs
@@ -528,6 +581,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _migration_shape_findings(bundle)
         findings += _neutralize_findings(bundle)   # (13) outbound-action Talent must de-fang clones
         findings += _cron_policy_findings(bundle)  # (14) scheduled-cron cost policy
+        findings += _requires_findings(bundle)     # (15) requires: substrate↔min_tier consistency
 
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):

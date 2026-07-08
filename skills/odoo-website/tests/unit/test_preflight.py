@@ -68,3 +68,24 @@ def test_ready_yes_when_installed_and_profile_complete(tmp_path, monkeypatch, ca
 def test_exit_code_always_zero(tmp_path, monkeypatch):
     monkeypatch.setenv("HH_HOME", str(_fake_home(tmp_path)))
     assert _load().main() == 0            # readiness is in the output, never the exit code
+
+
+def test_reports_substrate_tier_and_mem_from_injected_env(tmp_path, monkeypatch, capsys):
+    # The deployer injects the envelope; preflight surfaces it so the persona + install_odoo.sh
+    # can refuse an under-provisioned box and tell the owner to upgrade to Max (§14.2).
+    monkeypatch.setenv("HH_HOME", str(_fake_home(tmp_path)))
+    monkeypatch.setenv("OTENY_SUBSTRATE", "vm")
+    monkeypatch.setenv("OTENY_TIER", "max")
+    monkeypatch.setenv("OTENY_MEM_GB", "8")
+    _load().main()
+    out = capsys.readouterr().out
+    assert "SUBSTRATE: vm" in out
+    assert "TIER: max" in out
+    assert "MEM_GB: 8.0" in out
+
+
+def test_substrate_unknown_without_a_signal(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HH_HOME", str(_fake_home(tmp_path)))
+    monkeypatch.delenv("OTENY_SUBSTRATE", raising=False)
+    _load().main()
+    assert "SUBSTRATE: unknown" in capsys.readouterr().out

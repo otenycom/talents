@@ -16,6 +16,40 @@ SRC=$BASE/odoo
 TARBALL_URL=https://nightly.odoo.com/19.0/nightly/src/odoo_19.0.latest.tar.gz
 SELF_DIR=$HOME/.hermes/skills/talents/odoo-website/scripts
 
+# 0. Refuse an under-provisioned envelope BEFORE any work (the §14.2 runtime self-gate).
+# Odoo CE + embedded Postgres + your agent need a dedicated machine (the Max plan) — a
+# packed gVisor container / <3 GB can't fit them. The deployer injects OTENY_SUBSTRATE from
+# the tenant's isolation_tier; else probe the kernel (gVisor names itself in /proc/version).
+substrate="${OTENY_SUBSTRATE:-}"
+if [ -z "$substrate" ] && grep -qi gvisor /proc/version 2>/dev/null; then
+  substrate=container
+fi
+if [ "$substrate" = "container" ]; then
+  echo "ODOO_INSTALL_REFUSED substrate=container — WebsiteBot needs the Max plan (your own" \
+       "dedicated server); a packed container can't host Odoo + Postgres. Ask the owner to" \
+       "upgrade to Max." >&2
+  exit 1
+fi
+# Memory floor (~3 GB = 3145728 KiB): cgroup v2 hard cap first, then /proc/meminfo; an
+# OTENY_MEM_GB override wins (deployer injection / tests). An unknown reading does NOT block.
+mem_kb=""
+if [ -r /sys/fs/cgroup/memory.max ]; then
+  mm=$(cat /sys/fs/cgroup/memory.max 2>/dev/null)
+  case "$mm" in ''|*[!0-9]*) : ;; *) mem_kb=$((mm / 1024)) ;; esac
+fi
+if [ -z "$mem_kb" ] && [ -r /proc/meminfo ]; then
+  mem_kb=$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)
+fi
+if [ -n "${OTENY_MEM_GB:-}" ]; then
+  mem_kb=$(awk "BEGIN{printf \"%d\", ${OTENY_MEM_GB} * 1024 * 1024}")
+fi
+if [ -n "$mem_kb" ] && [ "$mem_kb" -lt 3145728 ]; then
+  echo "ODOO_INSTALL_REFUSED mem=$((mem_kb / 1024))MB — Odoo + Postgres + your agent need" \
+       "~3 GB. This box is too small; ask the owner to upgrade to the Max plan (a dedicated" \
+       "server)." >&2
+  exit 1
+fi
+
 mkdir -p "$BASE"
 cd "$BASE"
 

@@ -274,6 +274,45 @@ def test_flatbelly_cron_policy_is_clean():
     assert lint._cron_policy_findings(FLATBELLY) == []
 
 
+# --------------------------------------------------------------------------- #
+# requires: substrate ↔ min_tier consistency (check 15)                         #
+# --------------------------------------------------------------------------- #
+def test_requires_vm_with_max_is_clean(tmp_path):
+    b = _talent(tmp_path, profile_extra="requires:\n  substrate: vm\n  min_tier: max\n")
+    assert not any("requires" in f for f in lint.lint_bundle(b))
+
+
+def test_requires_vm_without_max_is_a_finding(tmp_path):
+    # substrate: vm needs min_tier: max (the cheapest tier that provides a VM, D204)
+    b = _talent(tmp_path, profile_extra="requires:\n  substrate: vm\n  min_tier: power\n")
+    assert any("min_tier: max" in f for f in lint.lint_bundle(b))
+
+
+def test_requires_unknown_substrate_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra="requires:\n  substrate: bogus\n  min_tier: max\n")
+    assert any("substrate" in f and "not one of" in f for f in lint.lint_bundle(b))
+
+
+def test_requires_unknown_min_tier_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra="requires:\n  substrate: container\n  min_tier: mega\n")
+    assert any("min_tier" in f and "not one of" in f for f in lint.lint_bundle(b))
+
+
+def test_requires_min_tier_without_substrate_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra="requires:\n  min_tier: max\n")
+    assert any("without requires.substrate" in f for f in lint.lint_bundle(b))
+
+
+def test_no_requires_block_is_clean(tmp_path):
+    b = _talent(tmp_path)
+    assert not any("requires" in f for f in lint.lint_bundle(b))
+
+
+def test_odoo_website_requires_block_is_clean():
+    # the shipped flagship declares requires: {substrate: vm, min_tier: max} — consistent.
+    assert lint._requires_findings(CATALOG / "odoo-website") == []
+
+
 def test_all_real_talents_lint_clean():
     bundles = [str(p) for p in sorted(CATALOG.glob("*-talent"))]
     assert bundles
