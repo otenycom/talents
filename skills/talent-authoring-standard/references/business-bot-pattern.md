@@ -191,6 +191,42 @@ real portal's shape); the Talent declares `portal.real_url` + `portal.fence_host
 claim guard refuses a "filed" whose number isn't the right shape; and one dev command (below) starts
 the double + tunnel and points the bot at both its Odoo and the tunnelled double.
 
+## 4d. Make the double faithful — harvest the operator's walkthrough (page graph, not flat form)
+
+A flat "all the fields on one page" double proves plumbing, not the filing. Your bot's skill text
+and the double **co-evolve against the real system**, and the cheapest source of truth is the
+**human operator who does the task today**: ask them for a click-by-click walkthrough of ONE real
+run — a screenshot per screen plus a sentence of what they click next. Then:
+
+1. **Transcribe exhaustively before you build.** For every screenshot capture the exact field
+   labels (in the system's language, with diacritics), each control's type (text / select / radio /
+   checkbox / date), what is **pre-filled vs typed vs carried over**, required markers, and the
+   warnings. The transcription — not your memory of "roughly what the form wants" — is what the
+   double and the skill are written against.
+2. **Cross-check every constant against your data plane.** Expect to find real bugs: transposed
+   digits in a constant your docs have carried for weeks, a label that is close-but-wrong, an
+   "always X" that is actually per-record (Barney: a one-digit VAT transposition; an SBI code that
+   depends on the vessel; a start date that is *always entered one day early*; an "optional" field
+   the docs marked required). **Business rules discovered this way go into the DTO** (computed,
+   deterministic — the skill says "type `periode_van` verbatim"), never into prose the model must
+   re-derive per run.
+3. **Rebuild the double as the real page graph.** Replicate the wizard's page ORDER, its step
+   rail, the lookup interludes (search → result row → select), values that **carry over** between
+   pages, blocking confirmations (a modal, a required "I agree" checkbox — make submitting without
+   it re-render with an error, so the agent can recover), and interaction quirks (a filter checkbox
+   that must be unchecked before the needed option exists). The test of fidelity: **the same skill
+   text drives the double and the real system with zero branching.**
+4. **Mark what you haven't seen.** Screens the walkthrough skipped stay in the double as
+   best-effort with an explicit *unverified* note, and your field map keeps an "open unknowns" list
+   you burn down with the operator. Re-harvest whenever the real system changes (your skill's
+   portal-change detection is what catches that).
+
+*Worked example (Barney):* Kirsten's 24-screenshot walkthrough of one real meldloket filing was
+transcribed screen-by-screen, cross-checked against CrewRadar (surfacing the VAT transposition, a
+per-ship SBI rule, the −1-day/+1-year date convention, and an optional-BSN the DTO wrongly
+required), and the double was rebuilt from a single form into the real 8-step wizard with two
+register-lookup interludes, date carry-over, and the consent gate.
+
 ## 5. Testing — the live Discuss driver (check 14)
 
 A business bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C bot, but
