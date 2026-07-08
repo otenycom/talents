@@ -146,6 +146,33 @@
       "cost": "low"
     },
     {
+      "name": "host_website",
+      "requestable_name": "host_website",
+      "request_via": "tools.required",
+      "kind": "sites",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "unhost_website",
+      "requestable_name": "unhost_website",
+      "request_via": "tools.required",
+      "kind": "sites",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "list_hosted_websites",
+      "requestable_name": "list_hosted_websites",
+      "request_via": "tools.required",
+      "kind": "sites",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "publish_file",
       "requestable_name": "publish_file",
       "request_via": "tools.required",

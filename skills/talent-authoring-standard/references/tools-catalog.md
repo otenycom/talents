@@ -52,6 +52,14 @@ that may be absent as `stubbed` only if it is genuinely off — never stub a **l
 | `browser_request_human` | `tools.required` | oteny-web-operator | live | Included | 🔐 Sends a secure live-view link so you sign in or pass a 2FA code, then carries on. |
 | `browser_download` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📥 Fetches a file off a website (export, invoice, backup) and hands you a link. |
 
+## Host a website
+
+| Request name | Request via | Skill to compose | Status | Cost | What it does |
+|---|---|---|---|---|---|
+| `host_website` | `tools.required` | oteny-sites | live | Included | 🌐 Puts a web app your bot builds — a landing page, a shop, a booking page, a full site — online at your own address, served securely with no server to manage. |
+| `unhost_website` | `tools.required` | oteny-sites | live | Included | 🚫 Takes a hosted website offline. |
+| `list_hosted_websites` | `tools.required` | oteny-sites | live | Included | 📋 Lists the websites you have online. |
+
 ## Share a file as a link
 
 | Request name | Request via | Skill to compose | Status | Cost | What it does |

@@ -1,0 +1,23 @@
+# WebsiteBot (odoo-website) clone neutralize — the declared, deterministic de-fanging a
+# clone of this Talent's real state MUST pass before it is allowed to serve a turn.
+#
+# WebsiteBot's outbound vectors: (1) a PUBLIC hosted site (a live Cloudflare tunnel to the
+# owner's box) and (2) any keep-alive cron. A clone stood up from a real tenant's captured
+# state would inherit the hosted-site row + the local Odoo, which must NEVER serve the real
+# owner's site from a clone. The control plane's hosted-site teardown already reaps the tunnel
+# when a tenant is cloned/torn down (server-side), and neutralize disarms the in-box crons.
+# (Owner PII in profile.yaml is scrubbed separately by the control-plane redaction floor.)
+#
+# Run by the control plane at clone time (`neutralize.py --all`, gateway not serving);
+# `check_neutralize.py` then refuses the gateway start unless every step below is applied.
+bot: odoo-website
+
+steps:
+  - id: 0001_disable_keepalive_crons
+    kind: crons
+    summary: >-
+      Disable every keep-alive / site-care cron so a clone never restarts or re-hosts the
+      real owner's site. A clone inherits the source's jobs.json, so they are disarmed here.
+    crons:
+      disable:
+        - "OtenyWebsiteTalent site health check"

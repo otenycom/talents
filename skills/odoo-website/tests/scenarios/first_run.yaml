@@ -1,0 +1,20 @@
+# Scenario: a brand-new owner asks for a website. With no profile yet, the agent must load the
+# odoo-website skill, recognise NOT-READY, and run the first-run intake (welcome + the profile
+# questions) BEFORE trying to build — never improvising shell, never publishing anything.
+#
+# odoo-website has no sqlite data plane (its determinism is in the shipped shell scripts +
+# preflight, unit-tested separately), so this is a LIVE-ONLY routing/behaviour proof: the mock
+# backend has no db state to assert, so it SKIPs; the live backend proves the NL routing.
+bot: odoo-website
+live_only: true
+
+turns:
+  - user: "hey, can you build me a website for my cafe?"
+    expect:
+      reply:
+        # greets, explains it builds a real site in the box + hosts it, and starts intake
+        # (asks for the site name/purpose, a subdomain name, and an admin email) — does NOT
+        # start installing or publishing before the owner has answered.
+        contains_any: ["name", "address", "email"]
+      trace:
+        loads_skill: odoo-website

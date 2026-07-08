@@ -1,0 +1,14 @@
+<!-- ~/.hermes/data/odoo-website/memory.md — per-bot DOMAIN memory for WebsiteBot. NOT
+     auto-loaded by Hermes; the triage reads it each turn. Accrues over time (the site's
+     structure, the owner's preferences, decisions made). Rendered from profile.yaml at
+     first-run; append durable facts as the site evolves. Keep it factual and compact. -->
+# WebsiteBot — {{site_name}}
+
+- **Site**: {{site_name}} — {{site_purpose}}
+- **Public URL**: https://{{site_slug}}.oteny.bot (once hosted)
+- **Odoo admin email**: {{owner_email}}
+- Install lives under ~/odoo-site (venv + Odoo CE + embedded Postgres); the site DB is
+  named `website`. The site is served on local port 8069 and hosted via `host_website`.
+
+## Decisions & structure (append as the site grows)
+<!-- e.g. pages added, theme chosen, shop enabled, content the owner asked to keep -->

@@ -1,0 +1,36 @@
+# WebsiteBot (odoo-website) first-run manifest — the setup GOAL, declared (not implied).
+# selfcheck.py walks this; the SKILL.md first-run section drives toward READY. All paths are
+# namespaced under the bot so bots never collide.
+bot: odoo-website
+base_language: en
+
+artifacts:
+  - kind: profile
+    path: ~/.hermes/data/odoo-website/profile.yaml
+    # site_slug is the public subdomain; owner_email is where Odoo sends the admin login.
+    required_fields: [site_name, site_purpose, site_slug, owner_email, language]
+
+  - kind: memory                 # shared cross-skill identity — small; Hermes auto-loads it
+    path: ~/.hermes/memories/USER.md
+    label: shared identity
+    remediation: "first-run §profile: render the identity USER.md from profile/USER.md.template"
+
+  - kind: memory                 # per-bot DOMAIN memory — the triage reads it each turn
+    path: ~/.hermes/data/odoo-website/memory.md
+    label: domain memory
+    blocking: false              # accrues over time; never a hard gate
+    remediation: "first-run §profile: render memory.md from profile/memory.md.template"
+
+  - kind: routing                      # DM-first: the native skill index routes DMs
+    config_path: ~/.hermes/config.yaml #   → auto-satisfies (no SOUL signature needed)
+    platform: telegram
+    signature: "odoo-website"
+
+  - kind: tools
+    # The Odoo install is the load-bearing artifact: the venv's odoo binary + the shipped
+    # ensure_site.sh (the keep-alive the hosted-site row uses). Present ⇒ the install drill ran.
+    present_if_file:
+      odoo_engine: ~/odoo-site/venv/bin/odoo
+      ensure_site: ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
+    # host_website et al. are platform-provided (the hh-sites plugin) — always live, not stubbed.
+    stubbed: []
