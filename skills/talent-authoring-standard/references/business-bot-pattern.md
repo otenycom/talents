@@ -157,9 +157,17 @@ system's identity are **yours, in your repo**; the platform provides only the ge
 
 - **The double is a fixture in your repo** — ideally **dependency-free** (any stdlib HTTP server)
   and shaped like the real system (its form fields, its confirmation format). You run it locally and
-  expose it at a public URL with a **dev tunnel** (`cloudflared tunnel --url http://127.0.0.1:<port>`);
-  the platform points a non-prod bot's tool at that URL through a **generic tier knob** (an env var),
-  never at a platform-hosted service. The platform hosts no double of yours.
+  expose it at a public URL with a **dev tunnel**; the platform points a non-prod bot's tool at that
+  URL through a **generic tier knob** (an env var), never at a platform-hosted service. The platform
+  hosts no double of yours.
+  - **Use a NAMED tunnel, not a quick one — this is a footgun for a long-running bot.** A cloudflared
+    *quick* tunnel (`cloudflared tunnel --url …`, a `trycloudflare.com` host) is best-effort: it drops
+    under a multi-minute run and, fatally, **a reconnect hands out a brand-NEW hostname** — so your
+    bot's uplink/portal, pinned to the old host, breaks mid-run and the record orphans. A **named
+    tunnel** keeps the **same** hostname across reconnects (and runs several edge connections), so the
+    bot survives a blink. Both the bot's Odoo uplink and your stub double should ride named tunnels for
+    any dispatched/long-running work. (Barney's launcher provisions them automatically over the
+    Cloudflare API and falls back to a quick tunnel only when told to.)
 - **You declare your external systems in the Talent; the platform binds each by tier.** Every
   outside-world system the bot touches is **named in the agent profile** — `external_systems:` is a
   list of `{name, env_var, real_url, fence_hosts}`, and `portal:` is sugar for a single system bound
@@ -244,6 +252,17 @@ deploy can run the whole suite live with zero real-world action. Mock-backend sc
 still assert the deterministic layer offline in CI; anything only the live channel can
 judge (reply quality, the Discuss round-trip) is recorded `SKIP` offline and proven live.
 
+**The driver waits for the bot to go quiet before grading.** A long dispatched run (§6) narrates
+an opening line, then works for minutes (a tool line per call, a periodic "still working"
+heartbeat), then posts its final reply. So the live driver **debounces**: it grades the newest
+non-heartbeat reply only after the channel has been **silent** for a quiet window — any new frame
+resets the clock — so a filing is never graded on its opening line nor interrupted mid-run by the
+next scenario. The window is sized above the heartbeat idle by default; a chat-only bundle that
+wants faster runs can shrink it via `reply_quiet_period_s` in `tests/discuss.yaml`. Practical
+consequence for **happy-path** scenarios that trigger a long run: assert on the **final** state
+(e.g. "Filed"), and prefer driving one long job as a **single isolated hand-off** rather than
+racing several scenarios into the channel at once.
+
 **Automate the setup — one command, not a checklist.** Dev iteration and e2e testing should be
 push-button. A single **launcher script** (the platform's "point-bot-at-local" pattern) brings up the
 whole rig: start the double (§4c) + its tunnel, tunnel your local Odoo, mint the bot's scoped key,
@@ -321,6 +340,32 @@ automatically at once — each would claim and fire the same record (a double si
 channel-dispatch trigger is the primary automatic path; any automatic webhook/timer belt stays
 off while it is live.
 
+### Declare the run's turn budget — `agent_max_turns` for a long job
+
+A dispatched turn runs under a **tool-turn budget** — the max number of tool calls the agent
+may make before the host cuts it off. The default is tuned for a chat assistant (~90 calls). A
+long multi-step job — driving a portal wizard, reconciling a batch, a browser-heavy filing — can
+easily exceed that, and the failure is quiet and nasty: the run does almost all of its work, then
+**caps mid-finalize** (it took the action but never wrote the proof / advanced the record), which
+reads like a stall but is a budget cap (the gateway log shows `api_calls=<max>` at the finalize).
+
+Declare the ceiling **in your `agent-profile.yaml`**, as a sibling of `model_tier`:
+
+```yaml
+model_tier: builder
+agent_max_turns: 200      # this bot's one job is a ~200-call portal filing — raise the ceiling
+```
+
+The platform renders it into the box's runtime budget **at commission**, the same way it honors
+`model_tier` — so **every** bot built from your Talent gets the right budget, a self-serve **dev**
+bot included, with **no per-tenant operator override**. Size it to your job's real worst case (count
+the tool calls in a full run and add headroom); omit it and you keep the safe default. This is the
+*platform provisioning* knob — separate from any per-transition budget your **workflow** may also
+declare on the owner-Odoo side (that governs the dispatch spec; this governs the container). Verify
+after a delivery in the gateway log (`Agent budget: max_iterations=<n>`), and prefer **fewer calls**
+(batch form-fills, trim mid-run narration) over an ever-larger ceiling — a smaller budget is a
+tighter safety bound.
+
 ### The timeout reaper — the owner's backstop
 
 The claim/escalate pair covers the cases where the dispatched turn *runs*. It cannot cover a
@@ -335,6 +380,21 @@ through the state's timeout exit.
   Odoo reclaiming a stuck record; the other is the agent voluntarily giving one back.
 - Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
   reaper for that state.
+
+**Two robustness belts you get for free (you don't author them — they just work).** The SLA reaper
+is the *slow* backstop (tens of minutes to hours). Two faster mechanisms below it keep a transient
+outage from stranding work, and both are safe by the same **one-run-per-claim** fence — a re-fire
+that races a live run is dropped, so neither can double a side effect:
+- **Fast re-dispatch of a lost dispatch.** If a record is claimed but its isolated run was **never
+  consumed** (the bot's gateway was down when the dispatch was posted, so its poll never saw it), the
+  dispatch belt **re-posts** the flagged message a few minutes later — for the *same* claim, no
+  re-claim — so a bot that has since reconnected picks the work up. A run that *did* start then died
+  is left to the SLA reaper (re-firing it would be a no-op). You get this automatically for any
+  bot-owned workflow state; you don't wire it.
+- **Transient uplink retry.** A brief `/json/2/` blip (a tunnel reconnect, an Odoo restart) is
+  retried transparently for **idempotent reads**, so a long run's many reads survive a hiccup instead
+  of failing the turn. Writes are **never** auto-retried (they might have committed before the
+  response was lost) — they surface, and your fail-closed logic (§4b) decides.
 
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
