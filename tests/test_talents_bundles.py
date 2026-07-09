@@ -28,10 +28,14 @@ def _sha(p: Path) -> str:
 
 
 def test_shipped_selfcheck_matches_canonical():
+    # EVERY bundle that ships a selfcheck copy must match the canonical — derived by
+    # glob, not a hand-kept list (a name-keyed list silently missed odoo-website).
     canon = _sha(SHARED / "selfcheck.py")
-    assert _sha(FLATBELLY / "scripts" / "selfcheck.py") == canon
-    assert _sha(STOCK / "scripts" / "selfcheck.py") == canon
-    assert _sha(SHOPBOT / "scripts" / "selfcheck.py") == canon
+    copies = [p for p in sorted(CATALOG.glob("*/scripts/selfcheck.py"))
+              if p.parts[-3] != "_shared"]
+    assert len(copies) >= 5, f"expected the marketable bundles' copies, got {copies}"
+    for p in copies:
+        assert _sha(p) == canon, f"{p} drifted from skills/_shared/scripts/selfcheck.py"
 
 
 # The hermeshost-internal default-skill canonical check (skill-translator /

@@ -194,13 +194,18 @@ def check_cron(a):
 def check_tools(a):
     present_if_file = a.get("present_if_file", {}) or {}
     stubbed = list(a.get("stubbed", []))
+    # A tools artifact may be declared `blocking: false` when its files are BUILT BY THE
+    # TENANT'S AGENT during first-run (e.g. odoo-website's ~/odoo-site venv) rather than
+    # shipped in the bundle — such files are first-run progress, never a delivery gate.
+    blocking = a.get("blocking", True)
     missing = [name for name, fp in present_if_file.items() if not expand(fp).exists()]
     detail = {"available": [n for n in present_if_file if n not in missing],
               "stubbed": stubbed, "missing": missing}
     if missing:
         return _r("tools", False, f"required tool files missing: {missing}",
-                  "deliver the bot bundle (overlay/bake) before first-run",
-                  **detail)
+                  "deliver the bot bundle (overlay/bake) before first-run" if blocking
+                  else "first-run builds these; the SKILL.md setup section drives toward READY",
+                  blocking=blocking, **detail)
     note = "required tools present"
     if stubbed:
         note += f"; stubbed (degraded): {stubbed}"
