@@ -64,5 +64,6 @@ Work in small steps. After each meaningful change, tell the owner what changed.
   archived). Tell the owner if they ask why it's unreachable after a long idle.
 - The embedded database has no `pg_trgm`/contrib extensions — fuzzy back-office search is
   slightly less fancy, but the public site is unaffected.
-- Best on the **power** plan — the site needs headroom (Odoo + its database run alongside the
-  agent). On the lite plan the install refuses (too tight).
+- Requires the **Max plan** — a dedicated server with a full kernel (Odoo + its database run
+  alongside the agent). On any container plan (lite/power), or below ~3 GB of memory, the
+  install refuses.

@@ -40,11 +40,11 @@ voice_skill: odoo-website
 
 base_language: en
 model_tier: builder                      # installs software + reasons about hosting/debugging → the builder tier
-# Hardware requirement (a capability, NOT a raw customer tier — substrate is internal, D26).
+# Hardware requirement (a capability, NOT a raw customer tier — substrate is internal).
 # `substrate: vm` = a full kernel + dedicated machine (not a packed gVisor container): real
 # systemd supervises the app, Odoo's one-time init is minutes (no gofer tax), and the box has
-# its own egress IP. `min_tier` is the cheapest subscription that provides it today (D204:
-# max → VM); the storefront renders "Requires the Max plan" and gates purchase, the deployer
+# its own egress IP. `min_tier` is the cheapest subscription that provides it today
+# (max → VM); the storefront renders "Requires the Max plan" and gates purchase, the deployer
 # warns on a mismatch, and install_odoo.sh/preflight refuse at runtime as a backstop. The lint
 # enforces substrate↔min_tier consistency.
 requires:

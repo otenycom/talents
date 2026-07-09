@@ -127,6 +127,8 @@ add **context-aware reads** (not keyword matches) — see
   still wins). Declare the cheapest tier the job passes its scenarios (incl. the red
   ones) on; a records-reasoning business bot typically needs `builder`. A Talent (a
   bundle with `required_artifacts.yaml`) **must** ship one.
+- Optional `requires: {substrate, min_tier}` — a hardware need (capability, not a
+  tier promise); lint check 15 enforces vm→max. Absent = any tier.
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.

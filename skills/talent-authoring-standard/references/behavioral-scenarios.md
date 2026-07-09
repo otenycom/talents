@@ -52,6 +52,12 @@ live_only: false                      # true (or a list containing "scenario") -
 requires_migration: 0002_food_macros  # optional: asserts this migration is DECLARED and
                                       # PENDING after seed (a genuine upgrade-from-prior-state)
 
+requires:                             # optional: the substrate this scenario needs. A live-only
+  substrate: vm                       # scenario carrying it is SKIPped on the mock backend and
+                                      # on any container clone — used by VM-only Talents (e.g.
+                                      # odoo-website's vm_commission_e2e.yaml) so a scenario
+                                      # never runs where its substrate can't satisfy it
+
 assert_selfcheck_ready: true          # optional: after seed, assert selfcheck READY (true)
                                       # or NOT-READY (false) — the deterministic protocol gate
 

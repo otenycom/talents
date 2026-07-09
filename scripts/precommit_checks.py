@@ -46,7 +46,10 @@ def main() -> int:
                        "--backend", "mock", *scenarios], None))
 
     # talent-lint.yml — the publishable upgrade-safety + tool-claim lints over each bundle.
-    bundles = sorted(glob.glob("skills/*-talent", root_dir=REPO))
+    # A bundle is any direct child of skills/ that ships an agent-profile.yaml (the bundle
+    # marker) — infra skills without one (talent-authoring-standard, _shared, …) are skipped.
+    bundles = sorted(os.path.dirname(p)
+                     for p in glob.glob("skills/*/agent-profile.yaml", root_dir=REPO))
     if bundles:
         steps.append(("Talent upgrade-safety lint",
                       [sys.executable,
