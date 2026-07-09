@@ -29,9 +29,12 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          bundles=(skills/*-talent)
+          # A publishable bundle is marked by its agent-profile.yaml, NOT a name
+          # suffix — skills/*-talent missed odoo-website.
+          bundles=()
+          for p in skills/*/agent-profile.yaml; do bundles+=("${p%/agent-profile.yaml}"); done
           if [ ${#bundles[@]} -eq 0 ]; then
-            echo "No Talent bundles (skills/*-talent) to lint."
+            echo "No Talent bundles (skills/*/agent-profile.yaml) to lint."
             exit 0
           fi
           echo "Linting: ${bundles[*]}"
@@ -41,7 +44,8 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          bundles=(skills/*-talent)
+          bundles=()
+          for p in skills/*/agent-profile.yaml; do bundles+=("${p%/agent-profile.yaml}"); done
           if [ ${#bundles[@]} -eq 0 ]; then
             echo "No Talent bundles to tool-lint."
             exit 0
