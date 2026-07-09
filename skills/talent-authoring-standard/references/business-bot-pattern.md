@@ -168,6 +168,16 @@ system's identity are **yours, in your repo**; the platform provides only the ge
     bot survives a blink. Both the bot's Odoo uplink and your stub double should ride named tunnels for
     any dispatched/long-running work. (Barney's launcher provisions them automatically over the
     Cloudflare API and falls back to a quick tunnel only when told to.)
+  - **A named tunnel on a proxied zone applies Cloudflare's bot protection — the platform handles the
+    common case.** A named tunnel on your own Cloudflare zone (e.g. `*.example.bot`) is *proxied*, so
+    Cloudflare's **Browser Integrity Check** runs on it and bans a plain HTTP client outright — the
+    bot's reply reads `could not reach the … uplink … HTTPError 403: error code: 1010`. The platform's
+    uplink client already sends a **browser-like `User-Agent`**, which passes that check, so a proxied
+    named tunnel works out of the box. If you still see 1010 (or a `1020`), your zone has the stronger
+    **Bot Fight Mode** (it fingerprints TLS/JA3, not just the UA) — add a WAF/Bot-Fight-Mode **skip
+    rule** for your dev hostname, or point the uplink at a quick (`trycloudflare.com`, off-zone) tunnel,
+    which has no such rule. A quick `curl --resolve … → 200` confirms the tunnel itself is fine and the
+    block is Cloudflare's, not yours.
 - **You declare your external systems in the Talent; the platform binds each by tier.** Every
   outside-world system the bot touches is **named in the agent profile** — `external_systems:` is a
   list of `{name, env_var, real_url, fence_hosts}`, and `portal:` is sugar for a single system bound
@@ -381,10 +391,10 @@ through the state's timeout exit.
 - Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
   reaper for that state.
 
-**Two robustness belts you get for free (you don't author them — they just work).** The SLA reaper
-is the *slow* backstop (tens of minutes to hours). Two faster mechanisms below it keep a transient
-outage from stranding work, and both are safe by the same **one-run-per-claim** fence — a re-fire
-that races a live run is dropped, so neither can double a side effect:
+**Robustness belts you get for free (you don't author them — they just work).** The SLA reaper
+is the *slow* backstop (tens of minutes to hours). Faster mechanisms below it keep a transient
+outage from stranding work, and the dispatch/uplink ones are safe by the same **one-run-per-claim**
+fence — a re-fire that races a live run is dropped, so neither can double a side effect:
 - **Fast re-dispatch of a lost dispatch.** If a record is claimed but its isolated run was **never
   consumed** (the bot's gateway was down when the dispatch was posted, so its poll never saw it), the
   dispatch belt **re-posts** the flagged message a few minutes later — for the *same* claim, no
@@ -395,6 +405,11 @@ that races a live run is dropped, so neither can double a side effect:
   retried transparently for **idempotent reads**, so a long run's many reads survive a hiccup instead
   of failing the turn. Writes are **never** auto-retried (they might have committed before the
   response was lost) — they surface, and your fail-closed logic (§4b) decides.
+- **Transient browser-startup retry.** Opening the managed cloud browser is the first slow step of a
+  browser-driven job, and a momentary hiccup there used to abort the whole turn seconds in. That first
+  session-create is now retried a few times on a transient failure (a connection that never completed,
+  or a proxy hiccup) before it gives up, so a blink at startup doesn't strand the run. A cap ("top up
+  your balance") still surfaces at once — it is not transient.
 
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
