@@ -273,6 +273,24 @@ consequence for **happy-path** scenarios that trigger a long run: assert on the 
 (e.g. "Filed"), and prefer driving one long job as a **single isolated hand-off** rather than
 racing several scenarios into the channel at once.
 
+**A side-effecting scenario CONSUMES its fixture — give each scenario its OWN, or reset between
+them.** A scenario that files a record, advances its state, or otherwise mutates a business record
+leaves that record no longer matchable by the next scenario's `hand_off`. If three scenarios all
+`hand_off` "the record for worker X in state *New*", the first one to succeed moves X out of *New*
+and the other two either re-consume a half-finished record or fail with "0 records matched — seed/
+reset the fixture". So **seed one distinct fixture per side-effecting scenario** (worker X for the
+happy path, worker Y for the fail-closed case, …), or add an explicit re-seed/reset step so each
+scenario starts from a known clean record. A prod-copy database is NOT a reliable fixture source —
+its data is whatever production has, so pin the suite to seeded, named fixtures on a test tier.
+
+**Drive the channel the bot is actually on, not a hard-coded constant.** A dynamically-commissioned
+test bot (one a launcher points at your local Odoo) is wired to whatever channel exists on THAT
+Odoo, recorded on its tenant record at commission — which a per-tier constant committed in
+`tests/discuss.yaml` cannot know (and can't be committed without breaking the other tiers). The
+platform driver resolves the bot's real channel from its record and only falls back to the bundle's
+`channel_id` for a static fixture; so keep the committed `channel_id` as the staging-fixture default
+and let the launcher supply the per-deployment channel — never hard-code your local channel into git.
+
 **Automate the setup — one command, not a checklist.** Dev iteration and e2e testing should be
 push-button. A single **launcher script** (the platform's "point-bot-at-local" pattern) brings up the
 whole rig: start the double (§4c) + its tunnel, tunnel your local Odoo, mint the bot's scoped key,
