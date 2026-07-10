@@ -119,8 +119,7 @@ add **context-aware reads** (not keyword matches) — see
 
 ### 1. Package structure
 - `SKILL.md` with valid agentskills.io frontmatter (`name`, `description`,
-  `version`). `description` is a **sharp ≤60-char trigger** — the index truncates it
-  to 60, and the model self-selects on it (the words a matching message contains).
+  `version`). `description` is a **sharp ≤60-char trigger** (the router rule above).
 - `agent-profile.yaml` (voice/persona, `channel_prompt` text, toolset
   *contribution*, baked|purchased, price). **`model_tier` is honored** — the delivery
   threads it into the bot's runtime default model (an operator per-tenant override
@@ -137,9 +136,8 @@ add **context-aware reads** (not keyword matches) — see
   never duplicate** — one canonical home per fact (SQL mechanics in one `references/`;
   the method math in the method skill; the welcome in onboarding). A master engine skill
   **triages and dispatches** to the others (see check 11).
-- **Lean body, native sizing.** A `SKILL.md` body sits at **8–14k chars** and splits
-  into `references/` past ~20k (native rule, hard cap 100k); the first-run drill lives
-  in `references/first-run.md`, not the body. Detail is one level deep in `references/`.
+- **Lean body, native sizing** (the sizing rule above); the first-run drill lives in
+  `references/first-run.md`, not the body. Detail is one level deep in `references/`.
 
 ### 2. Setup goal well-defined
 - Every artifact the bot needs is in `required_artifacts.yaml` with a **concrete,

@@ -283,6 +283,22 @@ happy path, worker Y for the fail-closed case, …), or add an explicit re-seed/
 scenario starts from a known clean record. A prod-copy database is NOT a reliable fixture source —
 its data is whatever production has, so pin the suite to seeded, named fixtures on a test tier.
 
+**Ship a seed/reset TOOL with your bundle, and make it prove itself.** The fixture rule above only
+holds if seeding is one repeatable command, so put an idempotent seeder in your repo (the business-
+Odoo side, next to your other operator tools) and have the launcher (§ below) run it: it
+find-or-creates one clearly-synthetic, complete fixture per side-effecting scenario (names no real
+record could carry — they double as the scenarios' match tokens), **resets** a consumed fixture
+(state back to the queue state, side-effect artifacts deleted, any stale claim fence cleared), and
+**verifies each fixture with the scenario's EXACT `hand_off` domain** — failing loud on zero or
+ambiguous matches instead of half-seeding. Two footguns the verify step exists to catch: your
+business Odoo may **auto-create** the workflow record when the fixture's parent is created (fire
+that path deterministically and adopt the record — a manual create becomes a duplicate the
+`hand_off` trips over), and a seeded fixture ages out of validity windows (refresh dates on every
+run). Cover the seeder with an offline framework test (seed → exact-domain match → idempotent
+re-run → reset-after-consume) so fixture bugs never cost a live run. Mutually-exclusive scenario
+CLASSES (portal-up happy path vs portal-down red probe) still run as separate invocations — select
+the class with the repeatable `test … --scenario <name-or-glob>` flag.
+
 **Drive the channel the bot is actually on, not a hard-coded constant.** A dynamically-commissioned
 test bot (one a launcher points at your local Odoo) is wired to whatever channel exists on THAT
 Odoo, recorded on its tenant record at commission — which a per-tier constant committed in
@@ -305,8 +321,10 @@ the runner is a thin script or a `pytest` fixture that shells out to the launche
 
 *Worked example (Barney):* `point_barney_at_local.py` is the launcher — bare = uplink only,
 `--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
-uplink + point the bot); each is a VS Code launch config. Then `hermeshost test --ref <bot> --bundle
-<bundle>` runs the graded scenarios against the live, side-effect-safe bot.
+uplink + point the bot), `--seed-fixtures` = run the bundle's fixture seeder (`seed_mfnl_fixtures.py`:
+one synthetic worker per hand_off scenario, reset-on-rerun, verified against the scenarios' exact
+domains); each is a VS Code launch config. Then `hermeshost test --ref <bot> --bundle <bundle>
+[--scenario <glob>]…` runs the graded scenarios against the live, side-effect-safe bot.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 

@@ -96,7 +96,7 @@ Same machinery, same record-rule scope.
 | Lint | `lint-talent --dir <bundle>` | The static authoring-standard gate, **offline**. Run before you ever clone. |
 | Clone | `clone --from <source> --bundle <slug> --branch <dev> --byob <token-file>` | Stand up a disposable, **neutralized**, budgeted clone of a permitted source's real state. Source is never touched. |
 | Reload | `reload`/`deliver-external-talents --ref <clone>` | Deliver your pushed commit to the clone (D35 stage→swap→gate→rollback). |
-| Test | `test --ref <clone> --bundle <slug> [--junit out.xml]` | Run the bundle's `tests/scenarios/*.yaml` LIVE against the clone; green/red + trace. |
+| Test | `test --ref <clone> --bundle <slug> [--scenario <glob>]… [--junit out.xml]` | Run the bundle's `tests/scenarios/*.yaml` LIVE against the clone; green/red + trace. Repeatable `--scenario` (name or glob on the file stem) selects a subset — how mutually-exclusive scenario classes run as separate invocations; a glob matching nothing fails loud. |
 | Traces | `traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
 | Logs | `logs --ref <clone> [--lines N]` | Tail the clone's live gateway-log markers while iterating. |
 | Selfcheck | `selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the clone (`{ready, missing}`). |
@@ -143,7 +143,10 @@ same way, with three differences:
   proof — see the authoring standard's `behavioral-scenarios.md`) needs its failure **induced
   at converge/setup** (point the clone's portal env at a down/blocked URL, or revoke the bot
   user's grant on a needed model), each with its own fresh `hand_off` fixture. Red and happy
-  classes need **opposite** portal/grant states, so never run them in one `test` invocation.
+  classes need **opposite** portal/grant states, so never run them in one `test` invocation —
+  select the class with the repeatable `--scenario` flag, e.g. the portal-UP class
+  `test --ref <clone> --bundle <slug> --scenario <happy_path> --scenario red_team`, then the
+  portal-DOWN class `… --scenario <portal_down_probe>` after re-converging.
   A fail-closed run is SHORT — the pass condition is the record did **not** advance and no
   proof was written, with an escalating reply.
 
@@ -343,7 +346,8 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   though the bot exists. Give it a moment / re-fetch before concluding the stand-up failed.
 - **A red scenario passes when it shouldn't / the happy path is red** — you ran the
   portal-up and portal-down scenario classes in one invocation; they are mutually exclusive
-  (opposite induced states). Re-run each class under its own converge-time config.
+  (opposite induced states). Re-run each class under its own converge-time config, selecting
+  it with `test … --scenario <name-or-glob>` (repeatable).
 
 ## Publish gate
 
