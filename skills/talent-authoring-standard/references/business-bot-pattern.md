@@ -166,8 +166,9 @@ system's identity are **yours, in your repo**; the platform provides only the ge
     bot's uplink/portal, pinned to the old host, breaks mid-run and the record orphans. A **named
     tunnel** keeps the **same** hostname across reconnects (and runs several edge connections), so the
     bot survives a blink. Both the bot's Odoo uplink and your stub double should ride named tunnels for
-    any dispatched/long-running work. (Barney's launcher provisions them automatically over the
-    Cloudflare API and falls back to a quick tunnel only when told to.)
+    any dispatched/long-running work. (Barney's launcher provisions them automatically when you have
+    Cloudflare API secrets; **without them it auto-falls back** to a free quick tunnel — no paid token
+    required for short dev runs.)
   - **A named tunnel on a proxied zone applies Cloudflare's bot protection — the platform handles the
     common case.** A named tunnel on your own Cloudflare zone (e.g. `*.example.bot`) is *proxied*, so
     Cloudflare's **Browser Integrity Check** runs on it and bans a plain HTTP client outright — the
