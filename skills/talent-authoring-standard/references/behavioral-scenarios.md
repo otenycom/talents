@@ -119,9 +119,14 @@ The class differs from a happy-path scenario in three ways:
   unreachable portal URL, a revoked bot-user grant on a needed model) is set at
   converge/setup time by the operator — one induced config per `test` invocation. Red and
   happy classes are **mutually exclusive** in one run (they need opposite states); run each
-  under its own invocation.
+  under its own invocation, selecting the class with the repeatable
+  `test … --scenario <name-or-glob>` flag (it matches the scenario's file stem; a glob
+  matching nothing fails loud rather than passing an empty suite).
 - **The trigger is the real one** — a `hand_off:` turn with its own fresh, single-match
-  fixture (never a driver-posted message that would bypass the dispatch fence).
+  fixture (never a driver-posted message that would bypass the dispatch fence). "Its own"
+  is literal: a side-effecting scenario **consumes** its fixture, so each one needs a
+  separate seeded record and the bundle ships a seed/reset tool
+  ([business-bot-pattern.md](business-bot-pattern.md) §5).
 - **The asserts are NEGATIVE ground truth.** The record did **NOT** reach the success
   state (`uplink` `count: 0` on the terminal state), **no proof record exists** (`count: 0`
   on a real, non-placeholder proof), and the reply **escalates and never claims success**

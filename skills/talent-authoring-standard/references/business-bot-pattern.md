@@ -486,6 +486,11 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
 - **Tests** — `tests/scenarios/*.yaml` drive the live Discuss channel and assert ground
   truth over `/json/2/`; the suite is safe to run live because non-prod is stubbed.
   (PASS/FAIL)
+- **Fixtures** — every side-effecting scenario has its **own** seeded fixture (never a
+  shared or prod-copy record), and the bundle's repo ships an **idempotent seed/reset
+  tool** that creates each one, resets a consumed one, and verifies it against that
+  scenario's exact `hand_off` domain; mutually-exclusive scenario classes are run per
+  invocation (`test … --scenario …`). (PASS/FAIL / N/A)
 - **Fail-closed** — every external proof is read from the confirmation, never constructed;
   a blocked adapter or a 403 escalates (with the exact escalate call in the skill); the
   success transition is server-guarded on the proof record; the bundle ships at least one
