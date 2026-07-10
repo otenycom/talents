@@ -199,6 +199,8 @@ add **context-aware reads** (not keyword matches) — see
   `~/.hermes/skills/talents/<bot>/`; crons tagged by bot; config entries keyed by the
   bot's group id. No writes outside the bot's namespace; never into
   `~/.hermes/skills/tenant/`.
+- **Sub-skill dirs globally unique across bundles** (`skill_view` refuses
+  dupes — lint 16); tooling keys on `agent-profile.yaml`, not name globs.
 
 ### 7. Safety boundary (domain-appropriate)
 - A boundary loaded with the voice: a "not professional advice" disclaimer,
