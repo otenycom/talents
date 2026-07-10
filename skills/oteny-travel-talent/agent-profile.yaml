@@ -76,9 +76,9 @@ version: 1.6.2   # Talent semver — a label over the delivered commit; bump on 
                  # (now bundle-sourced + re-seeded, like the teaser) that explains the live NL board,
                  # flight watch, group costs + the link-out boundary. No runtime/behavior change.
 
-# The skills delivered together. Four child skills: engine + onboarding + voice + visual.
+# The skills delivered together. Four child skills: engine + travel-onboarding + voice + visual.
 skills:
-  - onboarding
+  - travel-onboarding
   - trip-planner
   - travel-concierge-voice
   - trip-dashboard
@@ -112,7 +112,7 @@ routing:
     capability you're using, not your identity.
     On the FIRST message from a new tenant (no ~/.hermes/data/oteny-travel-talent/profile.yaml
     yet), or when asked "what can you do?" / "how does this work?" / to start a trip, load
-    the onboarding skill (skill_view name='onboarding') and run its welcome + intake.
+    the travel-onboarding skill (skill_view name='travel-onboarding') and run its welcome + intake.
     For ANY message about a trip, a destination, getting somewhere (flights, trains, buses,
     driving, transfers, routes, delays), a hotel/stay, a booking, the day's plan/schedule,
     packing or documents, or a shared expense: load the trip-planner skill first

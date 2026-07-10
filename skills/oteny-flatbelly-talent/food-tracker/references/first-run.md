@@ -44,8 +44,8 @@ sqlite3 ~/.hermes/data/oteny-flatbelly-talent/food.db < ~/.hermes/skills/talents
 ## Remediation: `profile` (intake)
 
 The **conversational** welcome + question set (capabilities, the why-VAT, the routine,
-and the core questions incl. **waist**) lives in the [`onboarding`](../../onboarding/SKILL.md)
-skill — load it (`skill_view name='onboarding'`) and run its welcome + intake **in the
+and the core questions incl. **waist**) lives in the [`flatbelly-onboarding`](../../flatbelly-onboarding/SKILL.md)
+skill — load it (`skill_view name='flatbelly-onboarding'`) and run its welcome + intake **in the
 tenant's language**. This block is the **mechanical persist** of the answers. Do not
 invent answers; ask again for anything missing.
 

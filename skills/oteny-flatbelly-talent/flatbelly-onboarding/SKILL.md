@@ -1,5 +1,5 @@
 ---
-name: onboarding
+name: flatbelly-onboarding
 description: "Welcome + first-run intake for the flat-belly coach."
 version: 1.0.0
 author: Oteny

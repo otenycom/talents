@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [voice, persona, travel, concierge, group, oteny-travel-talent]
-    related_skills: [trip-planner, onboarding]
+    related_skills: [trip-planner, travel-onboarding]
 ---
 
 # travel-concierge-voice

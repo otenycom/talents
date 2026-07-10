@@ -735,6 +735,30 @@ def main(argv=None) -> int:
         if coh:
             ok = False
 
+    # Cross-bundle sub-skill uniqueness (check 16). Hermes resolves skills by BARE
+    # directory name across the whole delivered tree and REFUSES a name matching more
+    # than one dir — so two bundles each shipping e.g. `onboarding/` break every
+    # dual-Talent tenant (the 2026-07-10 travel-intake incident). Sub-skill dir names
+    # must be globally unique across the linted set; prefix with the Talent's domain.
+    if len(args.bundles) > 1:
+        owners: dict[str, list[str]] = {}
+        for b in args.bundles:
+            bp = Path(b)
+            for md in sorted(bp.rglob("SKILL.md")):
+                sub = md.parent
+                if sub == bp or any(part.startswith(".") for part in sub.parts):
+                    continue
+                owners.setdefault(sub.name, []).append(f"{bp.name}/{sub.relative_to(bp)}")
+        for name, paths in sorted(owners.items()):
+            if len(paths) > 1:
+                ok = False
+                for p in paths:
+                    bundle = p.split("/", 1)[0]
+                    report.setdefault(bundle, []).append(
+                        f"cross-bundle sub-skill name collision: {name!r} also shipped by "
+                        f"{[q for q in paths if not q.startswith(bundle + '/')]} — bare-name "
+                        f"skill lookup refuses duplicates; rename with a Talent prefix")
+
     if args.json:
         print(json.dumps({"ok": ok, "violations": report, "warnings": warns}, indent=2))
     else:
