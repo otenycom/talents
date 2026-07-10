@@ -301,13 +301,44 @@ exact-domain match → idempotent re-run → reset-after-consume) so fixture bug
 CLASSES (portal-up happy path vs portal-down red probe) still run as separate invocations — select
 the class with the repeatable `test … --scenario <name-or-glob>` flag.
 
-**Drive the channel the bot is actually on, not a hard-coded constant.** A dynamically-commissioned
-test bot (one a launcher points at your local Odoo) is wired to whatever channel exists on THAT
-Odoo, recorded on its tenant record at commission — which a per-tier constant committed in
-`tests/discuss.yaml` cannot know (and can't be committed without breaking the other tiers). The
-platform driver resolves the bot's real channel from its record and only falls back to the bundle's
-`channel_id` for a static fixture; so keep the committed `channel_id` as the staging-fixture default
-and let the launcher supply the per-deployment channel — never hard-code your local channel into git.
+**Never commit a value the environment assigned — commit the name, resolve the value.** A record's
+numeric id is a *surrogate key*: the database picks it at install time, and every restore picks
+differently. Commit one into a test fixture and you get the worst of both worlds — the file churns
+on every test/restore cycle (a junk commit each time, and a launcher that "helpfully" rewrites it
+makes your working tree dirty by design), and the number you push is simultaneously *wrong* for
+every other tier sharing the branch. Commit the **environment-invariant name** instead, and let the
+driver resolve it at run time against the very database the bot is pointed at.
+
+For the Discuss channel that means `tests/discuss.yaml` declares an **external id**:
+
+```yaml
+# module data → names the same channel on every tier. Resolved at run time; fails loud if absent.
+channel_xmlid: your_module.discuss_channel_your_bot
+bot_login: your.botuser
+tester_key_file: ~/.oteny/secrets/your-bot-tester-key   # a PATH; the key itself is never committed
+```
+
+The platform driver picks its target most-specific-first: the bot's own
+`hh.tenant.discuss_channel_id` (set at commission, so a launcher-commissioned dev bot lands on
+whatever channel exists on *your* Odoo) → the bundle's `channel_xmlid`, resolved against that same
+uplink → a legacy literal `channel_id`, for the rare channel that is not module data. Resolution
+fails loud: an xmlid naming no `discuss.channel` on that database is an error, never a silent post
+into whatever record happens to hold that number.
+
+The rule generalizes past channels. Sort every parameter by **who assigns it** — only the first row
+belongs in git:
+
+| Class | Example | Belongs in |
+| --- | --- | --- |
+| Invariant across environments | channel **xmlid**, bot login, a secret-file **path** | the committed bundle |
+| Assigned per deployment | the channel's **numeric id**, the uplink URL | the tenant record, at commission |
+| Assigned per run | a tunnel URL for your stub double (§4c) | the transient spin-up config |
+| A secret | the tester's API key | a mode-0600 file outside the repo |
+
+If your launcher has to edit a git-tracked file to make the graded suite pass, that file is holding
+a value from the wrong row. (The graded `test` verb reads your bundle from its **git source**, not
+your working tree — so a rewritten fixture doesn't even take effect until you commit and push it.
+That "commit before you can test" step is the smell, not a workflow.)
 
 **Automate the setup — one command, not a checklist.** Dev iteration and e2e testing should be
 push-button. A single **launcher script** (the platform's "point-bot-at-local" pattern) brings up the
