@@ -325,6 +325,12 @@ uplink → a legacy literal `channel_id`, for the rare channel that is not modul
 fails loud: an xmlid naming no `discuss.channel` on that database is an error, never a silent post
 into whatever record happens to hold that number.
 
+Your **tester user does not need to be an admin** for this. The driver resolves the xmlid through
+`ir.model.data.check_object_reference`, which looks it up in raw SQL and then checks that the caller
+can *read* the target channel. (A plain `search_read` on `ir.model.data` would not do: Odoo grants
+read on that model to `base.group_erp_manager` alone, so it would quietly force every author's
+tester to hold admin rights.) Keep the tester least-privilege, like the bot user itself.
+
 The rule generalizes past channels. Sort every parameter by **who assigns it** — only the first row
 belongs in git:
 
