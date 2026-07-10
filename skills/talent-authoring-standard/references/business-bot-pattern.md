@@ -291,12 +291,12 @@ record could carry — they double as the scenarios' match tokens), **resets** a
 (state back to the queue state, side-effect artifacts deleted, any stale claim fence cleared), and
 **verifies each fixture with the scenario's EXACT `hand_off` domain** — failing loud on zero or
 ambiguous matches instead of half-seeding. Two footguns the verify step exists to catch: your
-business Odoo may **auto-create** the workflow record when the fixture's parent is created — often
-via a lazily-computed relation field, so fetch the records THROUGH that relation (reading it runs
-the pending compute, exactly like a UI read) and adopt what appears; a generic search around the
-relation doesn't flush the compute, and a manual create then becomes a duplicate the `hand_off`
-trips over. And a seeded fixture ages out of validity windows (refresh dates on every run). Cover the seeder with an offline framework test (seed → exact-domain match → idempotent
-re-run → reset-after-consume) so fixture bugs never cost a live run. Mutually-exclusive scenario
+business system may **auto-create** the workflow record when the fixture's parent is created — the
+seeder must detect and **adopt** the auto-created record (a manual create alongside it becomes a
+duplicate the `hand_off` trips over; *how* to trigger/observe that auto-create is a data-plane
+implementation detail — document it with your seeder). And a seeded fixture ages out of validity
+windows (refresh dates on every run). Cover the seeder with an offline framework test (seed →
+exact-domain match → idempotent re-run → reset-after-consume) so fixture bugs never cost a live run. Mutually-exclusive scenario
 CLASSES (portal-up happy path vs portal-down red probe) still run as separate invocations — select
 the class with the repeatable `test … --scenario <name-or-glob>` flag.
 
