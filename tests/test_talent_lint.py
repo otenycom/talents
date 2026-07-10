@@ -314,6 +314,8 @@ def test_odoo_website_requires_block_is_clean():
 
 
 def test_all_real_talents_lint_clean():
-    bundles = [str(p) for p in sorted(CATALOG.glob("*-talent"))]
-    assert bundles
+    # Marker-derived, not name-derived: a publishable bundle is anything shipping an
+    # agent-profile.yaml (the `*-talent` suffix glob silently missed odoo-website).
+    bundles = [str(p.parent) for p in sorted(CATALOG.glob("*/agent-profile.yaml"))]
+    assert len(bundles) >= 5
     assert lint.main(bundles) == 0

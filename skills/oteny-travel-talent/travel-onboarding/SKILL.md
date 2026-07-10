@@ -1,5 +1,5 @@
 ---
-name: onboarding
+name: travel-onboarding
 description: "Welcome + first-run intake for the travel concierge."
 version: 1.0.0
 author: Oteny

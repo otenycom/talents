@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [food, nutrition, weight, macros, leucine, sqlite, tracker, oteny-flatbelly-talent]
-    related_skills: [onboarding, fat-loss-protocol, flatbelly-coach-voice, weight-progress-dashboard]
+    related_skills: [flatbelly-onboarding, fat-loss-protocol, flatbelly-coach-voice, weight-progress-dashboard]
 ---
 
 # food-tracker (OtenyFlatBellyTalent engine)

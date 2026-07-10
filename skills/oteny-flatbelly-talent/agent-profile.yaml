@@ -60,7 +60,7 @@ version: 1.2.0   # Talent semver — a label over the delivered commit; bump on 
 
 # The skills delivered together (Option A: separately installable).
 skills:
-  - onboarding
+  - flatbelly-onboarding
   - food-tracker
   - fat-loss-protocol
   - flatbelly-coach-voice
@@ -89,7 +89,7 @@ routing:
     name; the Talent is a capability you're using, not your identity.
     On the FIRST message from a new tenant (no ~/.hermes/data/oteny-flatbelly-talent/profile.yaml yet), or
     when asked "what can you do?" / "how does this work?" / to (re)set goals, load the
-    onboarding skill (skill_view name='onboarding') and run its welcome + intake.
+    flatbelly-onboarding skill (skill_view name='flatbelly-onboarding') and run its welcome + intake.
     For any message about food, meals, calories, macros, weight, weigh-ins, sleep,
     workouts, steps, waist or a health goal: load the food-tracker skill first
     (skill_view name='food-tracker') and follow its "Every message — triage first"

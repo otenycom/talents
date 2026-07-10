@@ -49,7 +49,7 @@ sqlite3 ~/.hermes/data/oteny-travel-talent/trips.db < ~/.hermes/skills/talents/o
 
 The **conversational** welcome + question set (what the bot does, and the core questions:
 home city, home timezone, language, default currency, traveller preferences) lives in the
-[`onboarding`](../../onboarding/SKILL.md) skill — load it (`skill_view name='onboarding'`)
+[`travel-onboarding`](../../travel-onboarding/SKILL.md) skill — load it (`skill_view name='travel-onboarding'`)
 and run its welcome + intake **in the tenant's language**. This block is the **mechanical
 persist** of the answers. Do not invent answers; ask again for anything missing.
 

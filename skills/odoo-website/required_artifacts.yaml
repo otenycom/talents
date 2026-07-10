@@ -27,10 +27,19 @@ artifacts:
     signature: "odoo-website"
 
   - kind: tools
-    # The Odoo install is the load-bearing artifact: the venv's odoo binary + the shipped
-    # ensure_site.sh (the keep-alive the hosted-site row uses). Present ⇒ the install drill ran.
+    # Shipped with the bundle: ensure_site.sh (the keep-alive the hosted-site row uses).
+    # Missing ⇒ the delivery itself is broken — a hard delivery gate.
     present_if_file:
-      odoo_engine: ~/odoo-site/venv/bin/odoo
       ensure_site: ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
     # host_website et al. are platform-provided (the hh-sites plugin) — always live, not stubbed.
+    stubbed: []
+
+  - kind: tools
+    # BUILT BY THE TENANT'S AGENT during the first-run install drill (minutes of work the
+    # owner paces): the venv's odoo binary. Present ⇒ the install drill ran. First-run
+    # progress — NEVER a delivery gate: an infra converge must not fail while the owner
+    # is still mid-onboarding (prod converge job 3 / hh00279, 2026-07-09).
+    blocking: false
+    present_if_file:
+      odoo_engine: ~/odoo-site/venv/bin/odoo
     stubbed: []

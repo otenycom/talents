@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [travel, trip, transit, flights, itinerary, expenses, packing, sqlite, oteny-travel-talent]
-    related_skills: [onboarding, travel-concierge-voice, trip-dashboard]
+    related_skills: [travel-onboarding, travel-concierge-voice, trip-dashboard]
 ---
 
 # trip-planner (OtenyTravelTalent engine)

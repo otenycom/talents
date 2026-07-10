@@ -29,9 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          # A bundle is any direct child of skills/ that ships an agent-profile.yaml (the
-          # bundle marker) — infra skills without one (talent-authoring-standard, _shared, …)
-          # are excluded automatically.
+          # A publishable bundle is marked by its agent-profile.yaml, NOT a name
+          # suffix — skills/*-talent missed odoo-website. Infra skills without one
+          # (talent-authoring-standard, _shared, …) are excluded automatically.
           bundles=()
           for p in skills/*/agent-profile.yaml; do bundles+=("${p%/agent-profile.yaml}"); done
           if [ ${#bundles[@]} -eq 0 ]; then
