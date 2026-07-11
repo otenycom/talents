@@ -51,6 +51,7 @@ that may be absent as `stubbed` only if it is genuinely off — never stub a **l
 | `browser` | `toolset_contribution` | oteny-web-operator | live | A fraction of a cent | 🖥️ Drives a real cloud browser to click through pages a search can't read. |
 | `browser_request_human` | `tools.required` | oteny-web-operator | live | Included | 🔐 Sends a secure live-view link so you sign in or pass a 2FA code, then carries on. |
 | `browser_download` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📥 Fetches a file off a website (export, invoice, backup) and hands you a link. |
+| `browser_fill_form` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📝 Fills a whole web form in one go and double-checks every field before moving on. |
 
 ## Host a website
 

@@ -51,9 +51,10 @@ the generic toolsets are **OFF**:
   bot to load its own composing skills; what's off is skill *creation/self-editing*, see
   the lockdown below.)
 - **ON, named explicitly:** the `/json/2/` Odoo client (the data plane, §3); optionally the
-  secure browser (`browser` + `browser_request_human` + `browser_download`) for portal
-  filing; optionally a mailbox reader for an inbox round-trip; optionally a knowledge
-  lookup; plus `send_message` / `memory` / `todo` as the job needs.
+  secure browser (`browser` + `browser_request_human` + `browser_download` +
+  `browser_fill_form`) for portal filing; optionally a mailbox reader for an inbox
+  round-trip; optionally a knowledge lookup; plus `send_message` / `memory` / `todo` as
+  the job needs.
 
 The discipline is **list the minimum and stop** — "I'll add `terminal` just in case" is the
 exact anti-pattern. Every tool you *don't* request is attack surface a hijacked or
@@ -431,19 +432,29 @@ trap is treating every field as its own observe-act-verify cycle. Each cycle is 
 plus a model call; a thirty-field form becomes sixty serial steps and minutes of wall-clock — enough
 to run into the session cap. **Batch the typing, never the thinking:**
 
-- **Do batch** a group of *independent* fields that all come straight from your DTO and need **no**
-  intermediate response from the site (several address lines; a person's name + date of birth + id
-  number). Fill them in **one** action, then take **one** snapshot and verify the whole group against
-  the DTO.
+- **Use `browser_fill_form` — one call per form page.** Pass `steps=[{selector|label, value}, …]`
+  and it fills text inputs, selects native dropdowns, and checks boxes/radios through the real
+  browser engine, then **reads every value back** — the per-field `ok`/`actual` in its result *is*
+  the group verify, so a whole page costs one round-trip instead of one per field. Pass the page's
+  next/continue button as `submit_selector`: it is clicked **only when every field verified**, in
+  the same call — so a dynamic page cannot reset a field between your fill and your navigate (the
+  classic lost-value loop). Steps run in order — sequence unlock-then-set interactions (a filter
+  checkbox that hides options) inside the one call. Ship the page's **selector map in the skill**
+  (a `references/` file): the browser snapshot shows accessibility refs and labels, not CSS ids, so
+  the skill — not the snapshot — is where selectors come from (`label=` targeting works too). For a
+  custom widget that is not a native control, use explicit `kind:'click'` steps (trigger, then
+  option). If the tool reports *unavailable*, fall back to per-field fills with **one** snapshot
+  verify per group.
 - **Never batch across a server round-trip** or anything that changes later fields: a search-then-pick
   (type a registration number → the site returns matches → select one), a cascade where each choice
   populates the next, or any control that loads a page the next field depends on. Those stay one action
   at a time — batching them races the site's own response.
-- **Keep the per-step verify and the pre-commit read.** Batching changes *how many* fields you type
-  between checks, never *whether* you check: every logical step still ends with a snapshot checked
-  against the DTO, and you always take a fresh full read immediately before the irreversible action
-  (§4b) and before reading any confirmation value off the page. Fewer calls is an efficiency win, not a
-  safety discount.
+- **Keep the page-boundary verify and the pre-commit read.** Batching changes *how many* fields you
+  set between checks, never *whether* you check: fix and re-verify any field the readback reports
+  `ok: false` before moving on, keep the portal-change check before each page, and always take a
+  fresh full read immediately before the irreversible action (§4b) and before reading any
+  confirmation value off the page — **the irreversible action is never a `submit_selector`**.
+  Fewer calls is an efficiency win, not a safety discount.
 
 Same instinct as `agent_max_turns` (above), from the other side: raise the ceiling so a long job *can*
 finish, and batch the inputs so it finishes *sooner* — inside the browser session's hard lifetime.
