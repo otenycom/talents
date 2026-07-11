@@ -11,10 +11,17 @@ Usage:
     trip_card.py                          # the active / soonest trip
     trip_card.py --trip 3 --db PATH --profile PATH --out-dir DIR
 """
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except ImportError:
+    # matplotlib is provisioned by the platform (the hermeshost deployer installs the
+    # runtime.python_packages declared in agent-profile.yaml into the tenant's system
+    # python3; the golden + parent images bake it). On a box that predates that, degrade
+    # instead of crashing: main() returns 2 so the trip-card cron registers FAILED (ops
+    # sees a dead feature) rather than raising a raw ImportError. Same shape as `yaml`.
+    plt = None
 
 import argparse
 import importlib.util
@@ -113,6 +120,10 @@ def _lines(ax, rows, *, empty="(nothing yet)", start_y=0.80, dy=0.115, color=TEX
 
 
 def main(argv=None):
+    if plt is None:
+        print("Trip card unavailable: the plotting library isn't installed on this bot yet.",
+              file=sys.stderr)
+        return 2      # handled-error convention (like the no-db / no-trip cases below)
     ap = argparse.ArgumentParser()
     ap.add_argument("--trip", type=int, default=None)
     ap.add_argument("--db", default=DEFAULT_DB)

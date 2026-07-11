@@ -70,6 +70,12 @@ voice_skill: flatbelly-coach-voice          # the persona; loaded on demand, NOT
 base_language: en
 model_tier: assistant                    # GLOBAL chat persona (Gemini-Flash); crons pin their own per-job model below
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
+runtime:
+  # Python libs this bundle's [terminal] scripts import at runtime, installed by the platform
+  # into the tenant's SYSTEM python3 (the hermeshost deployer + golden/parent images). Names
+  # only — the version is pinned by hermeshost (infra/tenant-runtime/constraints.txt).
+  # weight-progress-dashboard/scripts/generate.py (the weekly cron) needs matplotlib.
+  python_packages: [matplotlib]
 delivery: baked                          # delivered with the bot
 price: free                              # free on-ramp for the paid-retention pilot
 # Verify budget (talent-model-steering W4): the whole scenario-suite staging run must

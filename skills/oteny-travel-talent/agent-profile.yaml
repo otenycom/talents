@@ -87,6 +87,12 @@ voice_skill: travel-concierge-voice         # the persona; loaded on demand, NOT
 base_language: en
 model_tier: assistant                    # GLOBAL (Gemini-Flash v1) — the reason every task is a checklist
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
+runtime:
+  # Python libs this bundle's [terminal] scripts import at runtime, installed by the platform
+  # into the tenant's SYSTEM python3 (the hermeshost deployer + golden/parent images). Names
+  # only — the version is pinned by hermeshost (infra/tenant-runtime/constraints.txt).
+  # trip-dashboard/scripts/trip_card.py (the trip-card cron) needs matplotlib.
+  python_packages: [matplotlib]
 delivery: baked                          # delivered with the bot
 price: free                              # free travel on-ramp (the OV demo Talent)
 

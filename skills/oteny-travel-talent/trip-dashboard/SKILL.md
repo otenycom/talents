@@ -67,4 +67,8 @@ accent #7dd3fc  ok #34d399  warn #fbbf24  alert #f87171  member #a78bfa
 - **Live status is only as fresh as the last monitor run** — the card shows the stored
   `bookings.status`; for a definitive "is it on time now?", re-pull via `travel`.
 - Keep dpi ≤ 200 so Telegram delivers it as a photo, not compressed-to-mush.
-- `matplotlib` is assumed installed system-wide on the tenant VM.
+- `matplotlib` is provisioned by the platform: it is declared in this bundle's
+  `agent-profile.yaml` (`runtime.python_packages`), the hermeshost deployer installs it into
+  the tenant's system `python3`, and the golden + container images bake it. If it is ever
+  missing the script degrades to a "trip card unavailable" message and exits 2 (the cron then
+  registers FAILED) rather than crashing with a raw `ImportError`.

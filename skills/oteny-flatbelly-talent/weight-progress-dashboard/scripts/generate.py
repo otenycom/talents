@@ -12,13 +12,20 @@ Usage:
     generate.py                          # uses ~/.hermes/data/oteny-flatbelly-talent/{food.db,profile.yaml}
     generate.py --db PATH --profile PATH --out-dir DIR
 """
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.patches import FancyBboxPatch
-from matplotlib.patheffects import withStroke
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from matplotlib.patches import FancyBboxPatch
+    from matplotlib.patheffects import withStroke
+except ImportError:
+    # matplotlib is provisioned by the platform (the hermeshost deployer installs the
+    # runtime.python_packages declared in agent-profile.yaml into the tenant's system
+    # python3; the golden + parent images bake it). On a box that predates that, degrade
+    # instead of crashing: main() returns 2 so the weekly-dashboard cron registers FAILED
+    # (ops sees a dead feature) rather than raising a raw ImportError. Same shape as `yaml`.
+    plt = mdates = FancyBboxPatch = withStroke = None
 
 import argparse
 import os
@@ -82,6 +89,10 @@ def eta_for(current, target, slope7):
 
 
 def main(argv=None):
+    if plt is None:
+        print("Weekly chart unavailable: the plotting library isn't installed on this bot yet.",
+              file=sys.stderr)
+        return 2      # handled-error convention (like goal-unset / <2-weights below)
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=DEFAULT_DB)
     ap.add_argument("--profile", default=DEFAULT_PROFILE)

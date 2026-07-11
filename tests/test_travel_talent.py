@@ -604,6 +604,16 @@ def test_trip_card_renders(tmp_path):
     assert len(pngs) == 1 and pngs[0].stat().st_size > 0
 
 
+def test_trip_card_degrades_without_matplotlib(monkeypatch):
+    """Safety net (plan §8b): a box that predates the platform matplotlib provisioning must
+    DEGRADE, not crash. Force the guarded import to have failed (plt is None) and assert
+    main() returns 2 — the trip-card cron then registers FAILED (ops sees a dead feature)
+    instead of raising a raw ImportError. Runs stdlib-only, which is the whole point."""
+    card = load(TRAVEL / "trip-dashboard" / "scripts" / "trip_card.py", "tt_trip_card_degrade")
+    monkeypatch.setattr(card, "plt", None)
+    assert card.main([]) == 2
+
+
 # --------------------------------------------------------------------------- #
 # maplink — the deterministic deeplink builder (the deeplink-first transit fix) #
 # --------------------------------------------------------------------------- #
