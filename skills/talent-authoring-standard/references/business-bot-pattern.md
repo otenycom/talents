@@ -160,6 +160,16 @@ system's identity are **yours, in your repo**; the platform provides only the ge
   expose it at a public URL with a **dev tunnel**; the platform points a non-prod bot's tool at that
   URL through a **generic tier knob** (an env var), never at a platform-hosted service. The platform
   hosts no double of yours.
+  - **Make the double die with your dev session — otherwise it orphans and blocks the next run.** A
+    stub server bound to a fixed port is a footgun the moment your terminal or IDE goes away without
+    tearing it down: the process survives, keeps holding the port, and your next launch dies on
+    `OSError: [Errno 48] Address already in use`. A launcher's own `atexit`/signal cleanup is **not
+    enough** — it never runs when the IDE **force-stops** (SIGKILL) the launcher. The robust,
+    launch-method-independent fix lives **in the double itself**: a tiny daemon thread that watches its
+    parent and self-terminates when the parent dies (on macOS/Linux an orphaned process reparents to
+    init, so a *changed* `os.getppid()` is the portable "my launcher went away" signal — it fires even
+    on a parent SIGKILL). Barney's stub meldloket does exactly this (on by default). Build your double
+    the same way, or your dog-food loop leaks a port-holder every hard stop.
   - **Use a NAMED tunnel, not a quick one — this is a footgun for a long-running bot.** A cloudflared
     *quick* tunnel (`cloudflared tunnel --url …`, a `trycloudflare.com` host) is best-effort: it drops
     under a multi-minute run and, fatally, **a reconnect hands out a brand-NEW hostname** — so your
