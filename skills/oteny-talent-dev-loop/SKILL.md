@@ -236,6 +236,38 @@ catalog-only bot is `true` by construction). On `active` without delivery, the a
 converges it within ~5 min — poll `hh.talent.source.last_status == "delivered"` (visible to your
 account key) before you start testing, or read `talent_delivery_error` for the reason.
 
+On a **reuse hit** (below) you verify the **same** `active + talent_delivered` signal; a reuse
+ships `talent_delivered: true` (the box already held a working Talent), and a bundle change you
+pushed reaches the running reused bot via the 5-min belt — no rebuild.
+
+## The durable dev bot (reuse across restarts)
+
+Your dev bot is a **durable per-developer singleton**, not "the thing created by this launch."
+Pass a stable **`dev_slot`** to `request_dev_bot` and a live bot matching your slot is **REUSED** —
+repointed and reconverged in place (fresh key + coords + stub re-pushed by the platform) with **no
+~7-min rebuild** — instead of commissioned fresh. Stop debugging and relaunch: **same bot**.
+
+- **What to pass.** The shared launcher helper (`skills/_shared/scripts/dev_bot.py`) computes the
+  slot for you — `dev_slot = <user>-<label>` — and passes a **fresh uplink key + the current
+  coords/channel/stub on every run** (reuse is converge-in-place, so the platform re-pushes them;
+  never special-case the key). Match identity is **channel-aware**: with a Discuss channel it is
+  `(account, channel, bundle)` (the channel is the durable key — one live poller per channel); a
+  channel-less B2C bot keys on `(account, dev_slot, bundle)`. Pointing the same slot at a
+  **different bundle** is a different bot (recycle + create, not reuse).
+- **Kept alive by activity + a heartbeat.** A held launcher runs a ~30-min `touch_dev_bot`
+  heartbeat, and a Discuss chat / a `test` run also counts as activity. Left with **no** activity
+  for ~18 h the bot is reaped (the idle-TTL — the only bound on an always-billed dev bot). A
+  laptop sleep is fine (18 h ≫ overnight); a relaunch resets the clock.
+- **Detach, don't destroy.** The helper's `hold()` routes SIGTERM/SIGHUP/Ctrl-C ("stop debugging")
+  to a **detach** — it closes the tunnels but **leaves the dev bot up** — so the next launch reuses
+  it. Teardown happens **only** via an explicit `teardown_dev_bot` (the `barney-teardown-devbot`
+  config) or the idle-TTL reaper.
+- **Lost the ref?** `touch_dev_bot` / `teardown_dev_bot` also accept `dev_slot=` — keep or destroy
+  your slot's bot without the local state file.
+- **A failed reuse rebuilds automatically.** If your durable bot's box vanished (a rare node
+  death), the reuse request fails and `dev_bot.ensure` re-issues a plain create — you get a fresh
+  bot, no manual step.
+
 ## Proving a migration (the case a fresh box can't cover)
 
 Ship the migration the normal way (append a `migrations.yaml` entry + a
@@ -288,14 +320,15 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   to outlast that window; don't give up at a few minutes and re-request (that just
   queues a second bot).
 - **Your dev-bot footprint self-recycles.** You can hold a bounded number of live dev
-  bots (default 5). Requesting one **at the cap recycles your own oldest dev bot**
-  automatically (it stops counting immediately; its infra is destroyed within
-  ~15 min) — you're only refused when nothing of yours is reapable. And there is
-  **one live dev bot per Discuss channel**: re-commissioning onto a channel recycles
-  your previous bot on it (two bots polling one channel answer each other's messages
-  — the platform prevents it at the source). Corollary: exit your launcher cleanly
-  (Ctrl-C / SIGTERM both tear down) so a session's bot doesn't linger until the
-  reaper catches it.
+  bots (default 5). Requesting one **at the cap recycles your least-recently-active dev
+  bot** automatically (it stops counting immediately; its infra is destroyed within
+  ~15 min) — you're only refused when nothing of yours is reapable, and an actively
+  held/heartbeated durable bot is evicted **last** (D210). And there is **one live dev
+  bot per Discuss channel**: launching onto a channel recycles every *other* live bot on
+  it (two bots polling one channel answer each other's messages — the platform prevents
+  it at the source), while **reusing** yours. **Do NOT tear your bot down on exit** — see
+  *The durable dev bot* below: a stop LEAVES it up so the next launch reuses it, and the
+  ~18 h idle-TTL reaps a truly-abandoned one.
 - **Traces are yours.** `traces`/`logs` and the **Author Logs portal** show only
   your own (and granted/demo) bots — the same record-rule boundary, two front-ends.
 

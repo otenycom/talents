@@ -165,7 +165,10 @@ system's identity are **yours, in your repo**; the platform provides only the ge
     under a multi-minute run and, fatally, **a reconnect hands out a brand-NEW hostname** — so your
     bot's uplink/portal, pinned to the old host, breaks mid-run and the record orphans. A **named
     tunnel** keeps the **same** hostname across reconnects (and runs several edge connections), so the
-    bot survives a blink. Both the bot's Odoo uplink and your stub double should ride named tunnels for
+    bot survives a blink. The stable host is also **why durable dev-bot reuse (D210, §5) is safe** —
+    the already-delivered uplink host survives a restart, so the reused bot just works; a quick
+    tunnel's rotating host degrades to a repoint-every-run (the platform re-renders it on reuse). Both
+    the bot's Odoo uplink and your stub double should ride named tunnels for
     any dispatched/long-running work. (Barney's launcher provisions them automatically when you have
     Cloudflare API secrets; **without them it auto-falls back** to a free quick tunnel — no paid token
     required for short dev runs.)
@@ -354,16 +357,49 @@ Talent — so running the graded suite (or handing the bot a job) is the only st
 the launcher **idempotent** (reuse an already-running double + tunnel) so re-runs are fast, and give
 it a **stub-only** mode (start just the double + tunnel) and a **one-shot** mode (double + uplink in
 one go). The same setup can run inside a **test runner's setup phase** so the full e2e — *bring up the
-rig → run the scenarios → tear down* — is a single command. (This is control-plane orchestration, so
+rig → run the scenarios → tear down* — is a single command.
+
+**Reuse the dev BOT too, and don't tear it down on stop (D210).** Idempotency extends past the
+double + tunnel to the dev bot itself: pass a stable **`dev_slot`** + `bundle` to `request_dev_bot`
+and the platform **reuses** your durable bot (repoint + reconverge in place — no ~7-min rebuild)
+instead of commissioning fresh. Use the shared **`skills/_shared/scripts/dev_bot.py`** helper for
+the mechanism — `ensure()` (request-or-reuse + poll + auto-rebuild a failed reuse) and
+**`hold(ref, tunnels, on_reaped=…)`**, a context manager that routes SIGTERM/SIGHUP/Ctrl-C to a
+**detach** (close the tunnels, **leave the bot up**) and runs the ~30-min keep-alive heartbeat.
+Do **not** re-implement either, and do **not** tear the bot down on exit — the durable lifecycle is
+*reuse-or-rebuild → `hold()` (heartbeat while held, detach on stop) → explicit `teardown_dev_bot` /
+the ~18 h idle-TTL*. The stable named tunnel (§4c) is a **precondition**: the already-delivered
+uplink host survives a restart, so reuse is safe; a quick tunnel's rotating host degrades gracefully
+(the platform re-renders it on the reuse converge). (This is control-plane orchestration, so
 the runner is a thin script or a `pytest` fixture that shells out to the launcher, **not** an in-Odoo
 `TransactionCase` — the framework test class boots one Odoo, not a tunnelled live bot.)
 
-*Worked example (Barney):* `point_barney_at_local.py` is the launcher — bare = uplink only,
-`--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
-uplink + point the bot), `--seed-fixtures` = run the bundle's fixture seeder (`seed_mfnl_fixtures.py`:
-one synthetic worker per hand_off scenario, reset-on-rerun, verified against the scenarios' exact
-domains); each is a VS Code launch config. Then `hermeshost test --ref <bot> --bundle <bundle>
-[--scenario <glob>]…` runs the graded scenarios against the live, side-effect-safe bot.
+**Give your developers a full IDE launch-config SET, not one entry point.** A durable dev bot has a
+small, natural set of things a developer wants to do; expose each as its own one-click config (VS
+Code `launch.json`, a Makefile target, whatever your IDE uses) so nobody has to remember flags. Map
+each to a launcher flag over the **same** `dev_bot.py` mechanism:
+
+| Config (name it clearly) | Launcher flag | What it does |
+|---|---|---|
+| **reuse-or-start** (the everyday loop) | *(bare / your `--with-stub`)* | Passes a stable `dev_slot` → the platform **reuses** your bot if it exists (no rebuild) or commissions it. Then **holds** (heartbeat) and **detaches on stop** (`dev_bot.hold` — leaves the bot up for the next launch). |
+| **fresh** (discard + rebuild) | `--fresh` | `dev_bot.down(dev_slot=…)` the slot's bot **first**, then commission a clean one — for a wedged box or a guaranteed-new one. Best-effort (a pre-reuse platform just ignores it). |
+| **teardown** (discard now) | `--teardown` | `dev_bot.down(…)` your own bot — the deliberate "I'm done, free the slot"; else it idle-reaps in ~18 h. |
+| **verify** (CI throwaway) | `--verify` | Commission → confirm `active + talent_delivered` → teardown, **no hold** and **no `dev_slot`** (so a CI smoke never reuses-then-destroys a durable bot a dev is holding). A pre-commit / CI gate. |
+| **fixture double only** | `--stub-only` | Start just your test double (§4c) + its tunnel; touch no bot. |
+| **uplink only** | *(bare, no stub)* | Point a bot at your Odoo for chat/read; the loopback stub can't file. |
+
+The **only** thing that differs per author is the client glue (your bundle, channel, key mint, your
+double); the reuse/heartbeat/detach/fresh/teardown behaviour is all in the shared `dev_bot.py`
+helper — do **not** re-implement it. Compute `dev_slot` with `dev_bot.dev_slot_slug("<label>")`
+(a `<user>-<label>` slug — opaque to the platform, so no client literal leaks into it).
+
+*Worked example (Barney):* `point_barney_at_local.py` is the launcher and ships exactly this set as
+VS Code configs — `barney-e2e-crmain (stub+uplink)` (reuse-or-start), `…FRESH` (`--fresh`),
+`barney-teardown-devbot` (`--teardown`), `barney-verify` (`--verify`), `barney-stub-portal`
+(`--stub-only`), `barney-point-at-crmain` (uplink only) — plus `--seed-fixtures` (the bundle's
+fixture seeder: one synthetic worker per hand_off scenario, reset-on-rerun). Then `hermeshost test
+--ref <bot> --bundle <bundle> [--scenario <glob>]…` runs the graded scenarios against the live,
+side-effect-safe bot.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 
