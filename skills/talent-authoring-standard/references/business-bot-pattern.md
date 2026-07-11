@@ -458,6 +458,17 @@ fence — a re-fire that races a live run is dropped, so neither can double a si
   session-create is now retried a few times on a transient failure (a connection that never completed,
   or a proxy hiccup) before it gives up, so a blink at startup doesn't strand the run. A cap ("top up
   your balance") still surfaces at once — it is not transient.
+- **Near-TTL warning + reconnect-storm signal (the browser session is hard-capped).** The managed cloud
+  browser has a **hard, un-extendable lifetime** — a long wizard-driving job can run into it. The
+  platform hands you two signals **for free, inside your browser tool results**: ~90 s before the cap it
+  appends a *"browser session closes in ~Ns — finish the current step and escalate now"* notice, and
+  once the session starts disconnecting it appends a *"browser session unstable"* notice. **What you
+  author** (not free): (1) tell your Talent to **heed the closing-soon notice** — finish the field it is
+  on and take the **escalate** transition; do **not** start a new multi-step action against a session
+  that's about to die; and (2) **fail closed** (§4b) if the browser becomes unreachable mid-action — a
+  dead session means the real-world action **did not happen**, so write no proof and escalate, never a
+  fabricated confirmation. For a genuinely long browser job, also raise `agent_max_turns` (above) so the
+  run has room to finish before the cap rather than racing it.
 
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
