@@ -424,6 +424,30 @@ after a delivery in the gateway log (`Agent budget: max_iterations=<n>`), and pr
 (batch form-fills, trim mid-run narration) over an ever-larger ceiling — a smaller budget is a
 tighter safety bound.
 
+### Batch independent inputs — one fill, one verify per group
+
+The biggest lever on a long browser-driven run is **doing fewer round-trips**, and the finest-grained
+trap is treating every field as its own observe-act-verify cycle. Each cycle is a browser round-trip
+plus a model call; a thirty-field form becomes sixty serial steps and minutes of wall-clock — enough
+to run into the session cap. **Batch the typing, never the thinking:**
+
+- **Do batch** a group of *independent* fields that all come straight from your DTO and need **no**
+  intermediate response from the site (several address lines; a person's name + date of birth + id
+  number). Fill them in **one** action, then take **one** snapshot and verify the whole group against
+  the DTO.
+- **Never batch across a server round-trip** or anything that changes later fields: a search-then-pick
+  (type a registration number → the site returns matches → select one), a cascade where each choice
+  populates the next, or any control that loads a page the next field depends on. Those stay one action
+  at a time — batching them races the site's own response.
+- **Keep the per-step verify and the pre-commit read.** Batching changes *how many* fields you type
+  between checks, never *whether* you check: every logical step still ends with a snapshot checked
+  against the DTO, and you always take a fresh full read immediately before the irreversible action
+  (§4b) and before reading any confirmation value off the page. Fewer calls is an efficiency win, not a
+  safety discount.
+
+Same instinct as `agent_max_turns` (above), from the other side: raise the ceiling so a long job *can*
+finish, and batch the inputs so it finishes *sooner* — inside the browser session's hard lifetime.
+
 ### The timeout reaper — the owner's backstop
 
 The claim/escalate pair covers the cases where the dispatched turn *runs*. It cannot cover a
