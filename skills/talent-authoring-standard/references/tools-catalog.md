@@ -4,6 +4,12 @@
 > Talent can request. The Oteny platform runs every tool inside a scope-locked
 > harness and meters paid ones at cost — you request a tool, you never wire one up.
 
+**This catalog answers WHICH tools exist. For HOW to call one — the exact
+parameters, result shape, error modes, and a worked example per tool — read the
+generated [`tools-reference.md`](tools-reference.md) (machine twin:
+`tools-contracts.json`). Author against those; never reverse-engineer a tool
+from a live box.**
+
 **How to request a tool in `agent-profile.yaml`:**
 
 - A **first-party tool** (web search, images, the browser, file sharing, account
@@ -15,6 +21,12 @@ Cost: **Included** (no per-use charge) · **A fraction of a cent** (metered at c
 **Billed by length** (the bot confirms before running). Mark a tool you depend on but
 that may be absent as `stubbed` only if it is genuinely off — never stub a **live** tool
 (the lint fails a stale claim).
+
+*Skill to compose* names the building-block skill **already delivered on your
+bot's box** that operates the tool at runtime (your skill composes on top of it,
+and can tell the bot to load it) — it is not a file in this repo; read it on your
+dev bot if you're curious. The authoring-side browser discipline lives in
+[`browser-authoring.md`](browser-authoring.md).
 
 ## The live web
 
