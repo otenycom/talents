@@ -112,8 +112,12 @@ uplink** — it reads and writes real business records, not a local db.
 **The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`). The
 uplink client mounts as the tool named **`crewradar_json2`** — a platform tool whose
 name predates its generalization; despite the prefix it is the *generic* Odoo
-`/json/2/` client for **your** Odoo, taking `(model, method, kwargs)` — declare it in
-both lists:
+`/json/2/` client for **your** Odoo, taking `(model, method, kwargs)`. **The name is
+pinned deliberately** (it sits in schemas, locks, and shipped Talents): write your
+skill text as "the business-Odoo uplink tool" and use the literal `crewradar_json2`
+in tool lists and calls. If a generic alias ever ships it will arrive with a
+deprecation window and both names working — you need no defensive action now.
+Declare it in both lists:
 
 ```yaml
 toolset_contribution:
