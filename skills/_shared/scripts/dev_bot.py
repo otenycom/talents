@@ -18,10 +18,15 @@ Surface:
   * ``Oteny`` — the account-key ``/json/2/`` client.
   * ``dev_slot_slug(label, user=None)`` — the generic ``<user>-<label>`` slot label.
   * ``ensure(...)`` — ``request_dev_bot(dev_slot=…)`` → poll to ``active + talent_delivered``;
-    a **failed reuse target auto-rebuilds** (re-issue a plain create). Returns ``{ref, reused,
-    request_id, delivered, rebuilt}``.
+    a **failed reuse target auto-rebuilds** (re-issue a plain create). ``dev_slot`` is optional —
+    omit it (or pass ``""``) for the always-create path (a CI one-shot / a channel-less author who
+    doesn't want a durable slot). Returns ``{ref, reused, request_id, delivered, rebuilt}``.
   * ``touch(oteny, ref=…|dev_slot=…)`` / ``down(oteny, ref=…|dev_slot=…)`` — keep-alive / teardown.
-  * ``open_cloudflared_tunnel(...)`` → a ``Tunnel`` handle (named, stable host; else quick).
+  * ``open_quick_tunnel(port, label)`` → a ``Tunnel`` handle over a cloudflared **quick** tunnel
+    (``trycloudflare.com``, no CF secrets). The zero-config fallback every author can use. A
+    STABLE named cloudflared tunnel needs the developer's OWN CF zone + API token, so it stays a
+    client-launcher concern (radar's ``_start_named_tunnel``) — a client coordinate per D210 §5.C,
+    not a platform mechanism.
   * ``hold(oteny, ref, tunnels, on_reaped=…)`` — a context manager that routes
     SIGTERM/SIGHUP/SIGINT to a **detach** (close the tunnels, LEAVE the bot up) and runs the
     ~30-min ``touch`` heartbeat on a daemon thread, rebuilding on ``live=False``.
@@ -84,16 +89,17 @@ def dev_slot_slug(label: str, user: str | None = None) -> str:
     return slug or "dev"
 
 
-def request_kwargs(*, dev_slot: str, bundle: str, uplink_key: str | None = None,
+def request_kwargs(*, dev_slot: str = "", bundle: str, uplink_key: str | None = None,
                    talent_source_repo: str | None = None, repo_subpath: str | None = None,
                    source_ref: str | None = None, pin_mode: str = "follow",
                    uplink_url: str | None = None, uplink_db: str | None = None,
                    uplink_env: str = "staging", discuss_channel: str | None = None,
                    spinup_config: dict | None = None) -> dict:
     """Build the ``request_dev_bot`` payload — pure, so a test pins the shape with no round-trip.
-    ``dev_slot`` is the D210 durable-singleton opt-in; the launcher passes a **fresh** uplink key +
-    the current coords/channel/stub on EVERY run (reuse is converge-in-place, so the platform
-    re-pushes them). ``spinup_config`` carries the account's own tunnelled doubles (D168)."""
+    ``dev_slot`` is the D210 durable-singleton opt-in (defaults ``""`` → the always-create path the
+    platform takes for a falsy slot); the launcher passes a **fresh** uplink key + the current
+    coords/channel/stub on EVERY run (reuse is converge-in-place, so the platform re-pushes them).
+    ``spinup_config`` carries the account's own tunnelled doubles (D168)."""
     kw: dict = {
         "dev_slot": dev_slot, "bundle": bundle, "pin_mode": pin_mode, "uplink_env": uplink_env,
     }
@@ -147,14 +153,18 @@ def _request_or_fallback(oteny: Oteny, kwargs: dict, log):
         raise
 
 
-def ensure(oteny: Oteny, *, dev_slot: str, bundle: str, timeout_s: int = DEFAULT_PROVISION_TIMEOUT_S,
+def ensure(oteny: Oteny, *, dev_slot: str = "", bundle: str,
+           timeout_s: int = DEFAULT_PROVISION_TIMEOUT_S,
            poll_s: int = DEFAULT_POLL_S, log=print, **rk) -> dict:
     """Commission-or-reuse a durable dev bot and poll it to ``active`` (D210 §5.B).
 
     Calls ``request_dev_bot(dev_slot=…)`` and lets the PLATFORM decide reuse (converge-in-place) vs
-    fresh create — this helper never decides. On a **failed reuse target** (the incumbent's clone
-    vanished — a node death / backup-reap; ``node_id`` was only a record check) it AUTO-REBUILDS:
-    re-issue a plain create (drop ``dev_slot``), which now misses and commissions fresh (§5.C2/R7).
+    fresh create — this helper never decides. ``dev_slot`` defaults to ``""`` so a caller that omits
+    it (a CI one-shot like radar ``--verify``, or a channel-less author who wants no durable slot)
+    gets the always-create path instead of a ``TypeError`` — the platform treats a falsy slot as
+    no-opt-in. On a **failed reuse target** (the incumbent's clone vanished — a node death /
+    backup-reap; ``node_id`` was only a record check) it AUTO-REBUILDS: re-issue a plain create
+    (drop ``dev_slot``), which now misses and commissions fresh (§5.C2/R7).
 
     Returns ``{ref, reused, request_id, delivered, rebuilt}``. Raises RuntimeError on a create
     that fails (not a reuse) or on a refused request."""
