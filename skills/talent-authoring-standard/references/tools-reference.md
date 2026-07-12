@@ -906,7 +906,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
 
-> Fill a whole form page in ONE call instead of one field per step. Pass steps=[{selector|label, value, kind?}]: text inputs are filled, native dropdowns selected (by option value or visible label), checkboxes/radios checked — all through the real browser engine with human-like waiting, so it works on dynamic pages where raw JS does not. Every field's value is read BACK and returned (ok/actual per field), so you verify the page in the same call — no extra snapshot needed for the fields themselves. Optionally pass submit_selector (the page's next/continue button): it is clicked ONLY when every field verified, in the same call — so nothing can reset a field between filling and navigating. Targeting: selector takes CSS (input#city, input[name=group][value=Yes]) or Playwright selectors; or use label='visible field label' instead. kind is auto-detected for native controls; for a custom widget (a dropdown that is not a real <select>), use explicit kind:'click' steps — click the trigger, then click the option. RULES: batch only INDEPENDENT fields whose values you already hold; never batch across a server response (a search that populates fields stays step-by-step); never use submit_selector for a final/irreversible submission — for those take a fresh snapshot and click explicitly. If this tool reports unavailable, fall back to per-field browser_type/browser_click.
+> Fill a whole form page in ONE call instead of one field per step. Pass steps=[{selector|label, value, kind?}]: text inputs are filled, native dropdowns selected (by option value or visible label), checkboxes/radios checked — all through the real browser engine with human-like waiting, so it works on dynamic pages where raw JS does not. Every field's value is read BACK and returned (ok/actual per field), so you verify the page in the same call — no extra snapshot needed for the fields themselves. Optionally pass submit_selector (the page's next/continue button): it is clicked ONLY when every field verified, in the same call — so nothing can reset a field between filling and navigating. A submitted call also returns page_digest (headings/labels/buttons of the page you landed on): with the returned title it is usually enough to pick and fill the NEXT page directly (label= steps work straight from its labels) — no snapshot round-trip first. Targeting: selector takes CSS (input#city, input[name=group][value=Yes]) or Playwright selectors; or use label='visible field label' instead. kind is auto-detected for native controls; for a custom widget (a dropdown that is not a real <select>), use explicit kind:'click' steps — click the trigger, then click the option. RULES: batch only INDEPENDENT fields whose values you already hold; never batch across a server response (a search that populates fields stays step-by-step); never use submit_selector for a final/irreversible submission — for those take a fresh snapshot and click explicitly. If this tool reports unavailable, fall back to per-field browser_type/browser_click.
 
 **Parameters**
 
@@ -963,7 +963,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Result** — {ok, results: [{target, kind, ok, requested, actual, error}], submitted, submit_skipped, url, title, message}. Every field is read BACK after filling: `actual` is the value on the page, `ok` is the per-field verify. Readback shapes per kind: fill → the field's text; select → {value, label} of the selected option; check/uncheck (checkboxes AND radios) → the checked-state boolean; click/press → no readback (ok = the action landed). `submitted` is true only when submit_selector was clicked (which happens ONLY when every field verified).
+**Result** — {ok, results: [{target, kind, ok, requested, actual, error}], submitted, submit_skipped, url, title, page_digest, message}. Every field is read BACK after filling — in one fused end-of-batch readback, so `actual` is the page's FINAL state (a later step that reset an earlier field is caught) — and `ok` is the per-field verify. Readback shapes per kind: fill → the field's text; select → {value, label} of the selected option; check/uncheck (checkboxes AND radios) → the checked-state boolean; click/press → no readback (ok = the action landed). `submitted` is true only when submit_selector was clicked (which happens ONLY when every field verified). A submitted call also carries `page_digest` ({headings, labels, buttons} of the page you landed on) — with `title`, usually enough to decide and target the NEXT page (label= steps work straight from its labels) without a snapshot round-trip first.
 
 **Errors / edges** — {status:'no_session'} → navigate first. {status:'unavailable'} → fill per-field with browser_type/browser_click instead. {status:'bad_request', message} → fix the step shape. A per-field error row (ok:false, error) → fix and re-verify that field before moving on; the submit was NOT clicked.
 
@@ -1018,6 +1018,19 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
   "submit_skipped": null,
   "url": "https://portal.example/step2",
   "title": "Step 2",
+  "page_digest": {
+    "headings": [
+      "Step 2 \u2014 Employer"
+    ],
+    "labels": [
+      "Company name",
+      "Registration number"
+    ],
+    "buttons": [
+      "Previous",
+      "Next"
+    ]
+  },
   "message": "5/5 fields verified, page submitted"
 }
 ```
