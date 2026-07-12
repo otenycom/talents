@@ -63,6 +63,45 @@ run them by path (approval-clean); never paste their logic inline.
 4. **Tell the owner** it's installed and unverified, and that they can review it with
    Protocol A (export → open the viewer) before relying on it.
 
+## C. Health-check a Talent (is it share-ready?)
+
+> Use when the owner says *"health report my Talents"*, *"is my &lt;X&gt; Talent ready to
+> publish?"*, or before submitting one.
+
+```
+python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py --all --json
+# or one: --slug <slug>
+```
+
+It sanitizes a copy of each **owner-authored** Talent (never the managed/infra skills) and
+grades it against the authoring standard:
+
+- **green** — share-ready (would promote clean).
+- **yellow** — clean but with soft warnings (a checklist-first nudge, a stripped baked id);
+  publishable, worth polishing.
+- **red** — lint violations (e.g. no `agent-profile.yaml`); not share-ready — the `reasons`
+  say exactly what to fix.
+
+The definitive grade always re-runs Oteny-side (the nightly sweep + `promote-talent`), so a
+`provisional: true` result (the deep rules weren't on this box) is confirmed there.
+
+## D. Publish a Talent (submit it to the Bot Market)
+
+> Use when the owner says *"publish my &lt;X&gt; Talent"* / *"submit it to the store"*.
+
+1. **Self-check first** (Protocol C). A **red** blocks the submit — fix and retry.
+2. **Export it** (Protocol A) so the reviewer gets a viewer link — keep the viewer URL.
+3. **Submit** (only fires on green/yellow):
+   ```
+   python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py \
+     --slug <slug> --request-publish --viewer-url "<viewer link>"
+   ```
+   This writes a publish-request marker the Oteny sweep drains into the **Bot Market review
+   queue** (`hh.owner_talent`, `publish_state=submitted`). An operator vets the rendered bundle
+   and, on approval, `promote-talent` lifts it into the catalog. Nothing here touches the
+   network or the control plane — the box holds no control-plane key; the sweep pulls the marker.
+4. **Tell the owner** it's submitted for review (not yet live) and share the viewer link.
+
 ## Notes
 
 - **Export only the bundle, never the data.** Packaging reads

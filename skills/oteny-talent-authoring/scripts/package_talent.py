@@ -86,6 +86,20 @@ def _resolve_standard_version(explicit: str | None) -> str:
     return _DEFAULT_STANDARD_VERSION
 
 
+def _scalar(v: str) -> str:
+    """A flat YAML scalar value with a trailing inline ``# comment`` removed.
+
+    A quoted scalar returns its inner text and drops anything after the close quote (so
+    ``"1.2.3" # bump`` → ``1.2.3`` and ``"a # b"`` → ``a # b`` — the ``#`` inside quotes is
+    literal). An unquoted scalar drops a `` #…`` comment only when whitespace precedes the
+    ``#`` (so ``http://x#frag`` survives, ``1.0.0  # x`` → ``1.0.0``)."""
+    v = v.strip()
+    m = re.match(r"""^(['"])(.*?)\1\s*(?:#.*)?$""", v)
+    if m:
+        return m.group(2)
+    return re.sub(r"\s+#.*$", "", v).strip().strip("\"'")
+
+
 def _frontmatter(text: str) -> dict[str, str]:
     """A flat scalar-only read of a leading ``---`` YAML block (no deps needed)."""
     if not text.startswith("---"):
@@ -97,7 +111,7 @@ def _frontmatter(text: str) -> dict[str, str]:
     for line in text[3:end].splitlines():
         m = re.match(r"\s*([A-Za-z0-9_]+):\s*(.*)$", line)
         if m and m.group(2):
-            out[m.group(1)] = m.group(2).strip().strip("\"'")
+            out[m.group(1)] = _scalar(m.group(2))
     return out
 
 
@@ -109,7 +123,7 @@ def _profile_fields(bundle: Path) -> dict[str, str]:
     for line in p.read_text().splitlines():
         m = re.match(r"^([A-Za-z0-9_]+):\s*(.+)$", line)  # top-level scalars only
         if m and m.group(2).strip():
-            out[m.group(1)] = m.group(2).strip().strip("\"'")
+            out[m.group(1)] = _scalar(m.group(2))
     return out
 
 

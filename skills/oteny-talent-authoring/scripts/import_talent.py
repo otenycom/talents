@@ -37,13 +37,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-# Mirror of deploy/skills.py DEFAULT_SKILLS — the always-delivered infra skills an
-# import must never shadow, even when the on-VM manifest is absent (a dev box).
-_DEFAULT_SKILLS = (
-    "skill-translator", "index-reconciler", "oteny-cron-authoring",
-    "oteny-set-timezone", "oteny-drop", "oteny-talent-authoring",
-    "talent-authoring-standard",
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # sibling declared scripts
+import _managed  # noqa: E402 — the one managed-slug set (never shadow a managed slug)
+
 _SAFE_SLUG = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 
 
@@ -62,15 +58,10 @@ def _hermes_home(override=None) -> Path:
 
 
 def _protected_slugs(home: Path) -> set[str]:
-    slugs = set(_DEFAULT_SKILLS)
-    manifest = home / ".hermeshost-manifest.json"
-    if manifest.is_file():
-        try:
-            data = json.loads(manifest.read_text())
-            slugs |= set(data.get("bundles") or [])
-        except (ValueError, OSError):
-            pass
-    return slugs
+    """Every HermesHost-managed slug an import must never shadow (D34): the infra
+    defaults ∪ the author-on-ramp ∪ the on-VM manifest's product bundles — the one
+    managed set ``self_check`` also uses (no drifting second mirror)."""
+    return _managed.managed_slugs(home)
 
 
 def _detect_fmt(blob: bytes, fmt: str | None) -> str:

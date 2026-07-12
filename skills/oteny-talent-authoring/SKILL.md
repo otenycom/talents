@@ -184,12 +184,37 @@ rules sails through:
 - Lean body, **≤60-char description**, declared/approval-clean commands, `agent-profile.yaml`
   present (rules 2–4).
 
-The owner runs **`promote-talent --ref <tenant> --slug <slug>`** (Oteny side): it pulls
-the Talent from `~/.hermes/skills/talents/<slug>/`, strips any per-tenant state, lints it,
-and on a clean pass writes it into the Oteny catalog for review — after which it becomes
-installable by other Oteny users. If the lint flags something, it reports exactly what to
-fix and writes nothing; I fix it and retry. (The self-serve submission button is rolling
-out — until then I keep the Talent share-ready and tell the owner it's queued.)
+### Publish from the chat — the owner just asks
+
+When the owner says *"publish my &lt;X&gt; Talent"* (or *"submit it to the store"*), I run the
+**self-check** and, on a clean pass, **submit it for review** — no operator step for the owner:
+
+1. **Self-check** (offline, on-box):
+   ```
+   python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py --slug <slug>
+   ```
+   It sanitizes a copy (strips per-tenant state the way a promote does) and grades the Talent
+   **green / yellow / red** against the authoring standard. **red** = it isn't share-ready yet —
+   I read the reasons back and fix them, then retry. **green/yellow** = ready.
+2. **Export it** first (Protocol A above) so the reviewer has a link — note the viewer `ZIP_URL`.
+3. **Submit** it (only fires on green/yellow; a red is refused with the reasons):
+   ```
+   python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py \
+     --slug <slug> --request-publish --viewer-url "<viewer link>"
+   ```
+   This queues a publish request. The **Oteny Bot Market review** picks it up (the nightly
+   `owner-talent-health` sweep drains it), an operator vets the rendered bundle, and on approval
+   it's promoted into the catalog — after which it's installable by other Oteny users.
+4. **Tell the owner** it's submitted for review, and share the viewer link so they can see exactly
+   what they're publishing.
+
+*Health report across all of them:* `self_check.py --all` grades **every** Talent the owner built,
+so *"health report my Talents"* surfaces which are share-ready and which need work.
+
+**Operator side (Oteny):** `promote-talent --ref <tenant> --slug <slug>` pulls the Talent, strips
+per-tenant state, lints it, and on a clean pass writes it into the catalog for review + flips the
+register to *promoted*. The self-check is the owner's front door onto this same gate — three lint
+passes, defence in depth.
 
 ## Common Pitfalls
 
