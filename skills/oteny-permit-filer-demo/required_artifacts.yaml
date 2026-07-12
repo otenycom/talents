@@ -1,0 +1,9 @@
+# Demo permit filer — first-run manifest (the setup GOAL, declared).
+# selfcheck.py walks this; the filing skill's references/first-run.md drives to READY.
+bot: oteny-permit-filer-demo
+base_language: en
+
+artifacts:
+  - kind: sqlite_db
+    path: ~/.hermes/data/oteny-permit-filer-demo/permits.db
+    must_have_tables: [permit_applications]

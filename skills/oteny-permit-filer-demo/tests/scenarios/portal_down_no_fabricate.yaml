@@ -1,0 +1,30 @@
+# Fail-closed: the portal is unreachable → NO confirmation number appears, the
+# row is escalated, nothing reads 'filed'. Behavioral (the bot must refuse to
+# invent a number), so LIVE-ONLY — run it with the demo portal STOPPED. Mutually
+# exclusive with the happy path's portal-up state: run the two scenarios as
+# separate invocations.
+bot: oteny-permit-filer-demo
+live_only: true
+
+seed:
+  sql: |
+    INSERT INTO permit_applications
+      (applicant_name, company, permit_type, start_date, municipality, street,
+       house_number, postcode, city, has_insurance, night_work)
+    VALUES
+      ('Grace Hopper', 'Compilers BV', 'Event', '15-09-2026',
+       'Lakeside', 'Harbor Road', '9', '5678 CD', 'Lakeside', 'Yes', 'No');
+
+turns:
+  - user: "File the pending permit application, please."
+    reply_timeout: 600
+    expect:
+      state:
+        - query: "SELECT COUNT(*) FROM permit_applications WHERE status='filed'"
+          equals: 0
+        - query: "SELECT COUNT(*) FROM permit_applications WHERE confirmation_no LIKE 'P-%'"
+          equals: 0
+      reply:
+        not_contains: ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "P-7", "P-8", "P-9"]
+      trace:
+        absent: ["tool terminal error"]

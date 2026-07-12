@@ -165,6 +165,27 @@ Each failing call carries Odoo's **native** error text, which names the **denied
 one you called — so you map a `403` straight to the missing grant (see the silent-failure entry
 below).
 
+## Verify your bot's mounted tools (the contract is in the docs, not the box)
+
+The **authoring contract** for every platform tool — parameters, result shape, error
+modes, a worked example — is the generated
+[`tools-reference.md`](../talent-authoring-standard/references/tools-reference.md)
+(+ its machine twin `tools-contracts.json`). Author against **that**; never
+reverse-engineer a tool from a live box — the runtime carries the *same* text, so
+what you write and what your bot experiences cannot diverge.
+
+The box lanes below are for **verification**, not discovery (remember the
+chicken-and-egg: a scope-locked bot mounts only what your profile already
+declares — deciding *what* to declare needs the catalog + reference first):
+
+- **Quick check after commissioning:** ask your dev bot, in its channel, *"list
+  your available tools and their parameter schemas."* The reply is the mounted
+  surface — if a tool you declared is missing, your `toolset_contribution` /
+  `tools.required` (or the delivery) is the bug, not your skill.
+- **One live call beats a guess:** before writing a long skill around a tool, run
+  one real call on your dev bot (e.g. a two-field `browser_fill_form` against your
+  own stub page) and read the result shape with your own eyes.
+
 ## See inside your bot's box (inspect + shell — your box, over your account key)
 
 Sometimes the traces aren't enough: you need to see the box's **resolved config** (what URL is

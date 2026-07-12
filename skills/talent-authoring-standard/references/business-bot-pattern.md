@@ -54,7 +54,12 @@ the generic toolsets are **OFF**:
   secure browser (`browser` + `browser_request_human` + `browser_download` +
   `browser_fill_form`) for portal filing; optionally a mailbox reader for an inbox
   round-trip; optionally a knowledge lookup; plus `send_message` / `memory` / `todo` as
-  the job needs.
+  the job needs. Which tools exist and how to request them:
+  [`tools-catalog.md`](tools-catalog.md); the exact call contracts (parameters, result
+  shapes, worked examples): [`tools-reference.md`](tools-reference.md); the
+  browser-driving discipline: [`browser-authoring.md`](browser-authoring.md). A complete
+  runnable instance of this whole pattern: the
+  [`oteny-permit-filer-demo`](../../oteny-permit-filer-demo/README.md) bundle.
 
 The discipline is **list the minimum and stop** — "I'll add `terminal` just in case" is the
 exact anti-pattern. Every tool you *don't* request is attack surface a hijacked or
@@ -78,6 +83,12 @@ a live bot once rewrote its own delivered playbook mid-run; on a locked bot that
 structurally impossible. A B2C assistant keeps self-improvement — there it *is* the
 product.)
 
+*Requesting `memory` is still fine* — a scoped bot may remember conversational context
+(who the operator is, what was said) for continuity. The rule is about **dependence**:
+nothing load-bearing (a workflow state, a filing outcome, an idempotency fact) may live
+only in memory — the system of record (§3) is the truth, and the bot must behave
+correctly on a box where memory came back empty.
+
 ## 3. The `/json/2/` uplink is the data plane (checks 2 + 6)
 
 A B2C bot's source of truth is a local SQLite db under `~/.hermes/data/<bot>/`. A business
@@ -97,6 +108,31 @@ uplink** — it reads and writes real business records, not a local db.
 - **Namespacing still holds (check 6):** any *local* scratch the bot keeps stays under
   `~/.hermes/data/<bot>/`; the authoritative records live in the business's Odoo, reached
   only through the granted `/json/2/` scope.
+
+**The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`). The
+uplink client mounts as the tool named **`crewradar_json2`** — a platform tool whose
+name predates its generalization; despite the prefix it is the *generic* Odoo
+`/json/2/` client for **your** Odoo, taking `(model, method, kwargs)` — declare it in
+both lists:
+
+```yaml
+toolset_contribution:
+  - crewradar_json2          # the Odoo /json/2/ uplink client (the data plane)
+tools:
+  required:
+    - crewradar_json2
+seam:
+  kind: odoo_json2
+  uplink_user: yourbot.serviceuser   # the bot's OWN least-privilege login in your Odoo
+  odoo_grants:                       # exactly what the job touches — nothing else
+    read:  [your.workflow.model, res.partner, your.credential.model]
+    write: [your.workflow.model, your.credential.model]
+```
+
+The platform binds the uplink URL/database/key onto the box at commission (the key is
+delivered as a secret, never baked). Declaring `seam:` is also what makes
+`neutralize.yaml` mandatory — a clone of a bot with a real uplink must be defanged
+before it serves.
 
 ## 4. Stub doubles for side-effecting actions — dev/staging vs prod (checks 9 + 14)
 
@@ -193,7 +229,21 @@ system's identity are **yours, in your repo**; the platform provides only the ge
 - **You declare your external systems in the Talent; the platform binds each by tier.** Every
   outside-world system the bot touches is **named in the agent profile** — `external_systems:` is a
   list of `{name, env_var, real_url, fence_hosts}`, and `portal:` is sugar for a single system bound
-  to a default env var. For each, the platform binds **one** URL by the uplink tier — **prod → the
+  to a default env var. The concrete YAML:
+
+  ```yaml
+  portal:                              # sugar: ONE system on the default env var
+    real_url: https://portal.example.gov     # what a PROD bot gets
+    fence_hosts: [portal.example.gov]        # what a NON-prod browser is blocked from
+  # …or, for several systems, the general form:
+  external_systems:
+    - name: mailbox
+      env_var: OTENY_MAILBOX_BASE_URL        # a non-reserved OTENY_* name you pick
+      real_url: https://mail.example.com
+      fence_hosts: [mail.example.com]
+  ```
+
+  For each, the platform binds **one** URL by the uplink tier — **prod → the
   Talent-declared `real_url`; any non-prod tier → the stub** — and exposes it to the bot's tool as
   `<env_var>=<base>`; on a non-prod tier it also fences the browser off the **union** of every
   declared `fence_hosts`. The platform *binds/fences whatever you named* and hard-codes no third

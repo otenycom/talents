@@ -125,6 +125,14 @@ This is the heart of the business-bot pattern, so it gets its own section.
 harness mounts that set and nothing else. Less is safer — every tool you *don't*
 request is a thing a hijacked bot has no way to reach.
 
+**Which tools exist, and how to call them:** the generated
+[`tools-catalog.md`](../skills/talent-authoring-standard/references/tools-catalog.md)
+is the WHICH (every requestable name, status, cost), and the generated
+[`tools-reference.md`](../skills/talent-authoring-standard/references/tools-reference.md)
+is the HOW — the exact parameters, result shape, error modes, and a worked example
+per tool, the same contract your bot sees at runtime. Author against those two
+files; you never need platform source or a live box to write a correct tool call.
+
 Compare two real shapes:
 
 - **A broad B2C bot** (a personal assistant) requests the wide set —

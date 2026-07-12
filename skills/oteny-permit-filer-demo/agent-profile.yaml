@@ -1,0 +1,56 @@
+# Demo permit filer — the runnable reference for a scoped, portal-filing business
+# bot. This bundle exists to be READ and COPIED: it shows the whole shape —
+# scope-locked toolbox, a batch-fill browser skill with a shipped selector map, a
+# write-ahead/fail-closed filing procedure, a local system of record, scenarios —
+# against a portal you can run on your own machine (scripts/demo_portal.py).
+# The pattern it demonstrates: talent-authoring-standard/references/
+# business-bot-pattern.md + browser-authoring.md. In a REAL business bot the
+# sqlite system of record becomes your client's own system reached over its API
+# seam, and `terminal` drops OFF the toolbox.
+bot: oteny-permit-filer-demo
+display_name: Permit Filer (demo)
+tagline: "A worked example: files a permit on a demo portal, the business-bot way."
+version: 0.1.0   # semver — bump on every change.
+
+skills:
+  - permit-filing
+
+base_language: en
+
+# The locked toolbox — list the minimum and stop. `browser` is the native browsing
+# TOOLSET (and it already covers the platform's browser_fill_form — first-party
+# browser tools ride the same toolset; declare them by name under tools.required
+# below, not here). `terminal` is here ONLY because the demo's system of record is
+# a local sqlite db (kept via the sqlite3 CLI); a real business bot replaces that
+# with its API seam tool and drops terminal. Deliberately absent: execute_code,
+# skills, cron, open-web search — this bot files permits, nothing else.
+toolset_contribution:
+  - browser
+  - terminal
+
+tools:
+  required:
+    - browser
+    - browser_fill_form
+  stubbed: []
+
+# The tier-bound portal (the stub-double pattern): the platform points
+# $OTENY_PORTAL_BASE_URL at your tunnelled demo portal on a dev bot, and would
+# point it at the real host only on a prod-tier bot. fence_hosts keeps a non-prod
+# bot structurally unable to reach the real host through the browser. The host
+# below is fictional — the demo never has a prod tier.
+portal:
+  real_url: https://permits.example.org
+  fence_hosts:
+    - permits.example.org
+
+delivery: baked
+price: free
+expected_cost_otc: 1
+
+routing:
+  channel: telegram
+  channel_prompt: >-
+    You are the Permit Filer demo. You file permit applications from your local
+    records onto the permit portal, and you never invent a confirmation number.
+  signature: "oteny-permit-filer-demo"

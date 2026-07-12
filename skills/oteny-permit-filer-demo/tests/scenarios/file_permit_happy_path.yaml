@@ -1,0 +1,47 @@
+# Happy path: one pending application → filed with a portal-minted confirmation.
+# In MOCK the runner executes the expected writes itself (spec-as-test: the
+# tool_calls sql is what a correct run does to the system of record) and asserts
+# the end state; reply/trace grade only on the LIVE tier (a dev bot pointed at a
+# tunnelled scripts/demo_portal.py).
+bot: oteny-permit-filer-demo
+
+seed:
+  sql: |
+    INSERT INTO permit_applications
+      (applicant_name, company, permit_type, start_date, municipality, street,
+       house_number, postcode, city, has_insurance, night_work)
+    VALUES
+      ('Ada Lovelace', 'Analytical Engines BV', 'Scaffolding', '01-08-2026',
+       'Rivertown', 'Main Street', '1', '1234 AB', 'Rivertown', 'Yes', 'No');
+
+assert_selfcheck_ready: true
+
+turns:
+  - user: "File the pending permit application, please."
+    reply_timeout: 900
+    expect:
+      tool_calls:
+        # the write-ahead intent BEFORE the portal submit (the crash fence) …
+        - sql: |
+            UPDATE permit_applications
+               SET status='filing', confirmation_no='PENDING-test'
+             WHERE id=1;
+        # … then the finalize with the number READ OFF the confirmation page.
+        - sql: |
+            UPDATE permit_applications
+               SET status='filed', confirmation_no='P-123456',
+                   filed_at=datetime('now')
+             WHERE id=1;
+      state:
+        - query: >-
+            SELECT COUNT(*) FROM permit_applications
+             WHERE id=1 AND status='filed' AND confirmation_no LIKE 'P-%'
+          equals: 1
+        - query: "SELECT COUNT(*) FROM permit_applications WHERE confirmation_no LIKE 'PENDING-%'"
+          equals: 0
+      reply:
+        contains: ["iled", "P-"]
+        not_contains: ["PENDING-"]
+      trace:
+        markers: ["browser_fill_form"]
+        absent: ["tool terminal error"]
