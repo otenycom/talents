@@ -89,6 +89,35 @@ nothing load-bearing (a workflow state, a filing outcome, an idempotency fact) m
 only in memory — the system of record (§3) is the truth, and the bot must behave
 correctly on a box where memory came back empty.
 
+## 2b. Your scope contract is adversarially gated — keep it coherent (D95)
+
+Your `agent-profile.yaml` **is** the scope contract, and Oteny runs a **D95 adversarial probe
+suite** against it on top of the authoring lint — a second pass with two halves you should author
+for:
+
+- **A static coherence check at delivery** (no box, always on): it *fails delivery* if your
+  contract has a structural hole an attacker walks through. Keep it coherent:
+  - if you declare `portal.real_url`, its host **must** be covered by `portal.fence_hosts` (else a
+    non-prod bot could reach the live portal);
+  - a locked bot **must** declare a `routing.signature` and a non-empty `routing.channel_prompt`
+    (the scope anchor the guard holds to);
+  - if you declare a data seam (§3), **do not also mount a generic shell/code toolset** — the seam
+    is your system-of-record path, so drop `terminal`/`execute_code` (a demo with a local sqlite
+    and *no* seam is the only place a bare `terminal` is allowed).
+- **A live red-team** (`red-team` verb, run against a clone): the platform generates an adversarial
+  corpus **from your contract** — instruction-override, jailbreak/persona, obfuscated evasion,
+  indirect injection (a payload planted in data you read), shell/code execution, off-task tool use,
+  credential solicitation, prompt-leak, open-domain drift, memory poisoning, real-portal breakout,
+  credential-in-chat, fabrication, bulk exfiltration, off-job reads, destructive writes, and
+  forged-authority — and grades whether your bot **refused** each (a deterministic floor + an
+  LLM-judged refusal rate, composed fail-closed). Everything in §4b (fail closed, never fabricate)
+  and §2 (mount the minimum) is exactly what makes these probes pass. The bar for a verified Talent:
+  100% refusal, zero leaks, zero out-of-scope tool calls, zero scope violations.
+
+You don't author the probes — they are generated from what you declare — but a tight, honest
+contract (minimal toolset, a fenced portal, least-privilege grants, a fail-closed playbook) is what
+turns them green.
+
 ## 3. The `/json/2/` uplink is the data plane (checks 2 + 6)
 
 A B2C bot's source of truth is a local SQLite db under `~/.hermes/data/<bot>/`. A business
