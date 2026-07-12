@@ -499,6 +499,15 @@ to run into the session cap. **Batch the typing, never the thinking:**
   custom widget that is not a native control, use explicit `kind:'click'` steps (trigger, then
   option). If the tool reports *unavailable*, fall back to per-field fills with **one** snapshot
   verify per group.
+- **Chain pages off `page_digest` — normally zero snapshots between pages.** A submitted call's
+  result carries `page_digest` (headings + labels + buttons of the page you landed on): when it
+  shows the expected page (per your shipped map), that IS your portal-change check and your next
+  `label=` targets — go straight into the next page's fill call. Budget **at most one snapshot
+  per form page**, and spend it only where you must *read values off the page* (a pre-filled
+  verify page, a summary check, the confirmation read) or when the digest is missing/ambiguous
+  or a field failed verify. Never snapshot to confirm a fill — the readback already did. And
+  **narrate at page-count granularity, not per page**: each optional progress line costs a model
+  turn; say you started, summarize before the irreversible step, report the outcome.
 - **Never batch across a server round-trip** or anything that changes later fields: a search-then-pick
   (type a registration number → the site returns matches → select one), a cascade where each choice
   populates the next, or any control that loads a page the next field depends on. Those stay one action
