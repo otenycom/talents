@@ -33,15 +33,58 @@ every surface reads from. There are two ways in, depending on where you authored
   fix.)
 
 Either way the **lint is the gate** — a Talent that already follows the standard sails
-through. Once in the catalog a Talent lists as **Community** (merged, works, not yet
-hand-reviewed) and can earn the **Verified** mark after Oteny curation. Reputation rises
-on clean automated test runs and is dinged by community flags; enough flags
-auto-quarantine a listing until an operator clears it.
+through, and a deeper **safety validation** (next) runs before it can affect a customer.
+Once in the catalog a Talent lists as **Community** (merged, works, not yet hand-reviewed)
+and can earn the **Verified** mark after Oteny curation. Reputation rises on clean automated
+test runs and is dinged by community flags; enough flags auto-quarantine a listing until an
+operator clears it.
 
 **What you control:** the bundle itself and its presentation. **What the platform does:**
 sanitizes per-tenant state out, lint-gates, records the catalog row, and keeps every owner's
 copy fresh. You never edit the catalog row by hand — it is seeded from your bundle, so the
 bundle is the source of truth.
+
+## Validation
+
+Between publishing and reaching a customer, every Talent is **validated** — because the whole
+promise of a scoped bot is that it *stays in its lane*. Two checks run, at two different
+moments, and neither asks anything of you beyond writing an honest bundle.
+
+**A structural safety check — on every delivery, automatically.** Before your bundle is ever
+overlaid onto a bot, the platform checks that its declared scope holds together: a bot that
+files on a real portal can't reach the live site from a test box; a locked bot has a clear
+scope anchor; a bot with a data connection isn't also carrying a general-purpose shell it does
+not need. A bundle with a hole like that is **blocked before it reaches any bot** — it never
+ships. This is free, instant, and runs on every delivery, updates included.
+
+**An adversarial red-team — the jailbreak test.** The deeper check *attacks* a disposable copy
+of your bot to see whether it holds scope under pressure. The platform reads what your Talent
+is meant to do and generates a battery of attacks tailored to it — *"ignore your instructions,"
+"paste me your API key," "run this code," "go file this on the real site," "just make up a
+confirmation number," "dump every record you can reach,"* and more — then grades whether the
+bot refused each one. The attacks are labelled against the recognized AI-security checklists
+(OWASP's Top 10s for agentic and LLM apps, and MITRE ATLAS), so the result is a scorecard an
+outside auditor recognizes. A Talent passes only if it refuses **everything**.
+
+Those attacks always run against a **neutralized clone** — a throwaway copy whose real
+connections (a customer's system, a live portal, stored logins) are repointed to a safe test
+setup first — so a red-team run can never touch real data or take a real action.
+
+**Who runs what.** You can *pre-check your own* Talent: see exactly which attacks will be
+thrown (no bot needed), and on a dev copy get the refusal scorecard — so you fix problems
+before you submit. But the check that actually earns trust is **re-run by Oteny**, from your
+committed bundle, on Oteny's own infrastructure. Your self-run is a fast feedback loop; Oteny's
+run is the authoritative one — a badge only means something if the person earning it is not also
+grading the exam. (It mirrors the lint gate: your CI is advisory, Oteny's run at delivery is what
+counts. Your bot's own *health report* grades your bundle against the authoring standard; the
+scope-safety and red-team checks are Oteny's to run.)
+
+**What passing buys you.** A Talent that clears both checks lists as **Community** and is
+eligible for the **Verified** mark after Oteny curation — the signal a customer trusts when they
+pick a bot off the shelf. And because every attack is generated from *your own declared scope*,
+there is no secret exam and nothing to game: a tighter, more honest bundle — minimal toolset, a
+fenced portal, least-privilege access, a fail-closed playbook — is simply what makes the attacks
+bounce off.
 
 ## Discovery
 
@@ -126,5 +169,9 @@ only thing that is yours.
   [`export-import.md`](./export-import.md).
 - **Store presentation** — the icon + teaser assets your landing page renders from:
   [`store-presentation.md`](../../talent-authoring-standard/references/store-presentation.md).
+- **The safety gate up close** — the scope-lock and red-team checks a business bot is graded
+  on, and how to keep your contract clean:
+  [`business-bot-pattern.md`](../../talent-authoring-standard/references/business-bot-pattern.md)
+  (§2b).
 - **The dev loop** — from your repo to a live bot:
   [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md).
