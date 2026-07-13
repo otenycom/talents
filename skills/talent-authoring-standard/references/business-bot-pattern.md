@@ -364,6 +364,110 @@ per-ship SBI rule, the −1-day/+1-year date convention, and an optional-BSN the
 required), and the double was rebuilt from a single form into the real 8-step wizard with two
 register-lookup interludes, date carry-over, and the consent gate.
 
+## 4e. Resilient selectors + the selector manifest (audit before, diff after)
+
+Your dev stub (§4c) has clean, stable ids you chose; the **real third-party site does not** — its
+ids are framework-generated, its custom widgets aren't native controls, and a re-skin renames both
+without warning. A skill whose `browser_fill_form` selectors were written against the stub's tidy
+`#first_name` drives the stub perfectly and then **misses on the real page**, mid-filing, where a
+miss is a stalled job (or worse, the wrong field filled). So author every selector as a **resilience
+ladder**, not a single guess, and verify it twice — **statically before** a run, and **against the
+real page after** one. Two generic CLI verbs do this from an author-supplied **expected-selector
+manifest**.
+
+### The resilient-selector pattern (why the format has a fallback ladder)
+
+- **A fallback ladder, most-durable rung last: `id → name → label-for → role+accessible-name →
+  text`.** The tool tries the rungs in order. Early rungs are precise but fragile (an id or a `name`
+  a re-skin renames); the late rungs are **semantic anchors** — *role + accessible name* (what the
+  control IS + what its label reads), a `<label for>` association, or visible text. The semantic
+  anchor is the rung a real site is **least** likely to change: a "Continue" button stays a button
+  named "Continue" across a re-skin that renumbers every id. A bare `#id` / `[name=…]` / `.class`
+  with **no** ladder is **brittle**; a ladder that never reaches a semantic anchor is **risky** (id
+  *and* name can both move on a re-skin). **Resilient** = a ladder that bottoms out on a semantic
+  anchor, or a semantic-first primary.
+- **Assert exactly one submit.** A page with more than one submit control — a *Back* beside a
+  *Next*, or a "Save draft" beside "Submit" — turns a generic `button[type=submit]` into a coin
+  flip. Either set `expect_unique: true` (the audit fails the page if it has ≠1 submit control) or
+  pin the button by its text. This **generalizes the §6 submit-line rule** (ship an explicit per-page
+  submit selector the model copies verbatim); here the audit *proves* that line is unambiguous before
+  you spend a live run on it.
+- **An exact option string is brittle.** A `select`/radio pinned to one exact option
+  (`option: "Yes, permanent"`) breaks the moment the site changes wording or casing. Declare
+  `option_fallbacks` (alternate spellings/casings), and where the control exposes a stable value,
+  prefer matching by value over display text.
+
+Every rule is the same bet — **the real site's ids and triggers differ from your stub's** — so encode
+what won't change (semantics) as the floor, and flag every place a single exact string is load-bearing.
+
+### The expected-selector manifest (the machine-readable contract)
+
+Both verbs parse one author-supplied YAML file — the machine-checkable twin of the in-skill selector
+map ([`browser-authoring.md`](browser-authoring.md), "The selector map"). It declares, per wizard
+page, the fields you fill and what each should resolve to:
+
+```yaml
+version: 1
+pages:
+  - page: <stable logical key for the wizard page>
+    url_contains: <substring of the page URL>      # optional page matcher
+    title_contains: <substring of the page title>  # optional page matcher
+    submit:                                          # optional
+      selector: <primary submit selector>
+      expect_unique: true          # assert exactly one submit control on the page
+    fields:
+      - name: <logical field name>                   # used to match a real control on a miss
+        selector: <primary selector>
+        kind: fill|select|check|uncheck|click|press
+        fallbacks: [<selector>, ...]                 # the resilience LADDER, ordered
+        expect: {id: <id>, name: <name>, role: <role>}   # optional — what the resolved element should be
+        option: <exact option string>                # select/radio only; flags exact-string brittleness
+        option_fallbacks: [<alt>, ...]               # optional
+```
+
+- `page` is your stable logical key; `url_contains` / `title_contains` bind a manifest page to a real
+  page in the trace.
+- `name` is the logical field name — when a selector **misses**, the diff uses it to guess which real
+  control you meant.
+- `expect:` is optional ground truth (id / name / role the selector should resolve to) — so a silent
+  *RENAMED* (the field filled, but a **different** control) is caught, not just a total miss.
+
+### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
+
+The platform captures, server-side and **PII-free**, a per-action trace of every `browser_fill_form`
+step your bot runs — the selector it tried, how many elements matched (0 / 1 / N), and the **actual**
+element the page rendered (id / name / role / aria-label / text / tag / type) — plus a per-page
+inventory of the page's form controls. These are your own bot's real browser interactions on your
+**account-key dog-food surface** — no operator access needed.
+
+1. **`hermeshost selector-audit --manifest <file>` — static, before a live run.** Scores each
+   selector against the rules above and **exits non-zero if any is brittle** — the "is my runbook
+   flexible enough for the real website?" check. Harden what it flags (add ladder rungs down to a
+   semantic anchor, add `expect_unique`, add `option_fallbacks`) until it passes. No bot needed —
+   run it in CI.
+2. **Run the bot** — a scenario or a handed-off job — against the real (or stub) site so it emits
+   `browser_fill_form` traces.
+3. **`hermeshost browser-diff --manifest <file> [--observed <traces.json> | --ref <ref>]` —
+   dynamic, after the run.** Diffs the observed `hh.browser.trace` rows against the manifest and
+   **proposes** a verdict + fix per field:
+   - **OK** — matched exactly one control, as expected.
+   - **RENAMED** — matched, but a different id/name than declared (the site moved it) → adopt the new
+     selector.
+   - **AMBIGUOUS** — the selector matched **N>1** controls → tighten it.
+   - **MISSED** — matched **0** → the control the page actually rendered (found via `name`) suggests
+     the real selector.
+   - **SUBMIT_NOT_UNIQUE** — the page had ≠1 submit control → set `expect_unique` / pin the submit by
+     text.
+   - **NOT_EXERCISED** — the run never reached this field/page → your scenario didn't cover it.
+
+   Fixes are **proposed, never auto-applied** — you read them, decide, and edit **your own** skill's
+   selector map + manifest. Read the raw rows yourself with `hermeshost traces --ref <ref>` (it
+   returns a `browser_traces` list + a `browser_summary`) to tune the runbook by hand.
+
+The loop closes the §4c dog-food gap from the selector side: **audit** hardens the runbook before you
+spend a live run, and **diff** turns each real-site mismatch into a concrete fix you apply yourself —
+never the platform reaching into your bundle.
+
 ## 5. Testing — the live Discuss driver (check 14)
 
 A business bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C bot, but

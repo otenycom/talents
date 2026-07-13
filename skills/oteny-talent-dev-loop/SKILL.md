@@ -165,6 +165,12 @@ Each failing call carries Odoo's **native** error text, which names the **denied
 one you called — so you map a `403` straight to the missing grant (see the silent-failure entry
 below).
 
+**Browser-driven bot?** `traces --ref <clone>` also returns a PII-free `browser_traces` list +
+`browser_summary` of every `browser_fill_form` action; run `selector-audit` before a run and
+`browser-diff` after to score/diff your selectors against an expected-selector manifest and get
+proposed fixes — pattern + manifest format:
+[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
+
 ## Verify your bot's mounted tools (the contract is in the docs, not the box)
 
 The **authoring contract** for every platform tool — parameters, result shape, error
