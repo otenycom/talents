@@ -121,13 +121,14 @@ add **context-aware reads** (not keyword matches) — see
 - `SKILL.md` with valid agentskills.io frontmatter (`name`, `description`,
   `version`). `description` is a **sharp ≤60-char trigger** (the router rule above).
 - `agent-profile.yaml` (voice/persona, `channel_prompt` text, toolset
-  *contribution*, baked|purchased, price). **`model_tier` is honored** — the delivery
-  threads it into the bot's runtime default model (an operator per-tenant override
-  still wins). Declare the cheapest tier the job passes its scenarios (incl. the red
-  ones) on; a records-reasoning business bot typically needs `builder`. A Talent (a
-  bundle with `required_artifacts.yaml`) **must** ship one.
-- Optional `requires: {substrate, min_tier}` — a hardware need (capability, not a
-  tier promise); lint check 15 enforces vm→max. Absent = any tier.
+  *contribution*, baked|purchased, price). **`model_tier` is honored** — it sets the
+  bot's default model (an operator override still wins). Declare the cheapest tier the
+  job passes its scenarios (incl. red) on. A Talent **must** ship one.
+- Optional `requires: {substrate, min_tier}` — a hardware need; lint check 15 enforces
+  vm→max. Absent = any tier.
+- Optional `task_escalations:` — steer a fabrication-prone **task** to a stronger model
+  (never a whole-bot floor; lint check 16). Schema + rules:
+  [references/model-escalation.md](references/model-escalation.md).
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.
