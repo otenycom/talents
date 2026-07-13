@@ -7,8 +7,9 @@ research options, and surface **links**. Schema in [`datamodel.md`](datamodel.md
 > **⚠️ FIRST, for any deals/listing hunt: escalate the model, then drop back.** Hunting or
 > verifying real bookable listings, rentals, tickets or offers (a live URL + a price the
 > user may act on) is error-prone on the cheap model. Call
-> **`switch_persona(task="live-inventory")`** before the hunt and relay its announcement
-> to the user; when the hunt is done, call `switch_persona(task="live-inventory",
+> **`switch_persona(task="live-inventory")`** FIRST. The switch takes effect from your
+> NEXT message: relay its announcement, END your reply, and run the hunt in the following
+> message; when the hunt is delivered, call `switch_persona(task="live-inventory",
 > done=true)` so ordinary chat stays cheap. Once per hunt, never per message. If the tool
 > refuses or is unavailable, carry on — every listing you present must still be verified
 > live before you call it bookable.
