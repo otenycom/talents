@@ -245,6 +245,15 @@
       "cost": "free"
     },
     {
+      "name": "switch_persona",
+      "requestable_name": "switch_persona",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Out of the box",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "cron",
       "requestable_name": "cron",
       "request_via": "toolset_contribution",

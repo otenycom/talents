@@ -1502,6 +1502,58 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 ## Out of the box
 
+### `switch_persona` — Smart model switching
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Escalate to a stronger model for ONE error-prone task, then switch back. Call this FIRST when starting a task named in your 'Model routing' table (e.g. finding or verifying real bookable listings, rentals, tickets, or offers), with the table's task slug. The switch is announced to the user, uses credits faster, and stays on until you call this again with done=true — do that as soon as the task is finished so ordinary chat stays cheap. Never switch for plain conversation, and never call it repeatedly for the same task.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "task": {
+      "type": "string",
+      "description": "The task slug from your Model routing table, e.g. 'live-inventory'."
+    },
+    "done": {
+      "type": "boolean",
+      "description": "true when the task is finished — switches back to the default model."
+    }
+  },
+  "required": [
+    "task"
+  ]
+}
+```
+
+**Result** — {success, task, model, message} — the `message` is the user announcement the bot relays (mandatory: escalation is never silent). done=true returns the drop-back confirmation.
+
+**Errors / edges** — {error: 'unknown_task'} → only the tasks in the bot's Model-routing table are valid. {error: 'not_available'} → this bot has no escalation tasks (a locked business bot never does). {error: 'rate_limited'} → stay on the current model; switching per message wastes credits.
+
+**Example**
+
+```json
+{
+  "task": "live-inventory"
+}
+```
+
+→
+
+```json
+{
+  "success": true,
+  "task": "live-inventory",
+  "model": "builder",
+  "message": "Now using the builder model for this task\u2026"
+}
+```
+
+**Authoring notes** — Platform-managed: the task map comes from the fleet policy plus each Talent's declared `task_escalations`; a Talent never calls this for plain chat. Sticky per task — switch once, finish, then done=true. The switch itself is free; the stronger model burns credits faster while it's on.
+
 ### `cron` — Schedule tasks
 
 *built-in toolset · request via `toolset_contribution` · status **live** · cost Included*
