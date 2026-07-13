@@ -87,7 +87,9 @@ The definitive grade always re-runs Oteny-side (the nightly sweep + `promote-tal
 
 ## D. Publish a Talent (submit it to the Bot Market)
 
-> Use when the owner says *"publish my &lt;X&gt; Talent"* / *"submit it to the store"*.
+> Use when the owner says *"publish my &lt;X&gt; Talent"* / *"submit it to the store"*. For
+> the full picture — what happens after you submit, how it's discovered, and how it's
+> installed — see [publish-discover-install.md](./publish-discover-install.md).
 
 1. **Self-check first** (Protocol C). A **red** blocks the submit — fix and retry.
 2. **Export it** (Protocol A) so the reviewer gets a viewer link — keep the viewer URL.

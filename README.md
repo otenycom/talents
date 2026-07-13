@@ -148,6 +148,7 @@ runs it on every push. A merged Talent lists as **Community** until a reviewer m
 | Learn to write my first Talent, from scratch (newcomer's guide) | [`docs/writing-a-talent.md`](docs/writing-a-talent.md) |
 | Know the rules a Talent must satisfy | [`skills/talent-authoring-standard/`](skills/talent-authoring-standard) |
 | Write or edit a Talent step by step | [`skills/oteny-talent-authoring/`](skills/oteny-talent-authoring) |
+| Understand how a Talent is published, discovered & installed | [`publish-discover-install.md`](skills/oteny-talent-authoring/references/publish-discover-install.md) ([oteny.com/bots/how-it-works](https://oteny.com/bots/how-it-works)) |
 | Test, clone, debug, and ship a Talent | [`skills/oteny-talent-dev-loop/`](skills/oteny-talent-dev-loop) |
 | See which tools a Talent can request | [`TOOLS.md`](TOOLS.md) |
 | Copy a working example | any `skills/*-talent/` bundle |
