@@ -4,6 +4,15 @@ The `bookings` table unifies transport legs + lodging + activities. This file is
 + the deals-research recipe. **We never book or pay** — we record what the tenant tells us,
 research options, and surface **links**. Schema in [`datamodel.md`](datamodel.md).
 
+> **⚠️ FIRST, for any deals/listing hunt: escalate the model, then drop back.** Hunting or
+> verifying real bookable listings, rentals, tickets or offers (a live URL + a price the
+> user may act on) is error-prone on the cheap model. Call
+> **`switch_persona(task="live-inventory")`** before the hunt and relay its announcement
+> to the user; when the hunt is done, call `switch_persona(task="live-inventory",
+> done=true)` so ordinary chat stays cheap. Once per hunt, never per message. If the tool
+> refuses or is unavailable, carry on — every listing you present must still be verified
+> live before you call it bookable.
+
 > **Forwarded an e-ticket?** When the tenant sends a **PDF or photo of a flight/train
 > ticket**, don't ask them to retype it — parse it (it's ground truth) and auto-fill the
 > row: [`ticket-intake.md`](ticket-intake.md).

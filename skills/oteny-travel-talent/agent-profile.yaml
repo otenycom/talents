@@ -27,7 +27,7 @@ long_md: |
   what, and settles up at the end — greeting each traveller by name. It surfaces options and
   links but never books or pays for you, and visa, entry and health answers are advisory —
   always confirm with the official source.
-version: 1.7.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.7.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -79,6 +79,9 @@ version: 1.7.0   # Talent semver — a label over the delivered commit; bump on 
                  # trip-planner skill only) — the surgical per-task escalation for listing/booking
                  # work; chat/onboarding/dashboard stay on the cheap assistant model. Declaration
                  # only (the cooperative steer + switch tool are platform-side); no migration.
+                 # 1.7.1: bookings.md steer — call switch_persona(task=live-inventory) before a
+                 # deals/listing hunt, done=true after (the runtime shipped platform-side; the steer
+                 # rides the reference the BOOKING intent loads — the body is at the 20k ceiling). No migration.
 
 # The skills delivered together. Four child skills: engine + travel-onboarding + voice + visual.
 skills:
