@@ -319,3 +319,63 @@ def test_all_real_talents_lint_clean():
     bundles = [str(p.parent) for p in sorted(CATALOG.glob("*/agent-profile.yaml"))]
     assert len(bundles) >= 5
     assert lint.main(bundles) == 0
+
+
+# --------------------------------------------------------------------------- #
+# per-task model escalation (check 16 — task_escalations)                       #
+# --------------------------------------------------------------------------- #
+_SKILLS = "skills:\n  - alpha\n  - beta\n"
+
+
+def _esc(root, entries: str):
+    return _talent(root, profile_extra=_SKILLS + "task_escalations:\n" + entries)
+
+
+def test_valid_task_escalation_is_clean(tmp_path):
+    b = _esc(tmp_path, "  - {task: live-inventory, model_tier: builder, "
+                       "skills: [alpha], model_tier_reason: fabrication-prone}\n")
+    assert not any("task_escalations" in f for f in lint.lint_bundle(b))
+
+
+def test_task_escalation_missing_reason_fails(tmp_path):
+    b = _esc(tmp_path, "  - {task: x, model_tier: builder, skills: [alpha]}\n")
+    assert any("model_tier_reason` is required" in f for f in lint.lint_bundle(b))
+
+
+def test_task_escalation_unknown_skill_fails(tmp_path):
+    b = _esc(tmp_path, "  - {task: x, model_tier: builder, skills: [zzz], "
+                       "model_tier_reason: r}\n")
+    assert any("is not one this bundle ships" in f for f in lint.lint_bundle(b))
+
+
+def test_task_escalation_non_builder_tier_fails(tmp_path):
+    # v1 narrowing: researcher is never an automatic escalation target.
+    b = _esc(tmp_path, "  - {task: x, model_tier: researcher, skills: [alpha], "
+                       "model_tier_reason: r}\n")
+    assert any("must be one of ['builder']" in f for f in lint.lint_bundle(b))
+
+
+def test_task_escalation_floor_smuggling_fails(tmp_path):
+    # covering EVERY skill in the bundle is a bundle-wide floor by another name.
+    b = _esc(tmp_path, "  - {task: x, model_tier: builder, skills: [alpha, beta], "
+                       "model_tier_reason: r}\n")
+    assert any("floor in disguise" in f for f in lint.lint_bundle(b))
+
+
+def test_task_escalation_allowed_on_baked_bundle(tmp_path):
+    # deliberately UNLIKE the model_tier floor ban: a task escalation never raises the
+    # fleet base persona, so it is legal on a baked (fleet-wide) bundle.
+    b = _talent(tmp_path, profile_extra="delivery: baked\n" + _SKILLS +
+                "task_escalations:\n  - {task: live-inventory, model_tier: builder, "
+                "skills: [alpha], model_tier_reason: fabrication-prone}\n")
+    assert not any("task_escalations" in f for f in lint.lint_bundle(b))
+
+
+def test_no_task_escalations_block_is_clean(tmp_path):
+    b = _talent(tmp_path, profile_extra=_SKILLS)
+    assert not any("task_escalations" in f for f in lint.lint_bundle(b))
+
+
+def test_travel_talent_declares_a_valid_escalation():
+    # the shipped travel Talent's live-inventory → builder (trip-planner) declaration is clean.
+    assert lint._task_escalation_findings(CATALOG / "oteny-travel-talent") == []

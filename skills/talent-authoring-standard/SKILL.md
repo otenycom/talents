@@ -128,6 +128,14 @@ add **context-aware reads** (not keyword matches) — see
   bundle with `required_artifacts.yaml`) **must** ship one.
 - Optional `requires: {substrate, min_tier}` — a hardware need (capability, not a
   tier promise); lint check 15 enforces vm→max. Absent = any tier.
+- Optional `task_escalations:` — a list mapping a fabrication-prone **task** inside this
+  Talent to a stronger model, applied only **while that task runs** (never a Talent-wide
+  floor, so it's safe on a shared multi-Talent bot AND on `delivery: baked`). Each entry:
+  a `task` slug, `model_tier: builder` (v1 — a stronger model that is never automatic is
+  out of scope), a `skills: [...]` list naming skills **this** bundle ships (the marker the
+  task rides), `triggers:` steer copy, and a required `model_tier_reason:`. Use it for
+  listing/booking/verification work; do **not** cover every skill in the bundle (that's a
+  floor in disguise — declare `model_tier` instead). Lint check 16 enforces the shape.
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.

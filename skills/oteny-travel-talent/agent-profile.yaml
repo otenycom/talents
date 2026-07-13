@@ -27,7 +27,7 @@ long_md: |
   what, and settles up at the end — greeting each traveller by name. It surfaces options and
   links but never books or pays for you, and visa, entry and health answers are advisory —
   always confirm with the official source.
-version: 1.6.2   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.7.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
@@ -75,6 +75,10 @@ version: 1.6.2   # Talent semver — a label over the delivered commit; bump on 
                  # 1.6.2: marketing copy only — a `long_md` landing body for oteny.com/bots/travel
                  # (now bundle-sourced + re-seeded, like the teaser) that explains the live NL board,
                  # flight watch, group costs + the link-out boundary. No runtime/behavior change.
+                 # 1.7.0: declares `task_escalations` (the live-inventory task → builder, on the
+                 # trip-planner skill only) — the surgical per-task escalation for listing/booking
+                 # work; chat/onboarding/dashboard stay on the cheap assistant model. Declaration
+                 # only (the cooperative steer + switch tool are platform-side); no migration.
 
 # The skills delivered together. Four child skills: engine + travel-onboarding + voice + visual.
 skills:
@@ -86,6 +90,18 @@ voice_skill: travel-concierge-voice         # the persona; loaded on demand, NOT
 
 base_language: en
 model_tier: assistant                    # GLOBAL (Gemini-Flash v1) — the reason every task is a checklist
+# Per-task model escalation: the bot runs cheap for chat, but a listing hunt (real,
+# bookable rentals/tickets with a live URL + price) is fabrication-prone on Flash, so
+# it steers to the stronger builder model FOR THAT TASK ONLY, then drops back. This is
+# NOT a bundle-wide floor — chat, onboarding, the trip dashboard all stay on assistant.
+task_escalations:
+  - task: live-inventory
+    model_tier: builder
+    skills: [trip-planner]               # the skill that carries listing/booking work
+    triggers: >
+      finding or verifying real bookable listings, rentals, tickets, or offers —
+      anything with a live URL and price the user may act on
+    model_tier_reason: fabrication-prone
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 runtime:
   # Python libs this bundle's [terminal] scripts import at runtime, installed by the platform

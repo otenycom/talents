@@ -87,6 +87,16 @@ spend):
      ``substrate: vm`` need names ``min_tier: max`` (the cheapest tier that provides a dedicated
      VM, D204). The Talent declares a CAPABILITY, never a raw customer tier as its contract; the
      platform resolves the tier (storefront gate + runtime self-gate). (Needs PyYAML.)
+ 16. PER-TASK MODEL ESCALATION — ``task_escalations:`` is an OPTIONAL list mapping a named,
+     fabrication-prone TASK (inside this Talent) to a stronger model, applied only WHILE the
+     task runs (never a Talent-wide floor). Each entry is shape-checked: a ``task`` slug, a
+     ``model_tier`` ∈ {builder} (v1 narrowing — a stronger model that is never automatic is out
+     of scope), a required ``model_tier_reason`` (why the task needs it), and a non-empty
+     ``skills`` list naming skills THIS bundle ships (the marker the task rides). Unlike the
+     bundle-wide ``model_tier`` floor, task escalation is ALLOWED on ``delivery: baked`` bundles
+     — it never raises the fleet's base persona. Its abuse is FLOOR-SMUGGLING: a declaration set
+     covering EVERY skill in the bundle escalates the whole Talent by another name → FAIL (use a
+     ``model_tier`` floor for a bundle-wide need). (Needs PyYAML; CI installs it.)
 
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
@@ -386,6 +396,85 @@ def _requires_findings(bundle: Path) -> list[str]:
     return findings
 
 
+# Check 16 — per-task model escalation (`task_escalations:`). v1 narrowing: the only
+# automatic escalation target is `builder` (a `researcher` escalation is never automatic).
+_TASK_ESCALATION_TIERS = {"builder"}
+
+
+def _profile_skills(data: dict) -> set[str]:
+    """The skills this bundle ships, per its `skills:` list (+ any `voice_skill:`)."""
+    skills = {s for s in (data.get("skills") or []) if isinstance(s, str)}
+    vs = data.get("voice_skill")
+    if isinstance(vs, str) and vs:
+        skills.add(vs)
+    return skills
+
+
+def _task_escalation_findings(bundle: Path) -> list[str]:
+    """(16) Shape-check an optional `task_escalations:` list in agent-profile.yaml.
+
+    Each entry maps a fabrication-prone TASK to a stronger model applied only while the task
+    runs: a `task` slug, `model_tier` ∈ {builder}, a required `model_tier_reason`, and a
+    non-empty `skills` list naming skills THIS bundle ships. FLOOR-SMUGGLING (a set covering
+    every skill in the bundle) FAILs — that is a bundle-wide floor by another name. Allowed on
+    baked bundles (unlike the `model_tier` floor ban), so no delivery-mode gate here. Needs
+    PyYAML (CI installs it); a bundle without the block is unaffected."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return []
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    esc = data.get("task_escalations")
+    if esc is None:
+        return []
+    if not isinstance(esc, list):
+        return ["agent-profile.yaml: `task_escalations` must be a list of "
+                "{task, model_tier, skills, model_tier_reason} entries"]
+    bundle_skills = _profile_skills(data)
+    out: list[str] = []
+    seen_slugs: set[str] = set()
+    covered: set[str] = set()
+    for i, e in enumerate(esc):
+        if not isinstance(e, dict):
+            out.append(f"task_escalations[{i}] must be a mapping")
+            continue
+        task = e.get("task")
+        label = task if isinstance(task, str) and task else f"[{i}]"
+        if not isinstance(task, str) or not task:
+            out.append(f"task_escalations[{i}]: missing a `task` slug")
+        elif task in seen_slugs:
+            out.append(f"task_escalations: duplicate task slug '{task}'")
+        else:
+            seen_slugs.add(task)
+        tier = e.get("model_tier")
+        if tier not in _TASK_ESCALATION_TIERS:
+            out.append(f"task_escalations '{label}': model_tier {tier!r} must be one of "
+                       f"{sorted(_TASK_ESCALATION_TIERS)} (v1: builder only — a researcher "
+                       "escalation is never automatic)")
+        if not str(e.get("model_tier_reason") or "").strip():
+            out.append(f"task_escalations '{label}': a `model_tier_reason` is required "
+                       "(why this task needs a stronger model)")
+        skills = e.get("skills")
+        if not isinstance(skills, list) or not skills:
+            out.append(f"task_escalations '{label}': `skills` must be a non-empty list of "
+                       "this bundle's skills that carry the task")
+        else:
+            for sk in skills:
+                if sk not in bundle_skills:
+                    out.append(f"task_escalations '{label}': skill '{sk}' is not one this "
+                               f"bundle ships (declared: {sorted(bundle_skills)})")
+                else:
+                    covered.add(sk)
+    if bundle_skills and covered >= bundle_skills:
+        out.append("task_escalations cover EVERY skill in the bundle — that is a model floor "
+                   "in disguise (it escalates the whole Talent, not a specific task). Use a "
+                   "`model_tier` floor for a bundle-wide need, or narrow the escalation to the "
+                   "fabrication-prone skills only")
+    return out
+
+
 def _neutralize_findings(bundle: Path) -> list[str]:
     """(13) An outbound-action Talent MUST ship a well-shaped neutralize.yaml that covers
     every declared required cron. A self-contained Talent with no outbound action needs
@@ -582,6 +671,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _neutralize_findings(bundle)   # (13) outbound-action Talent must de-fang clones
         findings += _cron_policy_findings(bundle)  # (14) scheduled-cron cost policy
         findings += _requires_findings(bundle)     # (15) requires: substrate↔min_tier consistency
+        findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
 
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):
@@ -735,7 +825,7 @@ def main(argv=None) -> int:
         if coh:
             ok = False
 
-    # Cross-bundle sub-skill uniqueness (check 16). Hermes resolves skills by BARE
+    # Cross-bundle sub-skill uniqueness (cross-bundle gate). Hermes resolves skills by BARE
     # directory name across the whole delivered tree and REFUSES a name matching more
     # than one dir — so two bundles each shipping e.g. `onboarding/` break every
     # dual-Talent tenant (the 2026-07-10 travel-intake incident). Sub-skill dir names
