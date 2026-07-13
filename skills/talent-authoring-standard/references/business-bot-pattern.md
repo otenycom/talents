@@ -65,6 +65,19 @@ The discipline is **list the minimum and stop** — "I'll add `terminal` just in
 exact anti-pattern. Every tool you *don't* request is attack surface a hijacked or
 prompt-injected bot has no way to reach.
 
+**Trim the tools *inside* a toolset you don't need — `toolset_tool_exclusions`.** A toolset is
+whole-toolset granular: requesting `browser` mounts *every* native browser tool, and a scoped
+job rarely uses all of them — a filing bot never needs `browser_console` (raw JS eval; the
+platform blocks form-value reads through it anyway, so every call is dead) or `browser_vision`
+(screenshots — once `browser_fill_form`'s readback and `page_digest` give you the page state,
+vision is never needed). Every extra tool the model can *see* is one it will occasionally
+*probe* — wasted turns and wall-clock, and it hits weak/cheap tiers hardest. Declare the tools
+your job never uses under `toolset_tool_exclusions:` in `agent-profile.yaml` (a flat list of
+individual tool names); the platform drops them from the model's **visible** set at converge —
+they never reach the tool list, so the model can't spend a turn on them. It's a cost/quality
+trim, not a safety control: the scope-lock (above) is the safety boundary; this just keeps the
+mounted toolset as tight as the job.
+
 **The locked floor is real, not a prompt promise.** A Talent only *requests* tools; the
 host gateway decides what mounts. On a locked-down instance the gateway *also* disables the
 generic toolsets, so even a prompt-injected Talent that asked for a shell finds none
@@ -201,11 +214,16 @@ under pressure will improvise exactly this. Two rules, both mandatory:
 - **The Talent fails closed.** Any external identifier or proof (a filing number, a booking
   reference, a receipt) is **READ from the external system's confirmation** — never
   constructed, templated, or guessed. If the adapter is blocked/unreachable/errored/timed
-  out, or a read returns 403, the action **did not happen**: write nothing, advance
-  nothing, take the **escalate** transition to a human, and say why. A 403 is a STOP —
-  never a method-name-guessing loop. Give the skill the **exact escalate call** (the same
-  advance method through the escalate transition) — a model told to "escalate" without the
-  mechanics will invent method names hunting for one.
+  out, a read returns 403, **or the adapter session dies mid-action** (a cloud browser
+  hitting its hard session lifetime, a dropped connection, a killed sandbox), the action
+  **did not happen**: write nothing, advance nothing, take the **escalate** transition to a
+  human, and say why. **A session that dies mid-action is the same "it did not happen" case
+  as one that was never reachable** — and a partial write-ahead marker the run may have left
+  behind (a placeholder / `PENDING`-prefixed crash-fence row, armed before the action) is
+  **not** proof, so the escalate path must stay open even with that marker present. A 403 is
+  a STOP — never a method-name-guessing loop. Give the skill the **exact escalate call** (the
+  same advance method through the escalate transition) — a model told to "escalate" without
+  the mechanics will invent method names hunting for one.
 - **The server refuses an unproven "done" (the claim guard).** Don't only trust the
   Talent's discipline: the workflow's single advance choke point exposes a guard hook, and
   the domain layer refuses the success transition unless the **proof record actually
@@ -214,9 +232,15 @@ under pressure will improvise exactly this. Two rules, both mandatory:
   timeout reaper hands it to a human. Escalation is **never** blocked by the guard: a stuck
   run must always be able to reach a person.
 
-Grade both with **adversarial red scenarios** (below): induce the failure (portal down, a
-revoked grant) and assert the *negative* ground truth — the record did NOT advance, no
-proof exists, the reply escalates and never claims success.
+Grade both with **adversarial red scenarios** (below): induce the failure — portal down, a
+revoked grant, **or the adapter session dying mid-action** (converge the bot with a 1–2-min
+browser session lifetime so a cloud-browser session expires mid-fill) — and assert the
+*negative* ground truth: the record did NOT advance, no real (non-placeholder) proof exists,
+the reply escalates and never claims success. Name each such scenario `<failure>_no_fabricate`
+(e.g. `portal_down_no_fabricate`, `cdp_death_no_fabricate`) so the fail-closed suite is
+legible at a glance; each is its own **mutually-exclusive run** — the induced failure (portal
+DOWN vs portal-UP-but-browser-UNSTABLE) is set per converge, not per turn, so it gets its own
+seeded fixture and its own `test --scenario …` invocation.
 
 ## 4c. Your test double is YOUR fixture — self-host and tunnel it (the dog-food rule)
 
@@ -524,7 +548,13 @@ to run into the session cap. **Batch the typing, never the thinking:**
   classic lost-value loop). Steps run in order — sequence unlock-then-set interactions (a filter
   checkbox that hides options) inside the one call. Ship the page's **selector map in the skill**
   (a `references/` file): the browser snapshot shows accessibility refs and labels, not CSS ids, so
-  the skill — not the snapshot — is where selectors come from (`label=` targeting works too). For a
+  the skill — not the snapshot — is where selectors come from (`label=` targeting works too).
+  **Give each page an explicit `submit_selector` line in that map — a value the model copies
+  verbatim — not just prose naming the *Next*/*OK* button.** A model that has to *infer* the submit
+  selector from prose passes it on only a fraction of its fill calls (live-measured 2 of 12), losing
+  the atomic fill-then-submit and burning a separate navigate turn per page; a per-page map with an
+  explicit submit line binds far better than prose because the model copies structure instead of
+  interpreting it. For a
   custom widget that is not a native control, use explicit `kind:'click'` steps (trigger, then
   option). If the tool reports *unavailable*, fall back to per-field fills with **one** snapshot
   verify per group.
