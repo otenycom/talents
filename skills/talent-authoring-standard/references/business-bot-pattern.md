@@ -396,6 +396,15 @@ manifest**.
   (`option: "Yes, permanent"`) breaks the moment the site changes wording or casing. Declare
   `option_fallbacks` (alternate spellings/casings), and where the control exposes a stable value,
   prefer matching by value over display text.
+- **Quote an attribute value that contains a comma or a space.** Targeting a radio/checkbox by its
+  option text — `input[name=agree][value=Yes, I consent]` — is, **unquoted**, an invalid CSS selector:
+  the comma is a selector-list separator, so `querySelectorAll` throws a SyntaxError and the step is a
+  **guaranteed 0-match miss** (benign only if the field is already at that value; otherwise the
+  verified-submit gate fail-closes and the page **stalls**). Write it quoted:
+  `input[name=agree][value="Yes, I consent"]`. The platform's `browser_fill_form` now **auto-quotes**
+  an unquoted attr-value selector as a belt (a bare-identifier value like `[value=Yes]` is left
+  untouched), but author it quoted so the runbook is correct on its face — the model copies structure,
+  not prose. This is the value-targeting analogue of the exact-option-string rule above.
 
 Every rule is the same bet — **the real site's ids and triggers differ from your stub's** — so encode
 what won't change (semantics) as the floor, and flag every place a single exact string is load-bearing.
@@ -467,6 +476,17 @@ inventory of the page's form controls. These are your own bot's real browser int
 The loop closes the §4c dog-food gap from the selector side: **audit** hardens the runbook before you
 spend a live run, and **diff** turns each real-site mismatch into a concrete fix you apply yourself —
 never the platform reaching into your bundle.
+
+**Reading a one-off timeout/miss — don't chase weather.** A single live run that shows a step time out
+(matched 1, never actioned) or a `MISSED` is **n=1 evidence**. `browser_fill_form` **auto-waits for
+actionability** (a control that renders a second or two late still fills), so a step that fails only
+after the *full* per-action timeout usually means a genuinely stuck/slow page in that one run — an
+environmental transient — not a broken selector. Before treating it as a bug: check whether the field
+is even conditional (read the page, not your assumption), re-run once, and — fastest of all —
+**reproduce the page mechanics offline against your own stub** (a real headless browser is enough; no
+live infra) before spending a bring-up chasing it. A selector that misses on *every* run is real (the
+`browser-diff` verdict tells you which); a selector that misses once is a coin toss until a second run
+confirms it.
 
 ## 5. Testing — the live Discuss driver (check 14)
 
