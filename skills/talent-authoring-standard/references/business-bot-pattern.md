@@ -386,6 +386,16 @@ manifest**.
   with **no** ladder is **brittle**; a ladder that never reaches a semantic anchor is **risky** (id
   *and* name can both move on a re-skin). **Resilient** = a ladder that bottoms out on a semantic
   anchor, or a semantic-first primary.
+- **Lead the ladder with the LABEL when a real third-party site is your target.** The order above
+  is the general shape; a *third-party* site adds a catch — its `id`s and `name`s are **not yours**.
+  You invented the tidy ones on your stub (§4c), but the real page's are framework-generated and
+  different, so an id-first ladder spends its *first* attempt on a rung that can't match reality. The
+  one thing that reliably tracks the real site is the control's **visible label / accessible name** —
+  the words the operator actually sees. So for any field whose primary selector is a stub-invented
+  id, **promote the semantic rung to the front** (`label=` / `role+accessible-name` first, the
+  id/name kept only as later best-effort rungs), so the first attempt is built on what the real page
+  shows. Label-first is the resilient default whenever the bot's live target is a site whose ids you
+  don't control.
 - **Assert exactly one submit.** A page with more than one submit control — a *Back* beside a
   *Next*, or a "Save draft" beside "Submit" — turns a generic `button[type=submit]` into a coin
   flip. Either set `expect_unique: true` (the audit fails the page if it has ≠1 submit control) or
@@ -394,8 +404,9 @@ manifest**.
   you spend a live run on it.
 - **An exact option string is brittle.** A `select`/radio pinned to one exact option
   (`option: "Yes, permanent"`) breaks the moment the site changes wording or casing. Declare
-  `option_fallbacks` (alternate spellings/casings), and where the control exposes a stable value,
-  prefer matching by value over display text.
+  `option_fallbacks` (alternate spellings, casings, **and spacing**) — which also clears
+  `selector-audit`'s **risky** grade for that exact-option field — and where the control exposes a
+  stable value, prefer matching by value over display text.
 - **Quote an attribute value that contains a comma or a space.** Targeting a radio/checkbox by its
   option text — `input[name=agree][value=Yes, I consent]` — is, **unquoted**, an invalid CSS selector:
   the comma is a selector-list separator, so `querySelectorAll` throws a SyntaxError and the step is a
@@ -417,8 +428,12 @@ page, the fields you fill and what each should resolve to:
 
 ```yaml
 version: 1
+stub_walk:                                          # optional — lets `manifest-check` walk YOUR stub
+  start_path: <path manifest-check opens first>
+  id_from_url: <rule to pull a record key out of a stub URL>
 pages:
   - page: <stable logical key for the wizard page>
+    stub_path: <per-page path template on your stub>   # where manifest-check finds THIS page
     url_contains: <substring of the page URL>      # optional page matcher
     title_contains: <substring of the page title>  # optional page matcher
     submit:                                          # optional
@@ -432,6 +447,7 @@ pages:
         expect: {id: <id>, name: <name>, role: <role>}   # optional — what the resolved element should be
         option: <exact option string>                # select/radio only; flags exact-string brittleness
         option_fallbacks: [<alt>, ...]               # optional
+        stub_dynamic: true                           # control appears only AFTER an interaction → UNVERIFIED, not MISSING
 ```
 
 - `page` is your stable logical key; `url_contains` / `title_contains` bind a manifest page to a real
@@ -473,6 +489,25 @@ inventory of the page's form controls. These are your own bot's real browser int
    selector map + manifest. Read the raw rows yourself with `hermeshost traces --ref <ref>` (it
    returns a `browser_traces` list + a `browser_summary`) to tune the runbook by hand.
 
+**`hermeshost manifest-check --manifest <file> --stub-url <base>` — the third verb: is my double
+faithful to my manifest?** `selector-audit` proves the ladders are *flexible* and `browser-diff`
+proves they *matched* a page the bot reached — but neither catches a control your manifest **names**
+while your **stub never renders** it. That field simply never appears in a trace, so `browser-diff`
+files it as **NOT_EXERCISED** (silently green) and the whole offline suite passes while the runbook
+and its own double have quietly **drifted apart**. `manifest-check` closes that blind spot: it walks
+your stub and asserts every manifest-declared control is actually reachable there — a genuine
+false-green catcher you run in CI beside `selector-audit`, no bot and no live run.
+
+- **It walks your stub with zero stub-specific platform code — the routing is in the manifest.** The
+  manifest carries a **`stub_walk`** block (a `start_path` to open first and an `id_from_url` rule to
+  pull a record key out of a URL) plus a per-page **`stub_path`** template, so the generic verb knows
+  how to visit each page of *your* stub without the platform hard-coding anything about it.
+- **A control that only appears after an interaction is UNVERIFIED, never a false MISSING.** A field
+  the stub renders only *after* a step — a post-search result link, a summary gated on a seeded row —
+  is marked **`stub_dynamic: true`** on that field. `manifest-check` reports it **UNVERIFIED** (a
+  static walk can't reach it) instead of a false **MISSING**, so a genuinely static control that
+  vanished is still caught while an inherently dynamic one isn't a false alarm.
+
 The loop closes the §4c dog-food gap from the selector side: **audit** hardens the runbook before you
 spend a live run, and **diff** turns each real-site mismatch into a concrete fix you apply yourself —
 never the platform reaching into your bundle.
@@ -487,6 +522,67 @@ is even conditional (read the page, not your assumption), re-run once, and — f
 live infra) before spending a bring-up chasing it. A selector that misses on *every* run is real (the
 `browser-diff` verdict tells you which); a selector that misses once is a coin toss until a second run
 confirms it.
+
+### Observe mode — reconcile against the real portal before the first side-effect
+
+`selector-audit` and `manifest-check` harden the runbook offline, and a stub run proves it drives
+*your double* — but none of that has yet touched the **real** site. Before the bot's **first real
+side-effect**, close that last gap with an **observe pass**: arm the submit-deny belt (§4f), hand the
+bot a real record, and let it **walk the real portal all the way to — but never through — the
+submit**, emitting `browser_fill_form` traces the whole way. Then reconcile, iterating four steps
+until the diff is clean:
+
+1. **Observe** — the belt-armed bot walks the real site; the platform captures the per-action traces
+   (as above).
+2. **Diff** — `hermeshost browser-diff --manifest <file> --observed <traces.json>` scores the observed
+   reality against your manifest (RENAMED / AMBIGUOUS / MISSED / …).
+3. **Harden** — apply each proposed fix to **your own** selector map + manifest, **and back-port the
+   observed reality into your stub** (the real ids, the real option strings, any page the original
+   walkthrough missed) so the **offline suite stays the authoritative regression net** — the stub, not
+   a live run, is what every future deploy checks against.
+4. **Fill-verify** — re-run against the now-faithful stub until the offline suite is green.
+
+Iterate **observe → diff → harden → fill-verify until the diff is clean**, and only *then* disarm the
+belt and let the bot perform the **real** side-effect. The submit-deny belt (§4f) is exactly what
+makes step 1 safe to run against the live site as many times as convergence needs.
+
+## 4f. Rehearse against the real site — the per-bot submit-deny belt
+
+Converging selectors (§4e) and observing the real workflow (above) are fastest against the **real**
+third-party site — its real ids, real widgets, real page graph — but you must reach that page
+**without ever performing the real side-effect** (a legal submit, an irreversible "confirm" click).
+The obvious move — add a "never click submit" rule to the Talent — is **wrong**: the *same* Talent
+files for real in prod, so a Talent-wide submit block would gag the real bot too. The safe mechanism
+is a **per-bot submit-deny belt** — a knob on *this one rehearsal bot*, not on the Talent every bot
+shares.
+
+- **A commission-time, per-bot knob, empty by default.** Arm it when you spin up a rehearsal clone:
+  `commission --submit-deny-patterns <comma,list>` records a `config_overrides["browser.submit_deny"]`
+  value on **that** bot, which the box receives as the env var `OTENY_BROWSER_SUBMIT_DENY`. A normal
+  bot carries **no** patterns and submits freely; only the bot you armed refuses.
+- **The secure browser enforces it structurally.** With the belt armed, `browser_fill_form` refuses
+  any **click / check / submit** step whose **selector string** *or* **resolved element text** matches
+  one of your patterns, returning a blocked result instead of acting. The **resolved-text leg** is
+  what makes it robust: it catches a generic `button[type=submit]` whose *visible label* is the submit
+  word, even though the selector itself names no button text. Feed it the site's submit words (in the
+  site's language) and the belt fires on the real button however its selector is written.
+- **It stacks on top of the softer layers — structural, not a hope.** The belt is a third,
+  *structural* line behind the prompt-level "never submit" instruction and the **server-side proof
+  guard** (§4b): the prompt is a wish, the proof guard refuses an unproven *done*, and the belt refuses
+  the *click itself* at the browser. A rehearsal bot that drifts and tries to submit is stopped at the
+  browser, not trusted to obey.
+- **Honest residual — the native per-field click.** The belt matches on text, so a *native per-field
+  click* tool (one that actions a single element **by reference**, not by a text-bearing selector) is
+  caught only **procedurally**: its pre-check sees an element ref, not a label, so the text leg cannot
+  fire. Submitting that way therefore takes **deliberate, off-instruction clicks** — the kind a
+  watching operator sees in the live trace — not an accidental one. Rehearse with an operator watching
+  the run, and treat a per-field click on the submit control as the one gap the belt can't close for
+  you.
+
+**Rule:** *arm the belt on the rehearsal bot; leave the Talent's real-submit path intact.* The belt is
+how you spend live runs converging selectors (§4e) and reconciling the real workflow (observe mode,
+above) without ever filing for real — the same tier-below-the-Talent discipline as the stub doubles
+(§4), but for the one bot you deliberately point at the live site.
 
 ## 5. Testing — the live Discuss driver (check 14)
 
@@ -750,6 +846,54 @@ fence — a re-fire that races a live run is dropped, so neither can double a si
   dead session means the real-world action **did not happen**, so write no proof and escalate, never a
   fabricated confirmation. For a genuinely long browser job, also raise `agent_max_turns` (above) so the
   run has room to finish before the cap rather than racing it.
+
+### The attended approval gate — workflow states, not pause/resume
+
+Some side-effects must not fire until a **human approves** them. The wrong build is a pause/resume
+primitive that suspends a live run mid-turn and wakes it on a click — it couples the harness to a
+durable-workflow engine and leaves a half-run holding a claim. The right build is **pure workflow
+states**, on the **same isolated-turn harness (§6) with no harness change**:
+
+- **A prep run previews, then parks.** A bot-owned **prep** transition fires a fresh isolated turn
+  that gathers the record's data, produces the **preview/summary** the human will judge, and advances
+  the record into a **human-owned "paused for approval" state** — performing **no** real side-effect.
+  The prep run is *done*; nothing is suspended.
+- **A human approve transition arms the real work.** The person reviews the preview and takes an
+  **approve** transition, moving the record into a **bot-owned queue state**. That state dispatches
+  like any other bot-owned queue state (§6): its **own claim** fires a *second*, fresh isolated turn
+  that performs the **real** side-effect.
+- **The claim mints a fresh claim epoch.** Because the real work is a freshly-claimed turn — not the
+  resumed prep run — a **stale prep run cannot act on the approved record**: the approve→queue claim
+  bumps a **claim epoch**, and a late prep turn writing under the old epoch is fenced out. Approval is
+  a state boundary, not a shared session.
+- **Narrow the proof guard to the real advance.** Scope the server-side proof guard (§4b) to the
+  transition that records the **real** proof (the post-side-effect advance), **not** the prep advance
+  — the prep run legitimately advances the record with *no* external proof yet, so guarding it would
+  fail-closed the wrong step. Guard only the advance that claims a real-world outcome.
+
+### Watching an inbox for the outcome — the mailbox stub double
+
+A workflow often completes only when a **counterparty replies** — an email confirming or rejecting
+what the bot filed. A bot that **polls an inbox** for that reply is a side-effecting integration like
+any other, so it takes the **same stub-double tier trick as a portal (§4)**: prod mounts the real
+mailbox; **every non-prod tier mounts a stub inbox**, and the same Talent ships unchanged across
+tiers.
+
+- **The stub inbox serves seeded fixtures.** On non-prod, the mailbox poll points — via a tier-bound
+  `external_systems` env var (§4c) — at a **stub inbox** shaped like the real mail API, serving seeded
+  `.eml` fixtures, plus a **driver** that lets a test *"simulate the counterparty confirmed / rejected
+  item X."* The whole **confirm/reject round-trip is offline-verifiable** with zero third-party
+  dependency, on the same tier your other doubles run.
+- **The mail body is UNTRUSTED third-party text.** A counterparty's reply is exactly the
+  **indirect-injection** class the isolated turn (§6) exists to contain — arbitrary text from outside
+  your trust boundary. So the **confirm-vs-reject decision is made by the AI run** reading that body,
+  never by a brittle string match on attacker-controlled prose; and the **key that ties a mail to the
+  right record is a unique reference number** (the filing id you recorded as proof), not the free-text
+  subject or sender.
+- **The real credential is broker-held.** The prod mailbox credential (an OAuth token, an app
+  password) is **broker-held — never on the box** — and is the one **office-gated, prod-only** piece:
+  non-prod never needs it, because the stub inbox needs no auth. The outcome-watch is offline-testable
+  end to end while the real inbox stays reachable only from prod.
 
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
