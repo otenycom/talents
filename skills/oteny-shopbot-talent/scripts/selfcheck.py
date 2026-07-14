@@ -39,8 +39,8 @@ from pathlib import Path
 
 try:
     import yaml
-except ImportError:  # pragma: no cover - PyYAML is always present on Hermes
-    yaml = None
+except ImportError:  # a COLD tenant's system python3 may lack PyYAML — _load_yaml
+    yaml = None      # then falls back to the stdlib reader below (never a hard fail)
 
 
 # --------------------------------------------------------------------------- #
@@ -70,12 +70,349 @@ def expand(p: str) -> Path:
 
 
 def _load_yaml(path: Path):
-    if yaml is None:
-        raise RuntimeError("PyYAML is required to read manifests/config")
     if not path.exists():
         return None
-    with path.open() as fh:
-        return yaml.safe_load(fh)
+    return _yaml_load_text(path.read_text())
+
+
+def _yaml_load_text(text: str):
+    """Parse the YAML our manifests + profile.yaml use. PyYAML when present; a
+    pure-stdlib fallback otherwise, so a COLD tenant whose system python3 lacks
+    PyYAML still gets a correct readiness verdict instead of the pip-install grind
+    (the RuntimeError this replaces violated the "always exit 0" contract above and
+    was measured looping 13 tenants / 64 sessions on prod)."""
+    if yaml is not None:
+        return yaml.safe_load(text)
+    try:
+        return _minimal_yaml_load(text)
+    except Exception:
+        # Belt on the belt: an unexpected construct must never re-introduce a hard
+        # fail. None reads as "missing/unparseable" downstream → a clean NOT-READY
+        # with a reason, never a traceback that invites a guess-and-loop.
+        return None
+
+
+# --------------------------------------------------------------------------- #
+# minimal pure-stdlib YAML reader — FALLBACK ONLY (PyYAML absent).             #
+# Covers exactly the subset selfcheck reads: block mappings (indent nesting),  #
+# block sequences incl. list-of-maps, flow `[..]`/`{..}`, quote-aware comment  #
+# stripping, and scalar typing (int/float/bool/null/quoted+bare str). NOT a    #
+# general engine (no anchors/tags/multi-doc/block-scalars — our files use      #
+# none). Verified byte-exact against PyYAML on every catalog manifest +        #
+# profile.yaml (tests/test_selfcheck_stdlib_yaml.py).                          #
+# --------------------------------------------------------------------------- #
+def _minimal_yaml_load(text: str):
+    lines = _y_lines(text)
+    if not lines:
+        return None
+    value, idx = _y_block(lines, 0, lines[0][0])
+    if idx != len(lines):
+        raise ValueError(f"trailing content at logical line {idx}")
+    return value
+
+
+def _y_lines(text: str):
+    out = []
+    for raw in text.splitlines():
+        stripped = _y_strip_comment(raw)
+        if not stripped.strip():
+            continue
+        indent = len(stripped) - len(stripped.lstrip(" "))
+        out.append((indent, stripped.strip()))
+    return out
+
+
+def _y_strip_comment(line: str) -> str:
+    """Drop a trailing ``#`` comment, honoring quotes; ``#`` opens a comment only
+    at line start or after whitespace (YAML rule), so ``a#b`` and URLs survive."""
+    out = []
+    quote = None
+    prev_ws = True
+    for ch in line:
+        if quote:
+            out.append(ch)
+            if ch == quote:
+                quote = None
+            prev_ws = False
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            out.append(ch)
+            prev_ws = False
+            continue
+        if ch == "#" and prev_ws:
+            break
+        out.append(ch)
+        prev_ws = ch in (" ", "\t")
+    return "".join(out)
+
+
+def _y_block(lines, start, indent):
+    if lines[start][1].startswith("- "):
+        return _y_sequence(lines, start, indent)
+    return _y_mapping(lines, start, indent)
+
+
+def _y_sequence(lines, start, indent):
+    items = []
+    idx, n = start, len(lines)
+    while idx < n:
+        col, content = lines[idx]
+        if col < indent:
+            break
+        if col > indent:
+            raise ValueError(f"bad indent in sequence: {content!r}")
+        if not content.startswith("-"):
+            break
+        rest = content[1:].lstrip(" ")
+        if rest == "":
+            child = idx + 1
+            if child < n and lines[child][0] > indent:
+                value, idx = _y_block(lines, child, lines[child][0])
+                items.append(value)
+                continue
+            items.append(None)
+            idx += 1
+            continue
+        item_col = col + (len(content) - len(rest))
+        if _y_colon(rest) is not None:
+            value, idx = _y_inline_mapping(lines, idx, item_col, rest)
+            items.append(value)
+        else:
+            items.append(_y_scalar_or_flow(rest))
+            idx += 1
+    return items, idx
+
+
+def _y_inline_mapping(lines, start, item_col, first_rest):
+    mapping = {}
+    key, val_text = _y_split_key(first_rest)
+    idx, n = start + 1, len(lines)
+    if val_text == "":
+        if idx < n and lines[idx][0] > item_col:
+            child, idx = _y_block(lines, idx, lines[idx][0])
+            mapping[key] = child
+        else:
+            mapping[key] = None
+    else:
+        mapping[key] = _y_scalar_or_flow(val_text)
+    while idx < n:
+        col, content = lines[idx]
+        if col != item_col or content.startswith("- ") or _y_colon(content) is None:
+            break
+        k, v = _y_split_key(content)
+        if v == "":
+            child = idx + 1
+            if child < n and lines[child][0] > item_col:
+                sub, idx = _y_block(lines, child, lines[child][0])
+                mapping[k] = sub
+                continue
+            mapping[k] = None
+            idx += 1
+        else:
+            mapping[k] = _y_scalar_or_flow(v)
+            idx += 1
+    return mapping, idx
+
+
+def _y_mapping(lines, start, indent):
+    mapping = {}
+    idx, n = start, len(lines)
+    while idx < n:
+        col, content = lines[idx]
+        if col < indent:
+            break
+        if col > indent:
+            raise ValueError(f"bad indent in mapping: {content!r}")
+        if content.startswith("- ") or _y_colon(content) is None:
+            raise ValueError(f"expected 'key: value': {content!r}")
+        key, val_text = _y_split_key(content)
+        if val_text == "":
+            child = idx + 1
+            if child < n and lines[child][0] > indent:
+                value, idx = _y_block(lines, child, lines[child][0])
+                mapping[key] = value
+                continue
+            if child < n and lines[child][1].startswith("- ") and \
+                    lines[child][0] == indent:
+                value, idx = _y_sequence(lines, child, indent)
+                mapping[key] = value
+                continue
+            mapping[key] = None
+            idx += 1
+        else:
+            mapping[key] = _y_scalar_or_flow(val_text)
+            idx += 1
+    return mapping, idx
+
+
+def _y_colon(content: str):
+    """Index of the ``: ``/``:``-EOL key separator (quote-aware), or None."""
+    quote = None
+    for i, ch in enumerate(content):
+        if quote:
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            continue
+        if ch == ":" and (i + 1 == len(content) or content[i + 1] == " "):
+            return i
+    return None
+
+
+def _y_split_key(content: str):
+    i = _y_colon(content)
+    return _y_scalar(content[:i].strip()), content[i + 1:].strip()
+
+
+def _y_scalar_or_flow(text: str):
+    text = text.strip()
+    if text[:1] in ("[", "{"):
+        return _y_flow(text)
+    return _y_scalar(text)
+
+
+def _y_scalar(text: str):
+    text = text.strip()
+    if text in ("", "~", "null", "Null", "NULL"):
+        return None
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ("'", '"'):
+        inner = text[1:-1]
+        return inner.replace("''", "'") if text[0] == "'" else _y_unescape(inner)
+    low = text.lower()
+    if low in ("true", "false"):
+        return low == "true"
+    body = text[1:] if text[:1] in "+-" else text
+    if body.isdigit():
+        return int(text)
+    if _y_is_float(text):
+        return float(text)
+    return text
+
+
+def _y_is_float(text: str) -> bool:
+    body = text[1:] if text[:1] in "+-" else text
+    if "e" in body.lower():
+        try:
+            float(text)
+            return True
+        except ValueError:
+            return False
+    if body.count(".") == 1 and body != ".":
+        a, b = body.split(".")
+        return (a.isdigit() or a == "") and (b.isdigit() or b == "") and \
+            (a.isdigit() or b.isdigit())
+    return False
+
+
+def _y_unescape(inner: str) -> str:
+    out, i = [], 0
+    while i < len(inner):
+        ch = inner[i]
+        if ch == "\\" and i + 1 < len(inner):
+            out.append({"n": "\n", "t": "\t", '"': '"', "\\": "\\",
+                        "/": "/"}.get(inner[i + 1], inner[i + 1]))
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _y_flow(text: str):
+    value, rest = _y_read_flow(text, 0)
+    if rest.strip():
+        raise ValueError(f"trailing flow content: {rest!r}")
+    return value
+
+
+def _y_read_flow(text, i):
+    i = _y_ws(text, i)
+    if text[i] == "[":
+        return _y_flow_seq(text, i)
+    if text[i] == "{":
+        return _y_flow_map(text, i)
+    return _y_flow_scalar(text, i)
+
+
+def _y_flow_seq(text, i):
+    i += 1
+    items = []
+    i = _y_ws(text, i)
+    if i < len(text) and text[i] == "]":
+        return [], text[i + 1:]
+    while True:
+        val, rest = _y_read_flow(text, i)
+        items.append(val)
+        i = _y_ws(text, len(text) - len(rest))
+        if i >= len(text):
+            raise ValueError("unterminated flow sequence")
+        if text[i] == ",":
+            i = _y_ws(text, i + 1)
+            if text[i] == "]":
+                return items, text[i + 1:]
+            continue
+        if text[i] == "]":
+            return items, text[i + 1:]
+        raise ValueError(f"bad flow sequence near {text[i:]!r}")
+
+
+def _y_flow_map(text, i):
+    i += 1
+    mapping = {}
+    i = _y_ws(text, i)
+    if i < len(text) and text[i] == "}":
+        return {}, text[i + 1:]
+    while True:
+        key, rest = _y_flow_scalar(text, i, stop=":,}")
+        i = _y_ws(text, len(text) - len(rest))
+        if i >= len(text) or text[i] != ":":
+            raise ValueError(f"expected ':' in flow map near {text[i:]!r}")
+        i = _y_ws(text, i + 1)
+        val, rest = _y_read_flow(text, i)
+        mapping[key] = val
+        i = _y_ws(text, len(text) - len(rest))
+        if i >= len(text):
+            raise ValueError("unterminated flow mapping")
+        if text[i] == ",":
+            i = _y_ws(text, i + 1)
+            if text[i] == "}":
+                return mapping, text[i + 1:]
+            continue
+        if text[i] == "}":
+            return mapping, text[i + 1:]
+        raise ValueError(f"bad flow mapping near {text[i:]!r}")
+
+
+def _y_flow_scalar(text, i, stop=",]}"):
+    i = _y_ws(text, i)
+    if i < len(text) and text[i] in ("'", '"'):
+        quote = text[i]
+        j, buf = i + 1, []
+        while j < len(text):
+            if text[j] == quote:
+                if quote == "'" and j + 1 < len(text) and text[j + 1] == "'":
+                    buf.append("'")
+                    j += 2
+                    continue
+                break
+            buf.append(text[j])
+            j += 1
+        raw = "".join(buf)
+        val = raw.replace("''", "'") if quote == "'" else _y_unescape(raw)
+        return val, text[j + 1:]
+    j = i
+    while j < len(text) and text[j] not in stop:
+        j += 1
+    return _y_scalar(text[i:j].strip()), text[j:]
+
+
+def _y_ws(text, i):
+    while i < len(text) and text[i] in (" ", "\t"):
+        i += 1
+    return i
 
 
 def _is_empty(v) -> bool:

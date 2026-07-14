@@ -24,7 +24,7 @@ long_md: |
   Want a standing briefing? Ask for a daily market brief and it'll post a terse,
   numbers-first summary at the time you pick, every day. It's research and education, not
   financial advice — it lays out the numbers and the thinking; the call is always yours.
-version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.2   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.0.1: marketing copy only — a `long_md` landing body for the website
                  # (live-price research, the per-ticker Buy/Hold, All-In distillation, the
