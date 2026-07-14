@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.0
+version: 0.5.1
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -158,6 +158,14 @@ add **context-aware reads** (not keyword matches) — see
   (`assistant`/`builder`/`researcher`, D55, fallback `assistant`), never the raw OpenRouter slug.
 - Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per terminal
   call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
+- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing baked dep** (D237).
+  `selfcheck`/`preflight` run under the tenant's **system `python3`**, which on a cold tenant may
+  lack `python3-yaml` (or any apt/pip lib). A readiness script must honor its "always exit 0,
+  never look like a failure" contract even then — degrade to a clean NOT-READY, never raise a
+  traceback (which makes the model grind on `pip install`). The canonical `selfcheck.py` reads
+  YAML via a **vendored stdlib fallback**; a container can only get a baked dep via a disruptive
+  rebase, so the first-run/critical path must not depend on one. (Non-readiness feature scripts —
+  e.g. a matplotlib dashboard cron — MAY use a baked dep, declared per check 9.)
 - **Collapse the per-turn preamble** (D38): the triage's first action is a **single**
   `preflight`-style call (readiness + clock + today's state + memory + targets) with hot intents
   inlined in `SKILL.md` — not 4–5 probe calls + a reference load (live: 67 → 5 calls).
