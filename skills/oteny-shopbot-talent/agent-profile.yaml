@@ -26,7 +26,7 @@ long_md: |
 
   It quietly tracks who added what and drops bought items off the active list, so the list
   is always right without anyone having to ask "did you get the milk?"
-version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.2   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.0.1: marketing copy only — a `long_md` landing body for the website
                  # (the shared live list, aisle ordering, per-store routing, and check-off).

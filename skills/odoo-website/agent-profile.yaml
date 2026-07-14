@@ -27,7 +27,7 @@ long_md: |
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time. Runs on the Max plan — your own dedicated server, with
   room for a real website engine alongside your agent.
-version: 1.0.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.0.0: first release — install Odoo CE user-space (venv + pinned nightly +
                  # pip-embedded pgserver, no root), build the site via Odoo's website builder,
