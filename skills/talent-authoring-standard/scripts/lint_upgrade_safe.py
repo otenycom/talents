@@ -475,6 +475,160 @@ def _task_escalation_findings(bundle: Path) -> list[str]:
     return out
 
 
+# Check 17 — the selector-manifest ↔ human-doc twin gate. A browser Talent ships a
+# machine-readable expected-selector manifest (a YAML with a `pages:` list of
+# `fields:`/`submit:` selectors, business-bot-pattern §4e) AND a human-readable per-page
+# selector map in a `.md`. The two are meant to stay in lockstep, but nothing asserts it —
+# a selector edited in one twin and not the other is a silent dual-maintenance drift.
+#
+# A manifest MAY name its human twin with a top-level `doc_twin: <relative .md path>`.
+# When it does, this gate asserts the two files declare the SAME set of concrete CSS
+# field/submit selectors, and FAILs on any drift. Scope of the comparison (deliberate):
+#   * `selector:` + `submit_selector:` values ONLY — NOT `fallbacks:`. The human doc
+#     documents the PRIMARY anchor per field verbatim, but represents the machine
+#     resilience ladders (`role=…`/`text=…` locators) and radio option VALUES with prose
+#     / ellipsis, so a token-for-token fallback comparison is all false positives.
+#   * value-normalized — a `[value=…]` ellipsis in the doc matches the yaml's concrete
+#     `[value=Nee]` (radios are documented by field, not by option string).
+#   * `role=`/`text=` Playwright locators and `<…>`/`…` placeholder tokens are excluded
+#     (the doc carries these as labels/examples, never as a verbatim CSS twin).
+# A manifest that ships no `doc_twin:` gets a soft WARN (see checklist_warnings) — the
+# pair is unguarded, not wrong.
+_SELECTOR_KEYS = ("selector", "submit_selector")
+_PLACEHOLDER_MARKS = ("<", ">", "…", "...")
+
+
+def _looks_like_selector_manifest(data: object) -> bool:
+    """A parsed YAML is an expected-selector manifest when it has a ``pages:`` list whose
+    items carry ``fields:`` or ``submit:`` — the §4e schema. Filename-agnostic (a manifest
+    can be named anything; the client owns the name)."""
+    if not isinstance(data, dict):
+        return False
+    pages = data.get("pages")
+    if not isinstance(pages, list):
+        return False
+    return any(isinstance(p, dict) and ("fields" in p or "submit" in p) for p in pages)
+
+
+def _comparable_selector(tok: str) -> str | None:
+    """Normalize one selector token for twin comparison, or None if it is not a concrete
+    CSS field/submit selector we can compare across the two files (a role=/text= locator
+    or a `<…>`/`…` placeholder)."""
+    t = re.sub(r"\s+", " ", tok.strip().strip('"').strip("'"))
+    if not t or t.startswith(("role=", "text=")):
+        return None
+    shaped = t.startswith(("#", ".", "[")) or "[name=" in t or "[value=" in t
+    if not shaped:
+        return None
+    # Radios are documented by field, not by option string: the human doc writes a
+    # `[value=…]` ellipsis (or spells the full option) where the yaml has the concrete
+    # value. Strip the option value FIRST, then reject a `<placeholder>` anchor — so a
+    # radio's `[value=…]` ellipsis normalizes to a real field anchor while a teaching
+    # `#<veldnaam>` example is still excluded.
+    t = re.sub(r"\[value=[^\]]*\]", "", t)
+    if not t or any(m in t for m in _PLACEHOLDER_MARKS):
+        return None
+    return t
+
+
+def _manifest_selectors(data: object) -> set[str]:
+    out: set[str] = set()
+
+    def walk(o: object) -> None:
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == "fallbacks":
+                    continue
+                if k in _SELECTOR_KEYS and isinstance(v, str):
+                    c = _comparable_selector(v)
+                    if c:
+                        out.add(c)
+                else:
+                    walk(v)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x)
+
+    walk(data)
+    return out
+
+
+def _doc_selectors(md_text: str) -> set[str]:
+    """Every backtick-quoted, concrete CSS selector token in the human doc (newlines inside
+    a wrapped token collapsed so a token split across two lines still resolves)."""
+    blob = md_text.replace("\n", " ")
+    out: set[str] = set()
+    for m in re.findall(r"`([^`]+)`", blob):
+        c = _comparable_selector(m)
+        if c:
+            out.add(c)
+    return out
+
+
+def _iter_selector_manifests(bundle: Path):
+    """Yield (path, parsed-data) for every selector manifest in the bundle."""
+    if yaml is None:
+        return
+    for mf in sorted(bundle.rglob("*.y*ml")):
+        if _SKIP_DIRS & set(mf.parts):
+            continue
+        try:
+            data = yaml.safe_load(mf.read_text())
+        except (yaml.YAMLError, OSError):
+            continue
+        if _looks_like_selector_manifest(data):
+            yield mf, data
+
+
+def _selector_twin_findings(bundle: Path) -> list[str]:
+    """(17) Assert manifest ↔ ``doc_twin`` selector-set equality; FAIL on drift. A manifest
+    with no ``doc_twin`` is handled softly in checklist_warnings, not here. Needs PyYAML
+    (CI installs it); a bundle with no selector manifest is unaffected."""
+    out: list[str] = []
+    for mf, data in _iter_selector_manifests(bundle):
+        twin = data.get("doc_twin")
+        if not twin or not isinstance(twin, str):
+            continue
+        rel = mf.relative_to(bundle)
+        doc = mf.parent / twin
+        if not doc.is_file():
+            out.append(f"{rel}: doc_twin points at {twin!r}, which is not a file next to "
+                       "the manifest")
+            continue
+        y = _manifest_selectors(data)
+        m = _doc_selectors(doc.read_text(errors="ignore"))
+        yaml_only = sorted(y - m)
+        doc_only = sorted(m - y)
+        if not (yaml_only or doc_only):
+            continue
+        parts: list[str] = []
+        if yaml_only:
+            parts.append(f"in the manifest but not in {twin}: {', '.join(yaml_only)}")
+        if doc_only:
+            parts.append(f"in {twin} but not in the manifest: {', '.join(doc_only)}")
+        out.append(
+            f"{rel}: selector twin DRIFT vs {twin} — " + "; ".join(parts) +
+            " (a field/submit selector was changed in one twin but not the other; "
+            "reconcile both, or if it is a doc example wrap it as a `<placeholder>`)"
+        )
+    return out
+
+
+def _selector_twin_warnings(bundle: Path) -> list[str]:
+    """(17, soft) A bundle that ships a selector manifest with no ``doc_twin:`` has an
+    unguarded human/machine pair — the twin can silently drift. Not a FAIL (the twin may
+    not exist yet); a nudge to declare it."""
+    out: list[str] = []
+    for mf, data in _iter_selector_manifests(bundle):
+        if not (isinstance(data, dict) and data.get("doc_twin")):
+            out.append(
+                f"{mf.relative_to(bundle)} is a selector manifest with no `doc_twin:` — "
+                "its human-doc twin is unguarded; declare `doc_twin: <map>.md` so check 17 "
+                "keeps the pair honest"
+            )
+    return out
+
+
 def _neutralize_findings(bundle: Path) -> list[str]:
     """(13) An outbound-action Talent MUST ship a well-shaped neutralize.yaml that covers
     every declared required cron. A self-contained Talent with no outbound action needs
@@ -673,6 +827,10 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _requires_findings(bundle)     # (15) requires: substrate↔min_tier consistency
         findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
 
+    # (17) selector-manifest ↔ human-doc twin equality — self-gates on a manifest with a
+    # declared doc_twin, so it runs on any bundle (a shared browser bundle may ship one).
+    findings += _selector_twin_findings(bundle)
+
     for p in sorted(bundle.rglob("*")):
         if not p.is_file() or p.suffix not in _TEXT_SUFFIXES or _SKIP_DIRS & set(p.parts):
             continue
@@ -789,6 +947,7 @@ def checklist_warnings(bundle: Path) -> list[str]:
             "state the hard prohibitions, placed last so the weak model reads them most "
             "recently (D85)"
         )
+    warnings += _selector_twin_warnings(bundle)  # (17, soft) manifest with no doc_twin
     return warnings
 
 

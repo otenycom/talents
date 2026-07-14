@@ -117,8 +117,11 @@ Talent alike.
 4. **To make it a publishable *Talent*, add a profile + a setup goal.** A skill becomes
    a Talent (installable, with a persona) when it ships:
    - `agent-profile.yaml` — `bot:` (the slug), `display_name`, `tagline` (shown in the
-     welcome), the `skills:` it bundles, `voice_skill:`, `base_language`, and a
-     `routing:` block with a `channel_prompt` + `signature`.
+     welcome), the `skills:` it bundles, `voice_skill:`, `base_language`, `model_tier`
+     (defaults to the bot's tier; declare `builder` as a floor for a **side-effecting
+     job** — a filing, payment, or submission — see the authoring standard's
+     business-bot-pattern "Choosing the model tier", D235), and a `routing:` block with a
+     `channel_prompt` + `signature`.
    - `required_artifacts.yaml` — the **setup goal**, one machine-checkable artifact per
      thing that must exist (db + tables, profile fields, etc.).
    - a `scripts/selfcheck.py` (copy the standard one) + a `references/first-run.md` drill

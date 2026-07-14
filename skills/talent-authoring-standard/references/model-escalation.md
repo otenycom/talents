@@ -74,8 +74,9 @@ you can name the skill that carries it.
   `route_reason: task:<slug>` (shown in `/costs` + the spend dashboard). Today it is
   **box-global for the duration** — while the task runs, the whole bot uses the stronger
   model, including any other group chats on it — so the announcement says so; the bot
-  drops back to the cheap model when the task is done. (Per-chat scoping arrives with a
-  later engine upgrade; nothing you declare changes.)
+  drops back to the cheap model when the task is done. (Per-chat scoping is the target,
+  and arrives with a Hermes pin ≥ v2026.7.7 that carries `channel_overrides`; nothing you
+  declare changes.)
 - The escalation is **sticky per task, never per message** (so it doesn't thrash), has a
   soft per-task rate limit and a safety time-out that drops it back if the bot forgets,
   and **cron / background work never follows it**.

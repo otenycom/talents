@@ -171,6 +171,45 @@ below).
 proposed fixes — pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
 
+## When your live bot fails (post-incident repair)
+
+The loop above is **pre-ship** iteration. Once a bot is **live in prod** the same loop runs in
+reverse — a real failure becomes the next pinning scenario. This is the steady-state maintenance
+recipe, and it is the *only* way a bot improves: never by editing the delivered bot in place.
+
+**Trigger.** You act on one of: an **escalation the bot filed** (it handed a job back instead of
+finishing), a **red row in the business Odoo's Bot Activity log**, or an **operator report** that
+a run did the wrong thing.
+
+1. **Read the run, don't guess.** Pull the evidence for that bot (all record-rule-scoped to your
+   own bots): the escalation/handback text, `traces --ref <bot>` (per-turn, tool-by-tool),
+   `logs --ref <bot>`, the **Author Logs portal**, and — for a browser bot — `browser-diff --ref
+   <bot>` (it diffs the bot's real `browser_fill_form` traces against your manifest and
+   **proposes** fixes).
+2. **Classify the failure — three kinds, three homes.**
+   - **Selector drift** (the portal moved: a field missed / the wrong control filled) → fix the
+     selector map + its manifest twin, **back-port the change to your stub** so a scenario can
+     pin it, re-run `selector-audit`.
+   - **Behavior** (the model reasoned wrong: fabricated, skipped a check, mis-ordered) → fix the
+     **skill prose/rules** (tighten the checklist, add a negative guardrail; do not "coax" a weak
+     model — raise the tier instead, per the authoring standard's model-tier rule).
+   - **Platform** (the harness / adapter / a mounted tool itself misbehaved) → **not** a Talent
+     fix; report it to the platform maintainer, never patch around it in the Talent.
+3. **Pin it before you fix it.** **Every live-caught failure class gets a new pinning red
+   scenario** (`tests/scenarios/*.yaml`) that reproduces it and asserts the *safe* outcome — the
+   service did **not** advance and no false proof was written. This is the rule, not a nicety: a
+   fix without a pinning scenario re-opens the same hole on the next change.
+4. **Ship it like code.** Bump the Talent `version` + a changelog line citing the incident,
+   `lint-talent`, run the clone green (**incl. the new red scenario**), re-tag. Improvement ships
+   **repo → lint → delivery** — the delivered tree is read-only.
+
+**Who owns it.** The **Talent author** (author #1 under the owner's account) owns the repair.
+When no author is on retainer, the **operator opens a repair ticket to the author and the bot
+stays in attended mode** (approval gate ON — see the graduation ladder in
+[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4f)
+until a fix ships. A business *user* never edits the Talent — they **report**; the author
+**repairs**.
+
 ## Verify your bot's mounted tools (the contract is in the docs, not the box)
 
 The **authoring contract** for every platform tool — parameters, result shape, error

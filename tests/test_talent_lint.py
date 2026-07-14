@@ -379,3 +379,82 @@ def test_no_task_escalations_block_is_clean(tmp_path):
 def test_travel_talent_declares_a_valid_escalation():
     # the shipped travel Talent's live-inventory → builder (trip-planner) declaration is clean.
     assert lint._task_escalation_findings(CATALOG / "oteny-travel-talent") == []
+
+
+# --------------------------------------------------------------------------- #
+# selector-manifest ↔ human-doc twin gate (check 17)                            #
+# --------------------------------------------------------------------------- #
+def _twin_bundle(root: Path, *, manifest: str, doc: str | None,
+                 doc_name: str = "form-selectors.md") -> Path:
+    """A Talent bundle shipping a selector manifest (+ optional human-doc twin) under
+    references/, plus a SKILL.md so the soft-warning path is reachable."""
+    b = _talent(root, profile_extra=_SKILLS)
+    refs = b / "filing" / "references"
+    refs.mkdir(parents=True, exist_ok=True)
+    (b / "SKILL.md").write_text("---\nname: x\ndescription: d\nversion: 1.2.3\n---\n"
+                                "1. do a thing\n2. verify it\n3. never fabricate\n")
+    (refs / "mfnl-selectors.yaml").write_text(manifest)
+    if doc is not None:
+        (refs / doc_name).write_text(doc)
+    return b
+
+
+_MANIFEST_MATCH = (
+    "version: 1\n"
+    "doc_twin: form-selectors.md\n"
+    "pages:\n"
+    "  - page: one\n"
+    "    submit: {selector: 'button[type=submit]'}\n"
+    "    fields:\n"
+    "      - {name: a, selector: '#field_a', kind: fill, "
+    "fallbacks: ['role=textbox[name=\"A\"]']}\n"
+    "      - {name: r, selector: 'input[name=radio_r][value=Nee]', kind: check, "
+    "fallbacks: ['[name=\"radio_r\"]']}\n"
+)
+# the human twin: primary anchors verbatim, the radio by field with an ellipsis value,
+# the machine fallbacks NOT enumerated (documented as a pattern, not a token).
+_DOC_MATCH = ("# map\n\nPage one: `#field_a` (text); `input[name=radio_r][value=…]` "
+              "(radio); submit `button[type=submit]`.\n")
+
+
+def test_selector_twin_match_is_clean(tmp_path):
+    b = _twin_bundle(tmp_path, manifest=_MANIFEST_MATCH, doc=_DOC_MATCH)
+    assert not any("twin DRIFT" in f for f in lint.lint_bundle(b))
+
+
+def test_selector_twin_drift_fails(tmp_path):
+    # the doc renamed #field_a → #field_A; the manifest still has #field_a → drift both ways
+    drifted = _DOC_MATCH.replace("#field_a", "#field_A")
+    b = _twin_bundle(tmp_path, manifest=_MANIFEST_MATCH, doc=drifted)
+    findings = lint.lint_bundle(b)
+    assert any("twin DRIFT" in f for f in findings)
+    msg = next(f for f in findings if "twin DRIFT" in f)
+    assert "#field_a" in msg and "#field_A" in msg   # a clear, both-directions set-diff
+
+
+def test_selector_twin_radio_value_is_normalized(tmp_path):
+    # the doc's `[value=…]` ellipsis must normalize to the same field anchor as the
+    # manifest's concrete `[value=Nee]` — a radio option value is never drift.
+    b = _twin_bundle(tmp_path, manifest=_MANIFEST_MATCH, doc=_DOC_MATCH)
+    assert not any("twin DRIFT" in f for f in lint.lint_bundle(b))
+
+
+def test_selector_twin_missing_doc_is_a_finding(tmp_path):
+    b = _twin_bundle(tmp_path, manifest=_MANIFEST_MATCH, doc=None)
+    assert any("does not" in f.lower() or "not a file" in f
+               for f in lint.lint_bundle(b) if "doc_twin" in f)
+
+
+def test_selector_manifest_without_doc_twin_warns_not_fails(tmp_path):
+    no_twin = _MANIFEST_MATCH.replace("doc_twin: form-selectors.md\n", "")
+    b = _twin_bundle(tmp_path, manifest=no_twin, doc=_DOC_MATCH)
+    # a manifest with no doc_twin is a SOFT warning, never a hard failure
+    assert not any("twin DRIFT" in f for f in lint.lint_bundle(b))
+    assert any("doc_twin" in w and "unguarded" in w for w in lint.checklist_warnings(b))
+
+
+def test_barney_manifest_twin_is_in_lockstep():
+    # the shipped Barney bundle (radar) declares doc_twin and must stay drift-free.
+    bundle = Path("/Users/ries/oteny/radar/cuneus_barney/talents/cuneus-hr-talent")
+    if bundle.is_dir():
+        assert not any("twin DRIFT" in f for f in lint.lint_bundle(bundle))

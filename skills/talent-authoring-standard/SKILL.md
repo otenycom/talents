@@ -123,7 +123,11 @@ add **context-aware reads** (not keyword matches) — see
 - `agent-profile.yaml` (voice/persona, `channel_prompt` text, toolset
   *contribution*, baked|purchased, price). **`model_tier` is honored** — it sets the
   bot's default model (an operator override still wins). Declare the cheapest tier the
-  job passes its scenarios (incl. red) on. A Talent **must** ship one.
+  job passes its scenarios (incl. red) on — **unless** the job performs an irreversible
+  external side effect or makes consequential claims (filings, payments, submissions),
+  in which case declare `model_tier: builder` as the floor (see
+  [references/business-bot-pattern.md](references/business-bot-pattern.md) "Choosing the
+  model tier", D235). A Talent **must** ship one.
 - Optional `requires: {substrate, min_tier}` — a hardware need; lint check 15 enforces
   vm→max. Absent = any tier.
 - Optional `task_escalations:` — steer a fabrication-prone **task** to a stronger model

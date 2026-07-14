@@ -366,6 +366,28 @@ register-lookup interludes, date carry-over, and the consent gate.
 
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
+**Two layers — keep them apart.** A browser Talent is authored in **two** layers, and conflating
+them is the trap that turns a high-level work instruction into a brittle screen-scraping script:
+
+1. **The work instruction** — the SKILL.md prose: the workflow, which DTO field fills which
+   logical field, the escalation and fail-closed rules. It is **employee-style and
+   selector-free** — you tell the bot *what* to do the way you'd brief a new hire, never *which
+   CSS id* to click. **This is your IP** and it stays high-level; a site redesign does **not**
+   touch it.
+2. **The page runbook** — the selector map (`references/form-selectors.md`) + its machine twin
+   (the expected-selector manifest below). Treat it as a **generated, disposable artifact**, not
+   work-instruction content: **harvest** it once at authoring time from the real page's devtools
+   (or your faithful stub), **converge** it against reality by observe → `browser-diff` proposals
+   → author accepts, and **regression-net** it by back-porting each fix to the stub. When the
+   portal is redesigned you **regenerate the runbook** — you never rewrite the instruction.
+
+That split is the reconciliation of "a Talent is a high-level work instruction" with the hard
+platform fact that the model **cannot read CSS selectors off a live page** (`browser_snapshot`
+exposes accessibility refs, never ids — see [`browser-authoring.md`](browser-authoring.md)): the
+selectors have to ship *somewhere*, so they ship as a **compiled artifact beside** the
+instruction, not woven **into** it. The rest of this section is how you build and maintain that
+artifact.
+
 Your dev stub (§4c) has clean, stable ids you chose; the **real third-party site does not** — its
 ids are framework-generated, its custom widgets aren't native controls, and a re-skin renames both
 without warning. A skill whose `browser_fill_form` selectors were written against the stub's tidy
@@ -456,6 +478,12 @@ pages:
   control you meant.
 - `expect:` is optional ground truth (id / name / role the selector should resolve to) — so a silent
   *RENAMED* (the field filled, but a **different** control) is caught, not just a total miss.
+- `doc_twin:` names your **human-readable** per-page map (the `.md` twin of this manifest). Declare it —
+  the authoring lint's **check 17** then asserts the two files list the *same* concrete `#id`/attribute
+  field+submit selectors and **FAILs on drift**, so a selector edited in one twin but not the other can
+  never ship silently. (Fallback ladders and radio option *values* stay yaml-only by design — the doc
+  documents the primary anchor + the ellipsis pattern, not every rung; the check normalizes both out.)
+  Omit it and you get only a soft warning that the pair is unguarded.
 
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
@@ -583,6 +611,31 @@ shares.
 how you spend live runs converging selectors (§4e) and reconciling the real workflow (observe mode,
 above) without ever filing for real — the same tier-below-the-Talent discipline as the stub doubles
 (§4), but for the one bot you deliberately point at the live site.
+
+### The graduation ladder — from rehearsal to unattended prod
+
+A side-effecting bot does **not** go from green tests straight to filing on its own. It climbs a
+ladder, and each rung has an objective exit gate — so "is it ready to run unattended?" is a
+measured fact, not a judgment call:
+
+- **Stage 0 — stub-green.** The full `tests/scenarios/*.yaml` suite passes on the neutralized clone,
+  **including every red (fail-closed) scenario**. Exit: all green.
+- **Stage 1 — observe on the real site.** Point the bot at the **real** third-party site with the
+  **submit-deny belt armed** (§4f) and run observe passes until `browser-diff` is clean — the
+  runbook matches reality, and the belt has stopped any drift-to-submit. Exit: `browser-diff` clean,
+  zero belt-caught submit attempts.
+- **Stage 2 — attended prod.** The bot files for real, but the **approval-gate workflow state is ON**
+  (the attended default — see "The attended approval gate", §6) and an **operator watches** each run.
+  Every filing is human-approved before submit.
+- **Graduate to unattended.** The exit criteria from attended to unattended, the **ratified default**
+  (tune per bot, record the number on the bot): **5 consecutive clean attended filings, including at
+  least one rejection/exception path, with zero submit-deny-belt trips and zero server-side
+  proof-guard refusals.**
+
+**Who disarms attended mode: the operator, at commission time, recorded on the bot record — never the
+author, and never the bot.** The Talent author ships the *capability*; turning off the human gate is a
+deliberate operator act on one specific bot, logged, and reversible. A bot can no more graduate itself
+than it can rewrite its own Talent.
 
 ## 5. Testing — the live Discuss driver (check 14)
 
@@ -726,6 +779,41 @@ automatically at once — each would claim and fire the same record (a double si
 channel-dispatch trigger is the primary automatic path; any automatic webhook/timer belt stays
 off while it is live.
 
+### Choosing the model tier — blast radius, not scenario pass-rate (D235)
+
+The fleet default is *"declare the cheapest tier your scenarios pass on"* — right for a
+chat assistant, **wrong for a business bot that acts on the world.** A bot whose failure
+mode is an **irreversible external side effect or a consequential false claim** (a filing,
+a payment, a submission) defaults to a **builder floor** (`model_tier: builder`), because
+the cost of a wrong action dwarfs the model-price delta.
+
+**Why — the measured evidence (D235, from D189/D233).** In a live A/B, the reference
+business bot on the cheap (Flash-class `assistant`) tier **invented an identifier, guessed
+method names, and mis-advanced a legal filing to a done state**; the *same* Talent on the
+`builder` tier escalated cleanly instead of fabricating. The D233 replay grid quantified it:
+the honesty/provenance rules were **ineffective on the cheap tier yet decisive on builder**
+(cause of a stop stated correctly 60→90%, claims backed by provenance 70→100%). You are
+buying honesty and long-horizon compliance, not raw capability.
+
+**The floor is your *only* model lever — per-task escalation does not apply here.** A
+locked business bot is structurally escalation-exempt (empty `task-policy.json`,
+`switch_persona(task=)` refused), so there is no per-task "upgrade for the risky step" —
+the static `model_tier` floor is the whole decision. Get it right.
+
+**Tier and authoring rigor are decoupled — never substitutes.** A stronger model does
+**not** buy you scaffolding-free authoring: the checklist / selector-map / submit-belt
+architecture in this doc is mandatory on **every** tier. Measured: prose-inferred submit
+selectors were obeyed on only **2/12 calls even on builder** — structure buys determinism
+no model provides. The inverse is also banned: **do not coax a weak model** with
+Flash-specific behavioral prose (exact-call recipes, anti-fabrication paragraphs D233
+measured *inert* on the cheap tier). If a behavior needs a stronger model, **raise the
+tier** — don't write more prose at the cheap one.
+
+**Downgrading below the floor needs evidence, not a hunch.** To run a side-effecting bot
+below builder, prove it: **N consecutive graded greens including every red scenario** on
+the target tier, within a declared variance bound, at the **current** Talent version.
+Absent that measurement, the builder floor stands.
+
 ### Declare the run's turn budget — `agent_max_turns` for a long job
 
 A dispatched turn runs under a **tool-turn budget** — the max number of tool calls the agent
@@ -738,7 +826,7 @@ reads like a stall but is a budget cap (the gateway log shows `api_calls=<max>` 
 Declare the ceiling **in your `agent-profile.yaml`**, as a sibling of `model_tier`:
 
 ```yaml
-model_tier: builder
+model_tier: builder       # side-effecting bot → builder floor (see "Choosing the model tier", D235)
 agent_max_turns: 200      # this bot's one job is a ~200-call portal filing — raise the ceiling
 ```
 
@@ -952,3 +1040,25 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
 - **Owner-visibility** — the bot records each exchange as a session in the owner's Odoo over
   `/json/2/` (soft-linked to the record, idempotent bot identity, best-effort so a log
   failure can't fail the work); reviewable from a smart button on the record. (PASS/FAIL / N/A)
+
+## The author-time ledger (changelog discipline)
+
+The load-bearing cost of a business bot is **author/AI-dev time**, not tokens — but that cost
+is invisible unless you record it. So every Talent **version-bump changelog line** carries two
+extra fields, right in the `agent-profile.yaml` changelog comment:
+
+- **`~effort: <AI-session-h>/<review-min>`** — roughly the AI-coding-session hours plus the
+  human review minutes that version cost. Estimate; the point is the trend, not the decimal.
+- **a class tag** — what *kind* of work it was, one of:
+  - `[flash-coax]` — behavioral prose written to make a **weak** model behave (exact-call
+    recipes, anti-fabrication paragraphs). **This is the tag to drive to zero**: if a behavior
+    needs it, the honest fix is a stronger tier (the model-tier rule), not more prose.
+  - `[model-indep]` — structure that helps on **every** tier (a checklist, a selector map, a
+    batch-fill rule, a fail-closed belt).
+  - `[cost]` — work that cut run cost/latency (fewer round-trips, a tighter toolset).
+  - `[safety]` — a new guard, a pinning red scenario, a contradiction removed.
+
+Example line: `0.6.2: reconciled the confirm-before-submit texts to the workflow gate.
+~effort: 3h/20m [safety]`. Over a few versions the ledger makes the "tuning time dwarfs
+tokens" claim **testable**, and a pile of `[flash-coax]` entries is the measured signal to
+raise the tier instead of writing more prose.

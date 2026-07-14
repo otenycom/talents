@@ -61,6 +61,31 @@ your own browser devtools, and ship them in the skill:
   selectors miss, `browser_fill_form` reports those fields `ok:false` — your skill
   must halt and escalate, never improvise new selectors mid-run.
 
+## When may a skill go selector-free?
+
+Selectors ship in the skill because the model **can't read CSS ids off the page**
+(fact 2) — that is why the map exists at all (D214). But a `label=`/role locator matches
+the accessible name the snapshot *does* show, so a
+site with clean labels can be driven **without any harvested CSS ids** — the skill then
+targets fields by their visible label alone. Go selector-free **only when all of these
+hold**:
+
+- **Every field grades resilient with a label-first front rung.** `selector-audit` (the
+  static verb, D232) reports each field `resilient` with a `label=` or role+accessible-name
+  as the **first** ladder rung — not an id demoted to a fallback.
+- **`label=` + `page_digest` cover every step, including submit.** No wizard step needs a
+  raw id or an id-shaped submit selector; the page's *Continue*/*OK* is reachable by
+  role+name.
+- **Labels are unique per page.** No repeated `Yes`/`No` groups where a bare label is
+  ambiguous (there you still need the `name[value=…]` form — not selector-free).
+- **Fill-verify is green on a label-only manifest.** A dry run (`browser-diff` after an
+  observe pass) shows every field resolving 1:1 with no id in the ladder.
+
+Absent all four, keep the **default for third-party sites: label-first rungs FIRST,
+harvested ids as later rungs** — the resilience ladder, not a selector-free skill. The
+ladder degrades gracefully (a renamed id falls through to the label); a bare-id-only skill
+misses mid-filing on the first re-skin.
+
 ## Batching discipline (the short form)
 
 One `browser_fill_form` call per form page; steps run in order (sequence
