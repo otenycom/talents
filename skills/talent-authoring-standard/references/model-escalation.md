@@ -65,14 +65,20 @@ you can name the skill that carries it.
 
 ## What you get at runtime (you don't wire this — the platform does)
 
-- The bot sees a "escalate for this task, then drop back" line in its HERMES.md and calls
-  `switch_persona(task="<slug>")` when the task starts.
-- The switch is **chat-scoped** (a trip group escalating never makes a different group's
-  chat on the same bot expensive), **announced** to the user, and the credit charge is
-  stamped `route_reason: task:<slug>`. When the task is done, the bot switches back to the
-  cheap model.
-- The escalation is **sticky per task, never per message** (so it doesn't thrash), and
-  **cron / background work never follows it**.
+- The bot sees an "escalate for this task, then drop back" line in its HERMES.md and calls
+  `switch_persona(task="<slug>")` when the task starts. The switch takes effect from the
+  bot's **next message** (the model is resolved once per turn), so the bot announces the
+  switch, ends that reply, does the task on the following message, and switches back with
+  `switch_persona(task="<slug>", done=true)` once the task is delivered.
+- The switch is **announced** to the user and the credit charge is stamped
+  `route_reason: task:<slug>` (shown in `/costs` + the spend dashboard). Today it is
+  **box-global for the duration** — while the task runs, the whole bot uses the stronger
+  model, including any other group chats on it — so the announcement says so; the bot
+  drops back to the cheap model when the task is done. (Per-chat scoping arrives with a
+  later engine upgrade; nothing you declare changes.)
+- The escalation is **sticky per task, never per message** (so it doesn't thrash), has a
+  soft per-task rate limit and a safety time-out that drops it back if the bot forgets,
+  and **cron / background work never follows it**.
 - A **locked business bot** (a scoped, single-Talent bot) is exempt: it renders no task
   table and refuses a `task=` switch, so nothing can knock it off its pinned model.
 
