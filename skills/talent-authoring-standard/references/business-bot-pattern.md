@@ -959,6 +959,48 @@ states**, on the **same isolated-turn harness (§6) with no harness change**:
   — the prep run legitimately advances the record with *no* external proof yet, so guarding it would
   fail-closed the wrong step. Guard only the advance that claims a real-world outcome.
 
+### The human-login gate — park, a human logs in, re-dispatch on a fresh claim
+
+Some portals gate the real work behind a **login only a human can pass** — an identity-provider
+sign-in, an SMS or authenticator one-time code, a hardware-key tap. The wrong build is a pause/resume
+that freezes the automation mid-turn waiting for the person to type the code — it holds a live browser
+*and* a claim open for minutes against the session's hard lifetime (the near-TTL trap, above), and on
+the isolated harness there is no chat reply the throwaway turn can even receive. The right build is the
+**same pure workflow states** (§6), with the login done in a **separate, human-driven browser session**
+the next run reuses:
+
+- **A run reaches the wall, parks, and ends.** When a dispatched turn hits the login/2FA wall it takes a
+  bot-owned **work** transition into a **human-owned "needs login" state** and ends the turn — it opens
+  no authenticated session and writes no secret. Register that state as an accepted **work** outcome of
+  the in-progress state (§6), or the harness's timeout backstop hands the record back as a false failure.
+- **A human logs in, in a fresh profile session — the bot never sees the credential or the code.** The
+  person completes the gated login (types the one-time code, taps the key) in a **fresh browser profile
+  session** minted at click-time, not inside the bot's automation session and not by handing the bot the
+  secret. What the later run reuses is the **authenticated session** that login produced — a bound browser
+  profile / cookie — never the raw credential or the OTP. Mint that session *when the human is ready*, not
+  when the wall is hit, so the login sits inside the browser's hard lifetime instead of racing it.
+- **A resume transition re-dispatches on a fresh claim.** When the human marks the login done, the record
+  moves into a **bot-owned queue state** that dispatches like any other (§6): its **own claim mints a
+  fresh claim epoch** and fires a *second*, fresh isolated turn that does the real side-effect against the
+  now-authenticated session. A stale parked turn cannot act on the resumed record — the resume→queue claim
+  bumps the epoch and fences a late writer out. The login is a **state boundary, not a shared session.**
+- **Fail closed — and never re-drive the login (no re-code).** If the re-dispatched run *still* finds the
+  session unauthenticated (the human hasn't finished, the session expired, the flush hadn't landed), the
+  work **did not happen**: write nothing, advance nothing, take the **escalate** transition (§4b), and
+  **do not re-enter credentials or re-request the one-time code.** Re-triggering a code is a human-only
+  step — each request burns a rate-limited send and can lock the account — so the bot's only moves at a
+  closed gate are *reuse a session a human already authenticated* or *escalate*, once. A partial
+  write-ahead marker is not proof; the escalate path stays open with it present.
+- **Guard only the real advance.** As with the approval gate, scope the server-side proof guard (§4b) to
+  the **post-side-effect** advance, not the park or the resume — parking and re-claiming legitimately
+  advance the record with no external proof yet.
+
+Grade it with a red scenario `login_gate_closed_no_fabricate` (the §4b `<failure>_no_fabricate` family):
+converge the bot against a gate with **no** authenticated session and assert the *negative* ground truth
+— the record did not advance past the gate, no real proof exists, the reply escalates, and the run made
+**zero** re-login or re-code attempts. Keep the everyday path cold with a low-frequency **attended login
+refresh** that renews the session before it expires, so the reactive gate stays the rare-path safety net.
+
 ### Watching an inbox for the outcome — the mailbox stub double
 
 A workflow often completes only when a **counterparty replies** — an email confirming or rejecting

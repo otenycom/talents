@@ -155,6 +155,15 @@
       "cost": "low"
     },
     {
+      "name": "browser_needs_login",
+      "requestable_name": "browser_needs_login",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "host_website",
       "requestable_name": "host_website",
       "request_via": "tools.required",

@@ -36,16 +36,12 @@ canonical section structure, `references/`/`scripts/`/`templates/` placement, an
 (the tenant has it loaded). Read it first; this skill adds the Oteny **product deltas**
 below. Two native facts it leans on:
 
-- **Lean bodies via native progressive disclosure.** Only a one-line `name:
-  description` index sits in the cached prompt; the agent pulls a body on demand with
-  `skill_view(name)` and a reference with `skill_view(name, file_path='references/…')`.
-  So size matters: a `SKILL.md` body sits at **8–14k chars** and you **split into
-  `references/` past ~20k** (hard cap 100k). Do **not** build a "load skill" tool —
-  Hermes already is that tool.
-- **The `description` is the router, truncated to 60 chars.** The index shows only the
-  first ~60 chars of each description (`skill_utils.extract_skill_description`), so a
-  composing skill's description must be a **sharp ≤60-char trigger** (the words a
-  matching message contains), not a paragraph.
+- **Lean bodies, native progressive disclosure.** Only the one-line `name: description`
+  index is cached; bodies + references load on demand via `skill_view(name[, file_path])`.
+  So a `SKILL.md` body sits at **8–14k chars** and **splits into `references/` past ~20k**
+  (hard cap 100k) — don't build a "load skill" tool, Hermes is one.
+- **The `description` is the router, truncated to ~60 chars**
+  (`skill_utils.extract_skill_description`) — make it a **sharp ≤60-char trigger**, not a paragraph.
 
 ## Two invariants that make this cheap
 
@@ -96,19 +92,10 @@ The single most important idea: a bot's "setup goal" is **declared, not implied.
 work, each with a **machine-checkable** existence condition. That manifest *is* the
 goal; the first-run section is the loop that drives toward it; `selfcheck` is the
 deterministic judge. A bundle whose "done" state is vague cannot be validated and
-cannot self-heal — so a well-formed manifest is the first thing to check.
-
-Artifact classes a manifest may declare (omit those a bot doesn't need):
-
-| Class | Checkable condition |
-|---|---|
-| `data` | db file exists + named tables present |
-| `profile` | profile file exists + required fields non-empty |
-| `memory` | `~/.hermes/memories/USER.md` rendered from the profile |
-| `routing` | this bot's `channel_prompt` (+ optional DM hint) registered |
-| `cron` | named jobs registered (with `enabled_when: tool:<x>` if gated) |
-| `tools` | required tools present; absent charged tools shipped as stubs |
-| `secret` | named env vars present (delivered by the deployer, never baked) |
+cannot self-heal — so a well-formed manifest is the first thing to check. The artifact
+classes it may declare (`data`/`profile`/`memory`/`routing`/`cron`/`tools`/`secret`)
+and their checkable conditions are in
+[`references/required-artifacts.md`](references/required-artifacts.md).
 
 ## The rubric — 14 checks (each PASS / FAIL / N/A)
 

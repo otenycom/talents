@@ -612,6 +612,25 @@
       "notes": "One call per FORM PAGE. Steps run in order (sequence unlock-then-set interactions, e.g. uncheck a filter checkbox before selecting the option it hides). Selectors are CSS or Playwright selectors; `label=` targets the visible field label (what snapshots show). Ship your portal's selector map in your skill's `references/` — snapshots expose refs and labels, never CSS ids, so derive the map from your portal's DOM in your own browser devtools. `kind` is auto-detected for native controls; a checkbox accepts either {selector, value: 'false'/'true'} (kind auto) or an explicit kind:'uncheck'/'check' with value omitted — both canonical, pick one; a radio is a check on the option (input[name=g][value=X]). Drive a custom widget (a dropdown that is not a real <select>) with explicit kind:'click' steps. NEVER batch across a server round-trip (a search that populates fields), and NEVER use submit_selector for an irreversible/final submission — take a fresh snapshot and click that explicitly. Full discipline: business-bot-pattern.md §6 and browser-authoring.md."
     },
     {
+      "name": "browser_needs_login",
+      "requestable_name": "browser_needs_login",
+      "request_via": "tools.required",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free",
+      "description": "Report that the page has hit a sign-in or two-factor/2FA wall that only the account owner can pass, so this turn cannot proceed. Call this once you reach a login or verification step you cannot complete yourself (the cloud browser could not auto-solve it and no saved login carried you through). Unlike a live handoff, this does NOT open a live view or message anyone and does NOT keep the browser open — it simply reports that a human login is required so you can END THE TURN cleanly. Do not retry the login, do not enter credentials, and do not wait: report and stop. Check FIRST whether you are already signed in from a saved login before calling this — logins persist across turns, so most visits need no login at all.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "result": "{status:'login_required', message} — a human sign-in / 2FA wall only the owner can pass was hit. END your turn now; do not retry, do not enter credentials, do not wait. The owner logs in later from a button and the workflow re-runs you once the session is authenticated.",
+      "errors": "None — this is a terminal signal for the turn, not an action that fails.",
+      "example_request": "{}",
+      "example_result": "{\n  \"status\": \"login_required\",\n  \"message\": \"A human login or 2FA step is required to continue. End the turn now.\"\n}",
+      "notes": "The isolated-run twin of browser_request_human: it opens NO live view and messages no one — a fresh, owner-driven login session is minted out of band. Check whether a saved login already carried you through before calling it, and call it at most ONCE per wall, then stop — never re-drive sign-in or re-request a code."
+    },
+    {
       "name": "host_website",
       "requestable_name": "host_website",
       "request_via": "tools.required",
@@ -895,7 +914,7 @@
       "group": "Out of the box",
       "status": "live",
       "cost": "free",
-      "description": "Escalate to a stronger model for ONE error-prone task, then switch back. Call this FIRST when starting a task named in your 'Model routing' table (e.g. finding or verifying real bookable listings, rentals, tickets, or offers), with the table's task slug. The switch is announced to the user, uses credits faster, and stays on until you call this again with done=true — do that as soon as the task is finished so ordinary chat stays cheap. Never switch for plain conversation, and never call it repeatedly for the same task.",
+      "description": "Escalate to a stronger model for ONE error-prone task, then switch back. Call this FIRST when starting a task named in your 'Model routing' table (e.g. finding or verifying real bookable listings, rentals, tickets, or offers), with the table's task slug. The switch takes effect from your NEXT message — so after calling it, announce it to the user and END your reply; do the task in the following message. It uses credits faster and stays on until you call this again with done=true — do that as soon as the task is delivered so ordinary chat stays cheap. Never switch for plain conversation, and never call it repeatedly for the same task.",
       "parameters": {
         "type": "object",
         "properties": {

@@ -64,6 +64,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `browser_request_human` | `tools.required` | oteny-web-operator | live | Included | 🔐 Sends a secure live-view link so you sign in or pass a 2FA code, then carries on. |
 | `browser_download` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📥 Fetches a file off a website (export, invoice, backup) and hands you a link. |
 | `browser_fill_form` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📝 Fills a whole web form in one go and double-checks every field before moving on. |
+| `browser_needs_login` | `tools.required` | oteny-web-operator | live | Included | 🔑 Reports that a page needs a human sign-in so the bot ends the turn cleanly instead of stalling — the owner logs in later from a button. |
 
 ## Host a website
 
