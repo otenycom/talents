@@ -133,6 +133,9 @@ add **context-aware reads** (not keyword matches) — see
 - Optional `task_escalations:` — steer a fabrication-prone **task** to a stronger model
   (never a whole-bot floor; lint check 16). Schema + rules:
   [references/model-escalation.md](references/model-escalation.md).
+- Optional `doc_twin:` on a selector manifest — names its human-readable per-page map;
+  **lint check 17** then FAILs on any drift between the twin `#id`/attribute field+submit
+  selectors (see [references/business-bot-pattern.md](references/business-bot-pattern.md) §4e).
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.
