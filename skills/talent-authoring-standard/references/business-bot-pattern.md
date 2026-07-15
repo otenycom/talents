@@ -1001,6 +1001,19 @@ converge the bot against a gate with **no** authenticated session and assert the
 **zero** re-login or re-code attempts. Keep the everyday path cold with a low-frequency **attended login
 refresh** that renews the session before it expires, so the reactive gate stays the rare-path safety net.
 
+**How the client's own system reaches Oteny (the client-integration seam).** The mint-on-click and the
+attended-refresh above are triggered by the **client's own system** (its ERP / back-office) calling Oteny
+**server-to-server** — not by the bot. That call rides a single **public HTTPS lane** the platform
+operates, and the contract is deliberately tiny: **one base URL + one `Authorization: Bearer <token>`
+header**, JSON body, synchronous response. The bearer is a **purpose-scoped client-integration
+credential** — issued per client-integration, independently revocable, and **distinct from any model /
+spend token** the bot uses — so exposing this seam can never leak model budget, and rotating it never
+disturbs the bot. Treat the value like any secret: it lives in the client system's own secret store
+(never in chat, never on the bot's box), and the synchronous response (e.g. an ephemeral human-login
+viewer URL) is opened once and **never persisted or posted into a channel**. You do not build this lane —
+the platform provides it; you only need to know the seam is *one bearer header to one URL*, so a client
+integration is a config value, not a bespoke protocol.
+
 ### Watching an inbox for the outcome — the mailbox stub double
 
 A workflow often completes only when a **counterparty replies** — an email confirming or rejecting
