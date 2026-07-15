@@ -107,6 +107,22 @@ def test_cold_tenant_main_exits_zero_without_traceback(sc, monkeypatch, tmp_path
     assert "PyYAML is required" not in out  # the old hard-fail message is gone
 
 
+def test_check_profile_non_dict_is_unknown_not_crash(sc, tmp_path):
+    """check_profile must not crash on a valid-YAML NON-MAPPING profile (list/scalar) — it is a
+    shape fault (UNKNOWN), not a `data.get` AttributeError that breaks the always-exit-0 contract."""
+    p = tmp_path / "profile.yaml"
+    p.write_text("- a\n- b\n")   # valid YAML, but a list, not a mapping
+    r = sc.check_profile({"path": str(p), "required_fields": ["x"]})
+    assert r["ok"] is False and r["unknown"] is True
+    assert "not a mapping" in r["reason"]
+
+
+def test_yaml_load_text_never_raises_on_malformed_even_with_pyyaml(sc):
+    """_yaml_load_text degrades a present-but-malformed YAML to None even when PyYAML IS
+    installed (belt-on-belt for the PyYAML branch too), never a raw traceback."""
+    assert sc._yaml_load_text("a: [1, 2\n") is None       # unterminated flow → None, not a raise
+
+
 def test_cold_tenant_ready_when_artifacts_present(sc, monkeypatch, tmp_path):
     """A fully set-up FlatBelly tenant still verifies READY with PyYAML absent."""
     monkeypatch.setattr(sc, "yaml", None)

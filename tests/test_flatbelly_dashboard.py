@@ -49,6 +49,24 @@ def test_dashboard_degrades_without_matplotlib(monkeypatch):
     assert gen.main([]) == 2
 
 
+def test_dashboard_unreadable_profile_is_unknown_loud(tmp_path, monkeypatch, capsys):
+    """A PRESENT-but-unparseable profile is an ENV fault (UNKNOWN-loud, return 2), NOT a
+    'goal not set' — so the weekly cron's failure reads as 'fix the environment', never as
+    'the user set no goal'. Deterministic: the malformed YAML is rejected by BOTH PyYAML and
+    the stdlib belt, so the verdict doesn't depend on which is installed."""
+    gen = load(GEN, "fb_generate_unknown")
+    prof = tmp_path / "profile.yaml"
+    prof.write_text("goal_weight_kg: [1, 2\n")   # unterminated flow → PyYAML AND the belt reject
+    status, _ = gen.load_profile(str(prof))
+    assert status == "unreadable"
+    # main() surfaces it as UNKNOWN-loud on stderr and returns 2 (handled-error convention).
+    # A truthy `plt` gets past the matplotlib-absent guard so main reaches the profile read.
+    monkeypatch.setattr(gen, "plt", object())
+    rc = gen.main(["--profile", str(prof), "--db", str(tmp_path / "none.db")])
+    assert rc == 2
+    assert "UNKNOWN" in capsys.readouterr().err
+
+
 def test_dashboard_renders(tmp_path):
     """When matplotlib IS present, the weekly cron actually produces a PNG (generate.py's
     first render coverage). Skipped where matplotlib is absent — the platform provisions it

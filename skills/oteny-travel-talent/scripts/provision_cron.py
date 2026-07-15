@@ -44,10 +44,20 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml``), loaded from the sibling
+    ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares, so a cold tenant whose system python3 lacks PyYAML still reads config.yaml
+    (correct model/provider) instead of silently falling back to the defaults."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 DEFAULT_DB = os.path.expanduser("~/.hermes/data/oteny-travel-talent/trips.db")
 DEFAULT_PROFILE = os.path.expanduser("~/.hermes/data/oteny-travel-talent/profile.yaml")
@@ -84,16 +94,13 @@ def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:
 
     Falls back to the router defaults if config.yaml is absent/unreadable so a spec
     always carries a working model+provider (an un-pinned cron job is the bug)."""
-    if yaml is None:
-        return _FALLBACK_MODEL, _FALLBACK_PROVIDER
-    try:
-        cfg = yaml.safe_load(Path(config_path).read_text()) or {}
-        mc = cfg.get("model", {})
-        if isinstance(mc, dict):
-            return (mc.get("model") or _FALLBACK_MODEL,
-                    mc.get("provider") or _FALLBACK_PROVIDER)
-    except Exception:
-        pass
+    belt = _belt()
+    data = belt.read_yaml(Path(config_path))
+    cfg = data if isinstance(data, dict) else {}
+    mc = cfg.get("model", {})
+    if isinstance(mc, dict):
+        return (mc.get("model") or _FALLBACK_MODEL,
+                mc.get("provider") or _FALLBACK_PROVIDER)
     return _FALLBACK_MODEL, _FALLBACK_PROVIDER
 
 

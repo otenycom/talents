@@ -59,8 +59,12 @@ Do **not** improvise. (Skip to "Daily reminder role" only when a reminder cron f
    - `READY: yes` → you now hold the clock (hard rule ③), today's rows, prefs and
      targets. **Don't** separately `cat` profile/memory, re-check the clock, or re-list
      today — preflight gave you all of it this turn. Go to step 2.
-   - `READY: no` → setup is incomplete. Load `references/first-run.md` and follow it
-     (it runs declared scripts only). **Do not coach until READY.**
+   - `READY: no` → setup is incomplete (a genuine first-run gap). Load
+     `references/first-run.md` and follow it (declared scripts only). **Do not coach until READY.**
+   - `UNKNOWN: …` → an **environment fault** (a file is present but unreadable, a corrupt db) —
+     **NOT** a fresh tenant. **Do NOT onboard, do NOT coach, and do NOT re-run the intake or
+     re-create the db** (that would overwrite the owner's real — currently unreadable — data).
+     Report the one-line problem to the owner and stop.
 
 2. **Is this for the coach?** **YES** if it mentions: a food/meal/drink, calories or
    macros, a body weight/weigh-in, sleep, steps or active energy, a workout/walk, a

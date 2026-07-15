@@ -16,6 +16,10 @@ python3 ~/.hermes/skills/talents/oteny-flatbelly-talent/scripts/selfcheck.py
 - `READY` → setup is done. Stop here and coach.
 - `NOT-READY: missing=[…]` → run the remediation for **each** listed artifact, in this
   order, then run the guard again.
+- `UNKNOWN: env=[…]` → an **environment fault** (a present-but-unreadable file / a corrupt
+  db), **NOT** first-run. **Do NOT run any remediation** — re-creating the db or re-running
+  the intake would overwrite the owner's real (currently unreadable) data. Report the
+  one-line problem to the owner and stop.
 
 ## Runtime hard rules for setup (proven on the source instance)
 

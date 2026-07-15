@@ -10,9 +10,10 @@ turn. This script answers all of them in **one** read-only call:
     python3 ~/.hermes/skills/talents/oteny-travel-talent/scripts/preflight.py
 
 It prints, in a compact parseable block:
-  * READY    — fast proxy for "can I plan now?" (db + 6 tables + profile fields).
-               When `no`, run the full ``selfcheck.py`` for the detailed missing list,
-               then onboarding. (selfcheck stays the authority; this is the cheap path.)
+  * READY    — a THREE-VALUED proxy for "can I plan now?": READY (db + 6 tables + profile
+               fields), NOT-READY (a user-state gap → load references/first-run.md), or
+               UNKNOWN (an ENVIRONMENT fault — a present-but-unreadable profile / corrupt db →
+               report it and STOP; NEVER onboard). selfcheck.py stays the detailed authority.
   * NOW      — local time in the tenant's home timezone (re-verify live before any
                leave-by; never frame a departure from a remembered clock).
   * PROFILE  — home_city / home_timezone / language / default_currency / prefs.
@@ -38,14 +39,24 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 try:
-    import yaml
-except ImportError:  # pragma: no cover - PyYAML is always present on Hermes
-    yaml = None
-
-try:
     from zoneinfo import ZoneInfo
 except ImportError:  # pragma: no cover - py>=3.9 on Hermes
     ZoneInfo = None
+
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml`` + ``UNREADABLE``), loaded from the
+    sibling ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares, so a cold tenant whose system python3 lacks PyYAML still PARSES profile.yaml
+    instead of mis-reading "can't parse" as "not set up → onboard" (the hh00046 incident)."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 _BOT = "oteny-travel-talent"
 _DB_TABLES = ["trips", "members", "bookings", "itinerary", "todos", "expenses"]
@@ -82,31 +93,24 @@ def _migrations_line() -> str:
         return "MIGRATIONS: none"
 
 
-def _load_yaml(path: Path):
-    if yaml is None or not path.exists():
-        return None
-    try:
-        with path.open() as fh:
-            return yaml.safe_load(fh)
-    except Exception:
-        return None
-
-
 def _connect(db: Path):
     return sqlite3.connect(str(db)) if db.exists() else None
 
 
-def _db_tables(db: Path) -> set[str]:
-    con = _connect(db)
-    if con is None:
-        return set()
+def _db_probe(db: Path):
+    """Three-valued db state: ``"absent"`` (no file → first-run), ``"unreadable"`` (present
+    but corrupt/locked → env fault → UNKNOWN), or the set of table names."""
+    if not db.exists():
+        return "absent"
     try:
-        return {r[0] for r in con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
+        con = sqlite3.connect(str(db))
+        try:
+            return {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+        finally:
+            con.close()
     except sqlite3.Error:
-        return set()
-    finally:
-        con.close()
+        return "unreadable"
 
 
 def _now(profile: dict | None) -> datetime:
@@ -266,41 +270,62 @@ def _overrides_block(data_dir: Path) -> str:
     return "OVERRIDES: none"
 
 
-def _readiness(db: Path, profile_path: Path, profile: dict | None):
-    """Fast proxy for selfcheck: db + 6 tables present and required profile fields set."""
+def _readiness(db: Path, profile_path: Path, profile_raw, unreadable):
+    """THREE-VALUED fast proxy for selfcheck (D-g). ``(verdict, missing, unknown)`` with
+    ``verdict`` one of ``READY`` / ``NOT-READY`` / ``UNKNOWN``: ``missing`` = user-state gaps
+    (first-run); ``unknown`` = ENV faults (present-but-unreadable profile / corrupt db) — the
+    triage reports and STOPS on those, never onboards (the hh00046 false-onboarding link)."""
     missing: list[str] = []
-    tables = _db_tables(db)
-    if not db.exists():
+    unknown: list[str] = []
+    db_state = _db_probe(db)
+    if db_state == "absent":
         missing.append("db(file missing)")
+    elif db_state == "unreadable":
+        unknown.append("db(present but unreadable)")
     else:
-        absent = [t for t in _DB_TABLES if t not in tables]
+        absent = [t for t in _DB_TABLES if t not in db_state]
         if absent:
             missing.append(f"db_tables={absent}")
-    if profile is None:
+    if profile_raw is unreadable:
+        unknown.append("profile(present but unreadable)")
+    elif not profile_raw:  # None / {} / [] → absent or empty
         missing.append("profile(file missing)" if not profile_path.exists()
-                       else "profile(unreadable)")
+                       else "profile(empty)")
+    elif not isinstance(profile_raw, dict):
+        # Present + parseable but the WRONG SHAPE (a list/scalar) — a malformed profile is an
+        # env/authoring fault, not user state. UNKNOWN (never crash on `.get`, never onboard).
+        unknown.append("profile(present but not a mapping)")
     else:
         unset = [f for f in _PROFILE_REQUIRED
-                 if profile.get(f) in (None, "", [], 0)]
+                 if profile_raw.get(f) in (None, "", [], 0)]
         if unset:
             missing.append(f"profile_fields={unset}")
-    return (not missing), missing
+    verdict = "UNKNOWN" if unknown else ("NOT-READY" if missing else "READY")
+    return verdict, missing, unknown
 
 
 def main() -> int:
     data_dir = _data_dir()
     db = data_dir / "trips.db"
     profile_path = data_dir / "profile.yaml"
-    profile = _load_yaml(profile_path)
+    belt = _belt()
+    profile_raw = belt.read_yaml(profile_path)
+    profile = profile_raw if isinstance(profile_raw, dict) else None
 
-    ready, missing = _readiness(db, profile_path, profile)
+    verdict, missing, unknown = _readiness(db, profile_path, profile_raw, belt.UNREADABLE)
 
     print(f"=== OtenyTravelTalent preflight ({_BOT}) ===")
-    if ready:
+    if verdict == "READY":
         print("READY: yes")
+    elif verdict == "UNKNOWN":
+        # An ENVIRONMENT fault (a present-but-unreadable profile / a corrupt db), NOT a fresh
+        # tenant. Report and STOP — never onboard/plan from an assumed first-run. No hint.
+        print(f"UNKNOWN: env problem  ({'; '.join(unknown)})")
+        print("  => environment fault, NOT first-run. Do NOT plan or run intake; "
+              "report this and stop.")
     else:
         print(f"READY: no  (missing: {'; '.join(missing)})")
-        print("  => run selfcheck.py for the full list, then onboarding; "
+        print("  => setup incomplete: load references/first-run.md (declared scripts only); "
               "do NOT plan until READY.")
     print(_migrations_line())
     print(_now_line(profile))

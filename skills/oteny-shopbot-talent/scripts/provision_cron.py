@@ -29,13 +29,24 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    import yaml
-except ImportError:
-    yaml = None
-try:
     from zoneinfo import ZoneInfo
 except ImportError:  # pragma: no cover
     ZoneInfo = None
+
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml``), loaded from the sibling
+    ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares, so a cold tenant whose system python3 lacks PyYAML still reads profile.yaml +
+    config.yaml (correct schedule + model/provider) instead of silently using defaults."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 DEFAULT_PROFILE = os.path.expanduser("~/.hermes/data/oteny-shopbot-talent/profile.yaml")
 DEFAULT_JOBS = os.path.expanduser("~/.hermes/cron/jobs.json")
@@ -55,16 +66,13 @@ _DOW = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
 
 def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:
     """(model, provider) the cron job must pin — from config.yaml's `model:` block."""
-    if yaml is None:
-        return _FALLBACK_MODEL, _FALLBACK_PROVIDER
-    try:
-        cfg = yaml.safe_load(Path(config_path).read_text()) or {}
-        mc = cfg.get("model", {})
-        if isinstance(mc, dict):
-            return (mc.get("model") or _FALLBACK_MODEL,
-                    mc.get("provider") or _FALLBACK_PROVIDER)
-    except Exception:
-        pass
+    belt = _belt()
+    data = belt.read_yaml(Path(config_path))
+    cfg = data if isinstance(data, dict) else {}
+    mc = cfg.get("model", {})
+    if isinstance(mc, dict):
+        return (mc.get("model") or _FALLBACK_MODEL,
+                mc.get("provider") or _FALLBACK_PROVIDER)
     return _FALLBACK_MODEL, _FALLBACK_PROVIDER
 
 
@@ -147,9 +155,8 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
-    profile = {}
-    if yaml and Path(args.profile).exists():
-        profile = yaml.safe_load(Path(args.profile).read_text()) or {}
+    data = _belt().read_yaml(Path(args.profile))
+    profile = data if isinstance(data, dict) else {}
 
     model, provider = read_model_provider(args.config)
     p = plan(profile, args.jobs, model=model, provider=provider)

@@ -32,11 +32,23 @@ import os
 import sqlite3
 import sys
 from datetime import date, timedelta
+from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml`` + ``UNREADABLE``), loaded from the
+    bundle's main ``scripts/`` dir — the ONE stdlib-first YAML reader every readiness script
+    shares. It gives this dashboard a cold-box-safe profile read AND the three-valued signal
+    that lets a PRESENT-but-unreadable profile fail UNKNOWN-loud instead of silently degrading
+    to ``{}`` (goal-unset), which would mis-report an env fault as 'no goal set'."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent.parent.parent / "scripts" / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 DEFAULT_DB = os.path.expanduser("~/.hermes/data/oteny-flatbelly-talent/food.db")
 DEFAULT_PROFILE = os.path.expanduser("~/.hermes/data/oteny-flatbelly-talent/profile.yaml")
@@ -50,10 +62,16 @@ GOLD, GREEN, PINK = "#fbbf24", "#34d399", "#f472b6"   # milestone / goal / start
 
 
 def load_profile(path):
-    if yaml and os.path.exists(path):
-        with open(path) as fh:
-            return yaml.safe_load(fh) or {}
-    return {}
+    """Read profile.yaml via the shared belt. Returns ``(status, data)``:
+      * ``("ok", dict)``       — parsed (goal/milestones available);
+      * ``("absent", {})``     — no file / empty → genuine "set a goal first";
+      * ``("unreadable", {})`` — PRESENT but unparseable → an ENV fault (UNKNOWN-loud, not
+        'no goal set'), so ops sees the real problem instead of a misleading goal-unset."""
+    belt = _belt()
+    data = belt.read_yaml(Path(path))
+    if data is belt.UNREADABLE:
+        return "unreadable", {}
+    return ("ok", data) if isinstance(data, dict) else ("absent", {})
 
 
 def load_morning_weights(db_path):
@@ -99,7 +117,14 @@ def main(argv=None):
     ap.add_argument("--out-dir", default=DEFAULT_OUT)
     args = ap.parse_args(argv)
 
-    profile = load_profile(args.profile)
+    status, profile = load_profile(args.profile)
+    if status == "unreadable":
+        # An ENV fault (a present-but-corrupt profile), NOT a missing goal — UNKNOWN-loud so
+        # the weekly cron's failure reads as "fix the environment", never "the user set no goal".
+        print("UNKNOWN: profile.yaml is PRESENT but unreadable (environment fault, not a "
+              "missing goal). Report it; do NOT regenerate a chart from defaults.",
+              file=sys.stderr)
+        return 2
     goal = float(profile.get("goal_weight_kg") or 0)
     if not goal:
         print("ERROR: profile.goal_weight_kg not set", file=sys.stderr)

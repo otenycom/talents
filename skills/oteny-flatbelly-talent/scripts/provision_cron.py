@@ -27,10 +27,22 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml``), loaded from the sibling
+    ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares, so a cold tenant whose system python3 lacks PyYAML still reads profile.yaml +
+    config.yaml (correct reminder times + model/provider) instead of silently using
+    defaults. (agent-profile.yaml's block scalars stay parseable only with PyYAML present;
+    the belt degrades that read to an empty policy on a cold box — same as before.)"""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 DEFAULT_PROFILE = os.path.expanduser("~/.hermes/data/oteny-flatbelly-talent/profile.yaml")
 DEFAULT_JOBS = os.path.expanduser("~/.hermes/cron/jobs.json")
@@ -61,16 +73,13 @@ def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:
     Falls back to the known router defaults if config.yaml is absent/unreadable so a
     spec always carries a working model+provider (an un-pinned cron job is the bug).
     """
-    if yaml is None:
-        return _FALLBACK_MODEL, _FALLBACK_PROVIDER
-    try:
-        cfg = yaml.safe_load(Path(config_path).read_text()) or {}
-        mc = cfg.get("model", {})
-        if isinstance(mc, dict):
-            return (mc.get("model") or _FALLBACK_MODEL,
-                    mc.get("provider") or _FALLBACK_PROVIDER)
-    except Exception:
-        pass
+    belt = _belt()
+    data = belt.read_yaml(Path(config_path))
+    cfg = data if isinstance(data, dict) else {}
+    mc = cfg.get("model", {})
+    if isinstance(mc, dict):
+        return (mc.get("model") or _FALLBACK_MODEL,
+                mc.get("provider") or _FALLBACK_PROVIDER)
     return _FALLBACK_MODEL, _FALLBACK_PROVIDER
 
 
@@ -96,12 +105,9 @@ def read_cron_policy(profile_path=DEFAULT_AGENT_PROFILE) -> dict:
     This is the SAME source the build-time lint enforces, so the emitted model/max_turns
     can never drift from the declared+linted policy (talent-model-steering W4/W5).
     """
-    if yaml is None:
-        return {}
-    try:
-        data = yaml.safe_load(Path(profile_path).read_text()) or {}
-    except Exception:
-        return {}
+    belt = _belt()
+    parsed = belt.read_yaml(Path(profile_path))
+    data = parsed if isinstance(parsed, dict) else {}
     out = {}
     for c in (data.get("crons") or []):
         if isinstance(c, dict) and c.get("name"):
@@ -244,9 +250,8 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
 
-    profile = {}
-    if yaml and Path(args.profile).exists():
-        profile = yaml.safe_load(Path(args.profile).read_text()) or {}
+    data = _belt().read_yaml(Path(args.profile))
+    profile = data if isinstance(data, dict) else {}
 
     model, provider = read_model_provider(args.config)
     cron_policy = read_cron_policy(args.agent_profile)

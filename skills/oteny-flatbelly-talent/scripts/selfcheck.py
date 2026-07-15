@@ -43,6 +43,35 @@ except ImportError:  # a COLD tenant's system python3 may lack PyYAML — _load_
     yaml = None      # then falls back to the stdlib reader below (never a hard fail)
 
 
+# UNREADABLE: a file that EXISTS but cannot be parsed (a read error, or a construct even
+# the stdlib fallback can't handle). It is an ENVIRONMENT fault, NOT user state — the
+# readiness verdict for it is UNKNOWN (never NOT-READY → never "onboard"). `read_yaml`
+# returns this so a caller can tell "present but broken" from "absent" (genuine first-run).
+class _Unreadable:
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debug aid
+        return "UNREADABLE"
+
+
+UNREADABLE = _Unreadable()
+
+# The greppable marker the belt emits (once) to STDERR when the pure-stdlib YAML fallback
+# engages — i.e. this box's system python3 lacks PyYAML. Harvested by the instance-logs
+# pipeline: a box repeatedly on the belt is a misbake signal (the floor didn't reach it).
+# STDERR, not stdout, so it never pollutes a readiness script's parseable block.
+_BELT_MARKER = "BELT:stdlib-yaml"
+_belt_emitted = False
+
+
+def _emit_belt_marker() -> None:
+    global _belt_emitted
+    if not _belt_emitted:
+        _belt_emitted = True
+        print(f"{_BELT_MARKER} (PyYAML absent — pure-stdlib YAML fallback engaged)",
+              file=sys.stderr)
+
+
 # --------------------------------------------------------------------------- #
 # path resolution (env-overridable so tests are hermetic)                      #
 # --------------------------------------------------------------------------- #
@@ -82,7 +111,14 @@ def _yaml_load_text(text: str):
     (the RuntimeError this replaces violated the "always exit 0" contract above and
     was measured looping 13 tenants / 64 sessions on prod)."""
     if yaml is not None:
-        return yaml.safe_load(text)
+        try:
+            return yaml.safe_load(text)
+        except Exception:
+            # Belt-on-belt for the PyYAML path too: a present-but-malformed manifest/config must
+            # degrade to None (→ handled as "missing/unparseable" downstream), never a raw
+            # traceback that breaks the always-exit-0 contract.
+            return None
+    _emit_belt_marker()
     try:
         return _minimal_yaml_load(text)
     except Exception:
@@ -90,6 +126,38 @@ def _yaml_load_text(text: str):
         # fail. None reads as "missing/unparseable" downstream → a clean NOT-READY
         # with a reason, never a traceback that invites a guess-and-loop.
         return None
+
+
+def read_yaml(path: Path):
+    """THREE-VALUED file read — the shared readiness belt every sibling script uses:
+
+      * ``None``       — the file is absent OR empty (genuine "nothing here yet" → first-run);
+      * ``UNREADABLE`` — the file EXISTS but cannot be parsed (a read error, or a construct
+        even the stdlib fallback rejects) → an ENVIRONMENT fault, verdict UNKNOWN;
+      * else           — the parsed object.
+
+    This is what turns "can't read it" from "not there yet": PyYAML-absent is NOT unreadable
+    (the stdlib fallback handles it, emitting the belt marker); only a genuine parse failure is.
+    A caller must NEVER onboard/coach on ``UNREADABLE`` — it is not user state."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        text = p.read_text()
+    except OSError:
+        return UNREADABLE
+    if not text.strip():
+        return None
+    if yaml is not None:
+        try:
+            return yaml.safe_load(text)
+        except Exception:
+            return UNREADABLE   # PyYAML present but the file is genuinely malformed
+    _emit_belt_marker()
+    try:
+        return _minimal_yaml_load(text)
+    except Exception:
+        return UNREADABLE
 
 
 # --------------------------------------------------------------------------- #
@@ -431,9 +499,13 @@ def _is_empty(v) -> bool:
 # --------------------------------------------------------------------------- #
 # per-kind checkers — each returns a result dict                               #
 # --------------------------------------------------------------------------- #
-def _r(kind, ok, reason="", remediation="", blocking=True, **extra):
+def _r(kind, ok, reason="", remediation="", blocking=True, unknown=False, **extra):
+    # `unknown=True` marks an ENVIRONMENT fault (a present-but-unreadable file, a corrupt db):
+    # the verdict is UNKNOWN, never NOT-READY — the triage must report it and stop, never
+    # onboard/coach from an assumed-first-run. Kept distinct from `ok`/`blocking` so a caller
+    # can partition user-state gaps (NOT-READY) from env faults (UNKNOWN).
     d = {"kind": kind, "ok": bool(ok), "reason": reason,
-         "remediation": remediation, "blocking": blocking}
+         "remediation": remediation, "blocking": blocking, "unknown": bool(unknown)}
     d.update(extra)
     return d
 
@@ -444,12 +516,19 @@ def check_sqlite_db(a):
     if not path.exists():
         return _r("sqlite_db", False, f"db missing at {path}",
                   "first-run §data: CREATE TABLE IF NOT EXISTS … (inline schema)")
-    con = sqlite3.connect(str(path))
     try:
-        have = {r[0] for r in con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
-    finally:
-        con.close()
+        con = sqlite3.connect(str(path))
+        try:
+            have = {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+        finally:
+            con.close()
+    except sqlite3.Error as e:
+        # Present but UNREADABLE (corrupt / locked): an environment fault, not "no db yet".
+        # UNKNOWN → the triage reports it and stops; it must NOT re-create the db over data.
+        return _r("sqlite_db", False, f"db present but UNREADABLE at {path} ({e})",
+                  "environment fault: report the unreadable db; do NOT re-create it",
+                  unknown=True)
     missing = [t for t in want if t not in have]
     if missing:
         return _r("sqlite_db", False, f"tables missing: {missing}",
@@ -460,10 +539,25 @@ def check_sqlite_db(a):
 def check_profile(a):
     path = expand(a["path"])
     req = list(a.get("required_fields", []))
-    data = _load_yaml(path)
-    if data is None:
+    data = read_yaml(path)
+    if data is UNREADABLE:
+        # The file is THERE but unparseable — an environment fault (e.g. a genuinely
+        # corrupt profile), NOT a fresh tenant. UNKNOWN, never NOT-READY: re-running the
+        # intake would overwrite a real (unreadable) profile. This is the exact link that
+        # turned the hh00046 env failure into a false onboarding.
+        return _r("profile", False, f"profile present but UNREADABLE at {path}",
+                  "environment fault: report the unreadable profile; do NOT re-run intake",
+                  unknown=True)
+    if not data:  # None (absent/empty) → genuine first-run
         return _r("profile", False, f"profile missing at {path}",
                   "first-run §profile: run the intake → write profile.yaml")
+    if not isinstance(data, dict):
+        # Present + parseable but the WRONG SHAPE (a list/scalar, not a mapping) — an authoring/
+        # environment fault, not user state. UNKNOWN (never crash on `data.get`, never onboard).
+        return _r("profile", False,
+                  f"profile at {path} is not a mapping (got {type(data).__name__})",
+                  "environment fault: the profile is malformed (not a key:value mapping); report it",
+                  unknown=True)
     empty = [f for f in req if _is_empty(data.get(f))]
     if empty:
         return _r("profile", False, f"fields unset: {empty}",
@@ -572,11 +666,16 @@ def run(manifest_path: Path) -> dict:
                               blocking=False))
             continue
         results.append(checker(a))
-    missing = [r for r in results if not r["ok"] and r["blocking"]]
+    # Partition the failing blocking artifacts into ENV faults (UNKNOWN) and user-state
+    # gaps (NOT-READY). An UNKNOWN present means we cannot trust the readiness computation —
+    # ready is False AND the verdict is UNKNOWN (report-and-stop), never NOT-READY (onboard).
+    unknown = [r for r in results if not r["ok"] and r.get("unknown")]
+    missing = [r for r in results if not r["ok"] and r["blocking"] and not r.get("unknown")]
     return {
         "bot": manifest.get("bot"),
-        "ready": len(missing) == 0,
+        "ready": len(missing) == 0 and len(unknown) == 0,
         "missing": missing,
+        "unknown": unknown,
         "artifacts": results,
     }
 
@@ -592,7 +691,17 @@ def main(argv=None) -> int:
     if args.json:
         print(json.dumps(report, indent=2))
         return 0
-    if report["ready"]:
+    # UNKNOWN wins the top-line verdict: an environment fault means we cannot judge
+    # readiness at all. Report it and STOP — never fall through to NOT-READY (which the
+    # triage reads as "first-run → onboard"). This is the three-valued contract (D-g).
+    if report.get("unknown"):
+        unknown = [f"{u['kind']}({u['reason']})" for u in report["unknown"]]
+        print("UNKNOWN: env=" + json.dumps(unknown))
+        for u in report["unknown"]:
+            print(f"  - {u['kind']}: {u['reason']}  ->  {u['remediation']}")
+        print("  => environment fault, NOT first-run. Do NOT onboard or coach; "
+              "report this and stop.")
+    elif report["ready"]:
         print("READY")
     else:
         missing = [f"{m['kind']}({m['reason']})" for m in report["missing"]]

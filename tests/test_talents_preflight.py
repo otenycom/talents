@@ -15,6 +15,16 @@ from _talents import CATALOG, load, sandbox_env
 
 pf = load(CATALOG / "oteny-flatbelly-talent" / "scripts" / "preflight.py", "pf_preflight")
 
+
+def _force_belt_without_pyyaml(monkeypatch):
+    """Make preflight's shared belt behave as if PyYAML is absent (the cold-container case,
+    hh00046): a fresh selfcheck module with ``yaml=None`` wired in as preflight's ``_belt``."""
+    belt = load(CATALOG / "oteny-flatbelly-talent" / "scripts" / "selfcheck.py",
+                "pf_belt_nopyyaml")
+    belt.yaml = None
+    belt._belt_emitted = False
+    monkeypatch.setattr(pf, "_belt", lambda: belt)
+
 _TABLES = ["meals", "weight", "daily_metrics", "workouts", "waist"]
 _PROFILE = (
     "goal_weight_kg: 85\nstart_weight_kg: 100\nheight_cm: 178\nage: 47\n"
@@ -95,3 +105,78 @@ def test_empty_box_is_robust(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "READY: no" in out
     assert "db(file missing)" in out
+
+
+# --------------------------------------------------------------------------- #
+# Readiness contract v2 (D-g): the stdlib belt + three-valued READY/NOT-READY/ #
+# UNKNOWN, and the removal of the "…then onboarding" prime (the hh00046 fix).  #
+# --------------------------------------------------------------------------- #
+
+def test_ready_with_pyyaml_absent_uses_stdlib_belt(tmp_path, monkeypatch, capsys):
+    """A1: with NO PyYAML in system python3, preflight still parses a complete profile via
+    the shared belt and prints READY: yes — never NOT-READY on the parse (the incident)."""
+    sandbox_env(monkeypatch, tmp_path)
+    d = _data_dir(tmp_path)
+    _make_db(d / "food.db")
+    (d / "profile.yaml").write_text(_PROFILE)
+    _force_belt_without_pyyaml(monkeypatch)
+    assert pf.main() == 0
+    out = capsys.readouterr().out
+    assert "READY: yes" in out
+
+
+def test_unreadable_profile_is_unknown_never_onboards(tmp_path, monkeypatch, capsys):
+    """A1: a present-but-unparseable profile is an ENV fault → UNKNOWN, never NOT-READY, and
+    the output carries NO onboarding/first-run hint (the false-onboarding link)."""
+    sandbox_env(monkeypatch, tmp_path)
+    d = _data_dir(tmp_path)
+    _make_db(d / "food.db")
+    # A folded block scalar: PyYAML parses it, but the stdlib belt rejects it → UNREADABLE
+    # once PyYAML is forced absent (exactly the cold-box shape).
+    (d / "profile.yaml").write_text(
+        "desc: >\n  a folded block scalar\n  the stdlib belt won't parse\n")
+    _force_belt_without_pyyaml(monkeypatch)
+    assert pf.main() == 0
+    out = capsys.readouterr().out
+    assert "UNKNOWN" in out
+    assert "READY: no" not in out              # never the NOT-READY (first-run) verdict
+    assert "onboard" not in out.lower()        # no onboarding prime on an env fault
+    assert "report this and stop" in out.lower()   # the sanctioned UNKNOWN guidance
+    assert "run intake" not in out.lower() or "do not" in out.lower()  # never steer to intake
+
+
+def test_corrupt_db_is_unknown_and_exits_zero(tmp_path, monkeypatch, capsys):
+    """A corrupt db is an env fault → UNKNOWN, and preflight still exits 0 (never a crash
+    that makes the terminal call look failed)."""
+    sandbox_env(monkeypatch, tmp_path)
+    d = _data_dir(tmp_path)
+    (d / "food.db").write_bytes(b"this is not a sqlite database at all")
+    (d / "profile.yaml").write_text(_PROFILE)
+    assert pf.main() == 0
+    out = capsys.readouterr().out
+    assert "UNKNOWN" in out
+
+
+def test_non_dict_profile_is_unknown_not_crash(tmp_path, monkeypatch, capsys):
+    """A valid-YAML but NON-MAPPING profile (a list/scalar) is a shape fault → UNKNOWN + exit 0,
+    never an AttributeError on `profile.get` (the always-exit-0 contract)."""
+    sandbox_env(monkeypatch, tmp_path)
+    d = _data_dir(tmp_path)
+    _make_db(d / "food.db")
+    (d / "profile.yaml").write_text("- just\n- a list\n")   # valid YAML, wrong shape
+    assert pf.main() == 0                                    # never crashes
+    out = capsys.readouterr().out
+    assert "UNKNOWN" in out
+    assert "not a mapping" in out
+
+
+def test_not_ready_has_no_onboarding_prime(tmp_path, monkeypatch, capsys):
+    """D-g: the '…then onboarding' prime is removed — a genuine NOT-READY (first-run) points
+    to the declared setup file, never the word 'onboarding'."""
+    sandbox_env(monkeypatch, tmp_path)
+    d = _data_dir(tmp_path)
+    _make_db(d / "food.db")                    # db ok, profile absent → NOT-READY
+    assert pf.main() == 0
+    out = capsys.readouterr().out
+    assert "READY: no" in out
+    assert "onboarding" not in out.lower()

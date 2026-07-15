@@ -9,10 +9,10 @@ is most of a slow turn. This script answers all of them in **one** read-only cal
     python3 ~/.hermes/skills/talents/oteny-flatbelly-talent/scripts/preflight.py
 
 It prints, in a compact parseable block:
-  * READY  — a fast proxy for "can I coach now?" (db + tables + profile fields).
-             When `no`, the triage runs the full ``selfcheck.py`` for the detailed
-             missing list, then onboarding. (selfcheck stays the authority; this is
-             just the cheap fast-path so a normal turn never pays for it.)
+  * READY  — a THREE-VALUED proxy for "can I coach now?": READY (db + tables + profile
+             fields), NOT-READY (a user-state gap → load references/first-run.md), or
+             UNKNOWN (an ENVIRONMENT fault — a present-but-unreadable profile / corrupt db →
+             report it and STOP; NEVER onboard). selfcheck.py stays the detailed authority.
   * NOW    — local time (hard rule ③: time-of-day before framing a day "done").
   * PROFILE— the few fields the coach needs every turn (targets, height, language)
              so it never has to separately read profile.yaml.
@@ -33,14 +33,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    import yaml
-except ImportError:  # pragma: no cover - PyYAML is always present on Hermes
-    yaml = None
-
-try:
     from zoneinfo import ZoneInfo
 except ImportError:  # pragma: no cover - py>=3.9 on Hermes
     ZoneInfo = None
+
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml`` + ``UNREADABLE``), loaded from the
+    sibling ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares, so a cold tenant whose system python3 lacks PyYAML still PARSES profile.yaml (the
+    hh00046 incident) instead of mis-reading "can't parse" as "not set up → onboard". Loaded
+    by path (not a plain import) so it resolves both when run as a file and under the tests'
+    importlib loader."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 _BOT = "oteny-flatbelly-talent"
 _DB_TABLES = ["meals", "weight", "daily_metrics", "workouts", "waist"]
@@ -96,27 +107,20 @@ def _data_dir() -> Path:
     return _hermes_home() / "data" / _BOT
 
 
-def _load_yaml(path: Path):
-    if yaml is None or not path.exists():
-        return None
-    try:
-        with path.open() as fh:
-            return yaml.safe_load(fh)
-    except Exception:
-        return None
-
-
-def _db_tables(db: Path) -> set[str]:
+def _db_probe(db: Path):
+    """Three-valued db state: ``"absent"`` (no file → first-run), ``"unreadable"`` (present
+    but corrupt/locked → env fault → UNKNOWN), or the set of table names."""
     if not db.exists():
-        return set()
-    con = sqlite3.connect(str(db))
+        return "absent"
     try:
-        return {r[0] for r in con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
+        con = sqlite3.connect(str(db))
+        try:
+            return {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+        finally:
+            con.close()
     except sqlite3.Error:
-        return set()
-    finally:
-        con.close()
+        return "unreadable"
 
 
 def _now_line(profile: dict | None) -> str:
@@ -146,8 +150,13 @@ def _today_block(db: Path) -> str:
     out = ["TODAY logged:"]
     con = sqlite3.connect(str(db))
     try:
-        have = {r[0] for r in con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")}
+        try:
+            have = {r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+        except sqlite3.Error as exc:
+            # A corrupt/locked db must never make the terminal call look failed (always exit 0);
+            # readiness already reports it as UNKNOWN above.
+            return f"TODAY: (database unreadable: {exc})"
         for table, cols in _TODAY.items():
             if table not in have:
                 continue
@@ -179,44 +188,69 @@ def _memory_block(data_dir: Path) -> str:
     return head + "\n" + "\n".join("  " + ln for ln in text.splitlines())
 
 
-def _readiness(db: Path, profile_path: Path, profile: dict | None) -> tuple[bool, list[str]]:
-    """Fast proxy for selfcheck: db+tables present and required profile fields set."""
+def _readiness(db: Path, profile_path: Path, profile_raw, unreadable):
+    """THREE-VALUED fast proxy for selfcheck (D-g). Returns ``(verdict, missing, unknown)``
+    with ``verdict`` one of ``READY`` / ``NOT-READY`` / ``UNKNOWN``:
+
+      * ``missing`` — user-state gaps (no db/tables/profile/fields) → genuine first-run;
+      * ``unknown`` — ENVIRONMENT faults (a present-but-unreadable profile / a corrupt db) →
+        the triage must report and STOP, NEVER onboard (the hh00046 false-onboarding link).
+    """
     missing: list[str] = []
-    tables = _db_tables(db)
-    if not db.exists():
+    unknown: list[str] = []
+    db_state = _db_probe(db)
+    if db_state == "absent":
         missing.append("db(file missing)")
+    elif db_state == "unreadable":
+        unknown.append("db(present but unreadable)")
     else:
-        absent = [t for t in _DB_TABLES if t not in tables]
+        absent = [t for t in _DB_TABLES if t not in db_state]
         if absent:
             missing.append(f"db_tables={absent}")
-    if profile is None:
-        # Distinguish "no profile yet" (genuine first-run) from "exists but I
-        # couldn't parse it" (e.g. PyYAML absent / malformed) so the triage's
-        # remediation isn't misled into re-running the intake on a parse blip.
+    if profile_raw is unreadable:
+        # Present but unparseable — an env fault, NOT "no profile yet". UNKNOWN, never
+        # NOT-READY: re-running the intake would overwrite a real (unreadable) profile.
+        unknown.append("profile(present but unreadable)")
+    elif not profile_raw:  # None / {} / [] → absent or empty
         missing.append("profile(file missing)" if not profile_path.exists()
-                       else "profile(unreadable)")
+                       else "profile(empty)")
+    elif not isinstance(profile_raw, dict):
+        # Present + parseable but the WRONG SHAPE (a list/scalar) — a malformed profile is an
+        # env/authoring fault, not user state. UNKNOWN (never crash on `.get`, never onboard).
+        unknown.append("profile(present but not a mapping)")
     else:
         unset = [f for f in _PROFILE_REQUIRED
-                 if profile.get(f) in (None, "", [], 0)]
+                 if profile_raw.get(f) in (None, "", [], 0)]
         if unset:
             missing.append(f"profile_fields={unset}")
-    return (not missing), missing
+    verdict = "UNKNOWN" if unknown else ("NOT-READY" if missing else "READY")
+    return verdict, missing, unknown
 
 
 def main() -> int:
     data_dir = _data_dir()
     db = data_dir / "food.db"
     profile_path = data_dir / "profile.yaml"
-    profile = _load_yaml(profile_path)
+    belt = _belt()
+    profile_raw = belt.read_yaml(profile_path)
+    # For the display helpers a non-dict (None / UNREADABLE) collapses to "no profile".
+    profile = profile_raw if isinstance(profile_raw, dict) else None
 
-    ready, missing = _readiness(db, profile_path, profile)
+    verdict, missing, unknown = _readiness(db, profile_path, profile_raw, belt.UNREADABLE)
 
     print(f"=== OtenyFlatBellyTalent preflight ({_BOT}) ===")
-    if ready:
+    if verdict == "READY":
         print("READY: yes")
+    elif verdict == "UNKNOWN":
+        # An ENVIRONMENT fault (a present-but-unreadable profile / a corrupt db), NOT a fresh
+        # tenant. Report and STOP — never onboard/coach from an assumed first-run (the exact
+        # link that turned the hh00046 env failure into a false welcome). No onboarding hint.
+        print(f"UNKNOWN: env problem  ({'; '.join(unknown)})")
+        print("  => environment fault, NOT first-run. Do NOT coach or run intake; "
+              "report this and stop.")
     else:
         print(f"READY: no  (missing: {'; '.join(missing)})")
-        print("  => run selfcheck.py for the full list, then onboarding; "
+        print("  => setup incomplete: load references/first-run.md (declared scripts only); "
               "do NOT coach until READY.")
     print(_migrations_line())
     print(_now_line(profile))

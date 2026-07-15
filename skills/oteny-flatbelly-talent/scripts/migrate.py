@@ -44,10 +44,20 @@ import sqlite3
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover - PyYAML is always present on Hermes
-    yaml = None
+
+def _belt():
+    """The shared readiness belt (``selfcheck.read_yaml``), loaded from the sibling
+    ``selfcheck.py`` by path — the ONE stdlib-first YAML reader every readiness script
+    shares. A cold tenant whose system python3 lacks PyYAML now READS migrations.yaml via
+    the fallback instead of hard-failing (the ``RuntimeError`` this replaces violated the
+    'always exit 0' contract and crashed ``--status`` on a cold box)."""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "selfcheck.py"
+    spec = importlib.util.spec_from_file_location("oteny_readiness_belt", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 # --------------------------------------------------------------------------- #
@@ -67,12 +77,12 @@ def _default_manifest() -> Path:
 
 
 def _load_yaml(path: Path):
-    if yaml is None:
-        raise RuntimeError("PyYAML is required to read migrations.yaml")
-    if not path.exists():
-        return None
-    with path.open() as fh:
-        return yaml.safe_load(fh)
+    # Belt-backed: absent OR present-but-unparseable both degrade to None (no manifest → no
+    # pending migrations), never a raise. On a HEALTHY box (PyYAML present) it parses fully,
+    # including the block-scalar `sql:` bodies the stdlib fallback deliberately doesn't.
+    belt = _belt()
+    data = belt.read_yaml(Path(path))
+    return None if data is belt.UNREADABLE else data
 
 
 def load_manifest(manifest_path: Path | None = None) -> dict:
