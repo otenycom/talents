@@ -1163,6 +1163,24 @@ Two things decide whether that test is worth anything, and both are easy to get 
 And when you fix a concurrency bug, **mutation-test the fix**: re-introduce the bug, confirm the new test
 goes red, then restore. A concurrency test you have never seen fail is a concurrency test you do not have.
 
+**Your in-suite tests cannot prove a lock.** Odoo runs every test on ONE shared cursor, and a Postgres
+session never conflicts with itself — so in-suite, a try-lock always succeeds and a row lock never
+contends. Those tests prove your *logic*; they say nothing about your *lock*. Prove the lock in a small
+standalone script that opens **two real connections** and races them through a start barrier (run it against
+a disposable database — it commits). Two things it will teach you that the suite cannot:
+
+- **Odoo cursors run REPEATABLE READ**, not READ COMMITTED. A transaction's snapshot is taken at its first
+  read, so "take the lock, then re-read" does **not** see a commit that landed while you were waiting. If
+  your design assumed lock-then-read-committed-truth, it is wrong.
+- **What saves you is the serialization failure, not the re-read.** The blocked writer's own `write` raises
+  `SerializationFailure`, and Odoo's RPC layer retries the whole request on a fresh transaction — which
+  *does* read committed truth. Design for that path explicitly; it is the same one the record-claim CAS
+  relies on.
+
+Then state the residual honestly. A lock acquired *after* a transaction's snapshot leaves a window the
+width of that transaction's prologue; make the outcome in that window fail-closed, measure it, and write it
+down — an unstated residual is the one that surprises somebody at 2am.
+
 **How the client's own system reaches Oteny (the client-integration seam).** The mint-on-click and the
 attended-refresh above are triggered by the **client's own system** (its ERP / back-office) calling Oteny
 **server-to-server** — not by the bot. That call rides a single **public HTTPS lane** the platform
