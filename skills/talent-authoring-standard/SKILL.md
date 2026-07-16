@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.1
+version: 0.5.2
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -140,35 +140,25 @@ add **context-aware reads** (not keyword matches) — see
   correctly." If you can't write a one-line check for it, it's underspecified.
 
 ### 3. First-run is mechanical, idempotent, in `references/`, and approval-clean
-- The first-run drill lives in **`references/first-run.md`** (pulled only when the guard says
-  NOT-READY), **not** the `SKILL.md` body (D57 — else it sits in context every load); the body's
-  triage just routes to it. It is **copy-paste-exact** (literal commands, no judgement calls),
-  opens with a **one-line guard** ("setup complete?" — READY ⇒ skip & act), covers **every**
-  manifest class (create db → intake → register routing/cron), and **loops to a re-check** → READY.
-- **Declared scripts only — never improvised exec.** Create the schema via the shipped
-  `scripts/init.sql` (`sqlite3 db < scripts/init.sql`) or a `scripts/*.py`; **never** an inline
-  `CREATE TABLE`/`python3 -c`/heredoc — Hermes' approval gate flags improvised exec and the bot
-  stalls on "Command Approval Required" (D57). Schema lives **once** in `scripts/*.sql`.
-  Remediation is **idempotent**: `CREATE TABLE IF NOT EXISTS`, cron list-first ("create if
-  absent"), `ON CONFLICT … DO UPDATE` for daily rows.
-- **Cron jobs MUST pin `model` + `provider`** (D40): un-pinned, a job resolves from `config.yaml`
-  `model.default` and with none fires **empty** → router 400 → silent-fail. The planner reads both
-  from `config.yaml` and passes them on **every** job
-  (`oteny-flatbelly-talent/scripts/provision_cron.py`); the pin is a **persona alias**
-  (`assistant`/`builder`/`researcher`, D55, fallback `assistant`), never the raw OpenRouter slug.
-- Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per terminal
-  call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
-- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing baked dep** (D237).
-  `selfcheck`/`preflight` run under the tenant's **system `python3`**, which on a cold tenant may
-  lack `python3-yaml` (or any apt/pip lib). A readiness script must honor its "always exit 0,
-  never look like a failure" contract even then — degrade to a clean NOT-READY, never raise a
-  traceback (which makes the model grind on `pip install`). The canonical `selfcheck.py` reads
-  YAML via a **vendored stdlib fallback**; a container can only get a baked dep via a disruptive
-  rebase, so the first-run/critical path must not depend on one. (Non-readiness feature scripts —
-  e.g. a matplotlib dashboard cron — MAY use a baked dep, declared per check 9.)
+Six graded rules; the failure chains and worked examples are in
+[`references/first-run-authoring.md`](references/first-run-authoring.md).
+- The first-run drill lives in **`references/first-run.md`** (pulled only when the guard
+  says NOT-READY), **not** the `SKILL.md` body (D57); it is **copy-paste-exact**, opens
+  with a **one-line guard** (READY ⇒ skip & act), covers **every** manifest class, and
+  **loops to a re-check** → READY.
+- **Declared scripts only — never improvised exec** (D57): schema lives **once** in
+  `scripts/*.sql`; no inline `CREATE TABLE`/`python3 -c`/heredoc (the approval gate
+  stalls the bot). Remediation is **idempotent**.
+- **Cron jobs MUST pin `model` + `provider`** (D40) as a **persona alias** (D55,
+  fallback `assistant`), never the raw OpenRouter slug — an un-pinned job silent-fails.
+- Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per
+  terminal call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
+- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing baked dep**
+  (D237) — degrade to a clean NOT-READY, never a traceback; the first-run/critical path
+  never depends on a baked dep.
 - **Collapse the per-turn preamble** (D38): the triage's first action is a **single**
-  `preflight`-style call (readiness + clock + today's state + memory + targets) with hot intents
-  inlined in `SKILL.md` — not 4–5 probe calls + a reference load (live: 67 → 5 calls).
+  `preflight`-style call with hot intents inlined in `SKILL.md` — not 4–5 probe calls +
+  a reference load.
 
 ### 4. PII / secrets clean (method, not person) — and generic, not baked for one body
 - No personal data, no real tokens/keys, no hardcoded chat/user ids. Tenant
@@ -265,11 +255,9 @@ the shipped `SKILL.md` / `agent-profile.yaml` / profile. Three rules a grader ch
 **Mechanical gate.** [`scripts/lint_upgrade_safe.py`](scripts/lint_upgrade_safe.py)
 (`python3 lint_upgrade_safe.py <bundle_dir>`) FAILS on a concrete **upgrade-safety**
 violation (a shipped data-plane state file, an embedded secret, a hardcoded Telegram id)
-**or lean-authoring (D57)** — over-60-char `description`, over-20k `SKILL.md`, an
-approval-gate-tripping command in a fenced block (`python -c`/heredoc/`bash -c`/`curl|sh`/
-unguarded `DELETE`), an inline `CREATE TABLE` in `.md`, a `## First-run setup` body section,
-or a Talent missing `agent-profile.yaml` (the docstring is the full list). Enforced in CI
-**and** by the deployer before ship.
+**or a lean-authoring (D57) breach** (fat/unsharp bodies, approval-gate-tripping or
+improvised commands, a first-run section in the body) — the script docstring is the
+authoritative full list. Enforced in CI **and** by the deployer before ship.
 
 ### 13. In-box migrations (forward-only state reconciliation, D99)
 A Talent with **mutable live state** (a db, or agent-registered crons) reconciles a prior
