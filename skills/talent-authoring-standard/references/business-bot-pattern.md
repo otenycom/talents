@@ -1055,6 +1055,114 @@ converge the bot against a gate with **no** authenticated session and assert the
 **zero** re-login or re-code attempts. Keep the everyday path cold with a low-frequency **attended login
 refresh** that renews the session before it expires, so the reactive gate stays the rare-path safety net.
 
+#### The attended login is a PHASE — mutually exclusive with runs
+
+The single-user demo hides this: a business bot serves a **team**, and several people hand it work, approve
+it and sign in for it at random times. The moment two of them overlap, the login gate stops being a tidy
+hand-off and becomes a **shared-resource problem**, because the human's login browser and the bot's run
+browser are the same browser tenant and the same cookie profile. Saving a login releases the tenant's other
+sessions so its authenticated jar lands last (see the platform's finalize sweep) — which means a run that
+happens to be filing at that moment loses its browser. Fail-closed, but a spurious failure on someone's
+legitimate work, every time two colleagues are busy at once.
+
+So treat the login not as a step but as a **phase**, and make the phases take turns:
+
+> Per bot: the **RUN phase** (isolated turns that use the browser) and the **DANCE phase** (mint → human
+> signs in → save) are **mutually exclusive**. At save time the only open sessions are idle ones, so the
+> platform's sweep has no live collateral **by construction** rather than by luck.
+
+Four rules make that true. **Every one of them must be bounded by wall clock** — see the liveness rule below.
+
+- **Latch the bot for the duration of the dance (TTL'd).** Starting a dance sets a per-bot latch with an
+  expiry (match it to the platform's handoff window — a dance that outlives the browser session it minted
+  is over regardless). While it is held, **no new run is dispatched and no dispatched run may start**.
+  Deferred is **never failed**: the record keeps its state and its claim epoch, and your dispatch cron
+  re-drives it — so a defer costs one tick and nobody sees an error.
+- **Latching future dispatches is not enough — gate the run's START too.** A latch cannot un-post a message
+  already sitting in the channel (posted moments before the latch, or re-posted by a recovery belt while the
+  gateway was down). Refuse it at the **run-consume** step instead — the deterministic checkpoint your
+  dispatcher hits *before any model activity*. Refusing there is free: the dispatcher is fail-closed and
+  drops the message without starting a turn, and your re-post belt re-fires it once the dance is over. This
+  is the rule that turns "mutually exclusive" from a hope into a guarantee.
+- **Refuse a dance while a run is live — and offer an explicit interrupt.** A person clicking *sign in*
+  while the bot is mid-run should be told so, with the service named and the wait bounded. Give them a
+  **separate, confirm-gated "interrupt and sign in" button** rather than silently overriding: the collision
+  is then *chosen*, with its price on the label ("the running job loses its browser and goes back to the
+  team"), not something that just happens to a colleague.
+- **Supersede concurrent dances, never queue them.** Two people can start a dance at once (two screens, one
+  leaked tab). Let the **newest click win** and release the older session; a takeover never waits, so a
+  forgotten tab can never block anyone. Critically, **the superseded screen's save must fail loudly** — if
+  it silently succeeds it reports the *later* dance's login as its own and advances the workflow on a login
+  it never completed, which inverts the whole finalize-before-advance belt. The platform returns `409
+  superseded`; surface its message verbatim and leave the record where it is. (Queueing instead is worse
+  than it looks: many identity providers rate-limit one-time codes hard — a queued second dance burns one of
+  a small daily allowance and can lock the shared account.)
+- **Give the latch an OWNER, or every fence above is decorative.** This is the one that will bite you, and
+  it is invisible in a single-user demo. The latch is per-**bot**; the screens that release it are
+  per-**user** and per-**record**. So "stop the dance" must mean "stop **my** dance": mint an **epoch token**
+  at every latch-start, hand it to the screen that took it, and make the release a **compare-and-clear**
+  under the same mutex the start uses. Without it, the ordinary two-user path silently defeats P1 — a
+  colleague clicking Cancel (or OK) on an unrelated record releases *your* in-flight sign-in, a run starts on
+  the shared profile, and your save then sweeps it. No force button, no confirm, no warning. Three rules
+  fall out: a screen that **never started** a dance releases nothing; a **superseded** screen holds a stale
+  token and releases nothing; and the release must take the mutex, or a stop that read a matching token can
+  still land its write *after* a takeover committed and destroy the new dance's latch. Storing "who started
+  it" for the error message is **not** the same as enforcing ownership — if no code path reads the field, it
+  is decoration.
+
+#### Humans and runs collide on the RECORD too — refuse a transition out from under a live run
+
+The same "several people at once" reality has a second, sharper edge that has nothing to do with browsers.
+An irreversible act (the submit) and the record catching up with it (write the proof, advance the state) are
+**seconds apart**. A person clicking *Cancel* in that window leaves a real, filed, legally-binding side
+effect behind a record that says cancelled — and there is no un-submit.
+
+So **refuse human transitions out of a bot-owned in-progress state while a claim is live**, at your workflow
+engine's transition-execution choke point — never per-workflow, and never in a view: it must hold for the
+button click *and* the confirm, because a run can start while the screen sits open. The bot's own advances
+and the timeout reaper go through the claim/token door instead, so they need no exclusion by role — they are
+structurally on the other side of this fence.
+
+#### The liveness rule — no fence may outlive its own bound
+
+Every fence above **blocks somebody**, so every one of them must be **guaranteed to end by wall clock alone**,
+with no cron, no sweep and no operator. This is not polish; it is what separates a fence from a wedge:
+
+- Define "a run is LIVE" **once**, and key every fence on that one predicate: the record is claimed, its run
+  was actually **consumed** (a claimed-but-never-started dispatch is a message waiting to be read, possibly
+  by a dead gateway — never block a human on one), **and** the run is still inside its state's timeout SLA.
+- **Past the SLA, the run is not live** — the reaper owns it. Treating a reaper-eligible zombie as live would
+  park a human behind a job that is already over.
+- **A state with no SLA has no bound, so its claim is never live.** An unbounded block is worse than no
+  block. Liveness outranks the fence.
+- **Never hold a lock while waiting on another lock.** If your dispatch path takes a per-bot mutex, take it
+  **without waiting** (try-lock → defer) and always in the same order relative to row locks. A dispatch that
+  defers comes back in three minutes; a dispatch that waits can sit in a cycle.
+- **Every refusal message names its own end** ("wait a few minutes; if it never finishes it is handed back
+  automatically within N minutes"). A refusal whose end the user cannot see is indistinguishable from a hang,
+  and they will go looking for a way around it.
+
+Grade this with a **randomized interleaving test**: seed a handful of records in mixed states, drive a few
+hundred operations from a **seeded** RNG (hand-offs, approvals, dances, forced dances, cancels, dispatch
+ticks, reaper ticks, time jumps), and assert the invariants after **every** step — never two live runs on one
+bot; never a dispatch while latched; never a non-forced dance while a run is live; no human transition out of
+a live claim; no screen releasing a dance it does not own; and, at the end, that the fleet **drains** (jump
+every clock past every bound and assert nothing is left in an in-progress state). Print the seed on failure.
+Jump time; never sleep.
+
+Two things decide whether that test is worth anything, and both are easy to get wrong:
+
+- **Model MORE THAN ONE user and MORE THAN ONE open screen.** A walk with a single user and a single wizard
+  slot cannot generate the two-screen case — which is the whole reason supersede and the epoch token exist.
+  It will grade an unowned latch **green**. (This is not hypothetical: it is exactly how the ownership bug
+  above survived its first review.)
+- **Assert the test's own coverage.** A seed that wandered only through idle states passes every invariant
+  vacuously. Require the log to contain each interesting event — a refusal, a takeover, a non-owning cancel
+  — and fail if the walk never reached them. A green that proves nothing is worse than a red.
+
+And when you fix a concurrency bug, **mutation-test the fix**: re-introduce the bug, confirm the new test
+goes red, then restore. A concurrency test you have never seen fail is a concurrency test you do not have.
+
 **How the client's own system reaches Oteny (the client-integration seam).** The mint-on-click and the
 attended-refresh above are triggered by the **client's own system** (its ERP / back-office) calling Oteny
 **server-to-server** — not by the bot. That call rides a single **public HTTPS lane** the platform
