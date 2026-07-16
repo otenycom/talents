@@ -307,6 +307,13 @@ system's identity are **yours, in your repo**; the platform provides only the ge
   party's address, so it stays generic across every client's bot. **The prod identity (`real_url` +
   `fence_hosts`) lives in your Talent** and is versioned with it; the throwaway stub value does not
   (next bullet).
+
+  **`$OTENY_*` is a tool-target convention, not a template language.** Writing
+  `$OTENY_PORTAL_BASE_URL` in skill prose works where the bot **resolves it to make a call**
+  (`browser_navigate` to `$OTENY_PORTAL_BASE_URL/portal`) — that is the intended usage, and the demo
+  bundle models it. Nothing interpolates it in a **human-facing** message: a reply or escalation
+  telling an operator to "check `$OTENY_PORTAL_BASE_URL`" ships the literal token to a person who
+  cannot resolve it. In any text a human reads, instruct the bot to write the **resolved value**.
 - **The stub URL is a request-time knob — never committed, never a platform config field.** Your
   local double's tunnel URL changes every run and is *not* part of the bundle, so you hand it to the
   platform **at request time**: the dev launcher passes it into the spin-up as the stub endpoint for
@@ -712,6 +719,28 @@ rig → run the scenarios → tear down* — is a single command. (This is contr
 the runner is a thin script or a `pytest` fixture that shells out to the launcher, **not** an in-Odoo
 `TransactionCase` — the framework test class boots one Odoo, not a tunnelled live bot.)
 
+**A launcher that HOLDS the rig must not tear it down on one unverified liveness read.** Once it is
+up, the launcher blocks holding its children (the double, the tunnels). Three rules keep that hold
+honest:
+- **`poll()` is not proof of death — confirm a claimed exit against the process table.**
+  `subprocess.Popen.poll()` reports a **live** child as exited whenever something else reaps it
+  first: a debugger, an IDE test runner, a shell job-control layer, or any library doing a wildcard
+  `waitpid`/`SIGCHLD` reap consumes the child's status; CPython's `waitpid` then raises `ECHILD` and
+  `_internal_poll` **assumes the child died**, setting `returncode = 0` (cpython bpo-15756). The
+  signature is a rig that holds for minutes from a plain shell and detaches seconds after printing
+  its own success banner **under the debugger**. So never act on a bare `poll() is not None`:
+  confirm it (`os.kill(pid, 0)` → `ESRCH` = genuinely dead; still present = `poll()` lied) and
+  **resolve ambiguity to ALIVE**. Apply it to every liveness read, the startup gates included — a
+  false read there kills a rig that came up fine.
+- **Never send a held child's output to `DEVNULL`.** A tunnel that dies silently is an
+  undiagnosable outage. Give each held component its own log file and print its tail when it dies.
+- **Restart a genuinely-dead component in place — but only a NAMED tunnel.** A dead component is not
+  a reason to tear the whole rig down. A **named** tunnel's hostname is stable (§4c), so restarting
+  it keeps the bot's already-delivered coordinates valid — restart it. A **quick** tunnel's hostname
+  **rotates on reconnect**, so restarting one strands the bot on a host it can no longer reach: a
+  quick tunnel is deliberately **not** restartable. Bound the restarts (a few, then stop), and when
+  you do detach, name the component, its exit code, and its log tail.
+
 *Worked example (Barney):* `point_barney_at_local.py` is the launcher — bare = uplink only,
 `--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
 uplink + point the bot), `--seed-fixtures` = run the bundle's fixture seeder (`seed_mfnl_fixtures.py`:
@@ -904,16 +933,30 @@ through the state's timeout exit.
 - Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
   reaper for that state.
 
-**Robustness belts you get for free (you don't author them — they just work).** The SLA reaper
-is the *slow* backstop (tens of minutes to hours). Faster mechanisms below it keep a transient
-outage from stranding work, and the dispatch/uplink ones are safe by the same **one-run-per-claim**
-fence — a re-fire that races a live run is dropped, so neither can double a side effect:
+**Robustness belts you get for free — given a running scheduler (you don't author them; you do
+have to not disable them).** The SLA reaper is the *slow* backstop (tens of minutes to hours).
+Faster mechanisms below it keep a transient outage from stranding work, and the dispatch/uplink
+ones are safe by the same **one-run-per-claim** fence — a re-fire that races a live run is
+dropped, so neither can double a side effect:
+- **The belts are scheduled actions on the client's Odoo — a scheduler-less Odoo runs none of
+  them.** Both the re-dispatch belt and the SLA reaper fire from the owner-Odoo's
+  **scheduled-action worker**. An Odoo started without one (`--max-cron-threads 0` — common in a
+  debug/IDE launch profile, and the default in some container images) silently runs **neither**.
+  Nothing looks broken: the dispatch itself is **inline** (it fires on the state write, in the
+  same transaction), so a green happy path claims and runs exactly as it should — only **recovery**
+  is dead. You find out on the first dispatch the bot misses, which then sits in the working state
+  instead of being re-posted minutes later. So run any Odoo you point a bot at **with cron threads
+  enabled** — if your debug profile disables them, keep a second, cron-enabled profile and use it
+  for all bot work — and have your launcher **assert the scheduler is alive** at bring-up (probe
+  the owner-Odoo's scheduled-action lag; warn loudly past a few minutes) rather than trusting that
+  a green happy path means the belts are there.
 - **Fast re-dispatch of a lost dispatch.** If a record is claimed but its isolated run was **never
-  consumed** (the bot's gateway was down when the dispatch was posted, so its poll never saw it), the
-  dispatch belt **re-posts** the flagged message a few minutes later — for the *same* claim, no
-  re-claim — so a bot that has since reconnected picks the work up. A run that *did* start then died
-  is left to the SLA reaper (re-firing it would be a no-op). You get this automatically for any
-  bot-owned workflow state; you don't wire it.
+  consumed** — the dispatch committed while the bot's gateway was down and its reconnect did not
+  replay it (a rebuilt bot has no poll cursor, and a downtime past the cursor's backfill bounds
+  seeds at the channel's latest message) — the dispatch belt **re-posts** the flagged message a few
+  minutes later, for the *same* claim, no re-claim, so a bot that has since reconnected picks the
+  work up. A run that *did* start then died is left to the SLA reaper (re-firing it would be a
+  no-op). You get this automatically for any bot-owned workflow state; you don't wire it.
 - **Transient uplink retry.** A brief `/json/2/` blip (a tunnel reconnect, an Odoo restart) is
   retried transparently for **idempotent reads**, so a long run's many reads survive a hiccup instead
   of failing the turn. Writes are **never** auto-retried (they might have committed before the
@@ -979,6 +1022,17 @@ the next run reuses:
   secret. What the later run reuses is the **authenticated session** that login produced — a bound browser
   profile / cookie — never the raw credential or the OTP. Mint that session *when the human is ready*, not
   when the wall is hit, so the login sits inside the browser's hard lifetime instead of racing it.
+- **Land the minted session ON the portal's sign-in page — never hand the human a blank browser.** A
+  fresh session opens on `about:blank`, and the person doing the login (an office user, not a developer)
+  cannot be expected to know or type the portal address — in a test tier it is a machine-generated stub
+  hostname they have never seen. So the mint call carries the workflow's **portal entry URL** (declared
+  client-side as tier config, exactly like the broker seam itself, so the test tier lands on its stub and
+  prod on the live portal) and the platform **navigates the session there server-side before returning
+  the viewer link**; with no URL configured it falls back to the tenant's *single* stored-login origin
+  (the stored credential already knows where its portal lives — and landing on it lets credential
+  auto-fill fire). The landing is **best-effort**: if navigation fails the mint still stands and the
+  human lands blank — degraded UX, never a blocked login. Dry-run the click yourself before handing the
+  flow to the client: the tab must open on the sign-in form.
 - **A resume transition re-dispatches on a fresh claim.** When the human marks the login done, the record
   moves into a **bot-owned queue state** that dispatches like any other (§6): its **own claim mints a
   fresh claim epoch** and fires a *second*, fresh isolated turn that does the real side-effect against the

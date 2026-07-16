@@ -399,6 +399,14 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   process), don't re-run blind.
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
+- **A `hand_off` claims the record, the bot never runs, and it sits in the working state forever
+  (local rig)** — the platform's re-dispatch belt and SLA reaper are **scheduled actions on the
+  business Odoo**, so a local Odoo booted **without a cron worker** (`--max-cron-threads 0`, common
+  in a debug launch profile) runs **neither**. The dispatch itself is inline, so the happy path looks
+  healthy and only *recovery* is dead — the tell is a record claimed (sitting in the bot's working
+  state) with no run and no re-post. Boot the Odoo you point a bot at with cron threads **enabled**.
+  See [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md)
+  "The timeout reaper — the owner's backstop".
 - **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
   still points at prod, or a required stub is missing). Fix `neutralize.yaml`; a clone never
   serves un-neutralized.
