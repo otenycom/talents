@@ -1068,6 +1068,19 @@ viewer URL) is opened once and **never persisted or posted into a channel**. You
 the platform provides it; you only need to know the seam is *one bearer header to one URL*, so a client
 integration is a config value, not a bespoke protocol.
 
+**Rebind the client's credential every time the bot is (re)delivered — a stale seam fails GREEN.** The
+client-integration credential authenticates a *specific bot instance*; a dev loop that rebuilds or
+replaces its bot (a durable-slot rebuild, a fresh commission) silently strands a hand-wired credential on
+the PREVIOUS instance. The failure is the worst kind: every step still reports success — the login
+session mints, the human signs in, the save confirms — but the authenticated session lands in the *old*
+bot's browser profile, and the *current* bot still hits the wall. Nothing platform-side can detect it
+(the platform cannot know which bot the client's workflow meant). So the pattern is structural
+freshness, not detection: at every delivery the platform mints a fresh purpose-scoped credential for the
+delivered bot and exposes it as a **one-shot claim** on the commissioning request (claimed once, then
+blanked); the dev-loop launcher claims it and **rewrites the client system's seam config on every run**.
+Hand-wiring stays only for prod cutovers — and even there, rotate the credential as part of any bot
+replacement, never after it.
+
 ### Watching an inbox for the outcome — the mailbox stub double
 
 A workflow often completes only when a **counterparty replies** — an email confirming or rejecting
