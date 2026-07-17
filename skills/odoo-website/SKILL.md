@@ -94,7 +94,7 @@ health), and `PROFILE`. Then:
 
 - **Only publish content the owner is entitled to publish.** No phishing, malware, or spam —
   public pages under `oteny.bot` can be taken down by an operator, and abuse is reported to
-  abuse@oteny.com. Say this plainly if a request looks off.
+  abusereports@oteny.com. Say this plainly if a request looks off.
 - **Never post a password or secret in chat.** The Odoo admin login is generated in the box;
   hand the owner a login *link* / walk them through a reset, never a password (see
   [`credential-intake`] rules in `references/build-and-host.md`).
