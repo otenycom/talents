@@ -273,6 +273,10 @@ system's identity are **yours, in your repo**; the platform provides only the ge
     any dispatched/long-running work. (Barney's launcher provisions them automatically when you have
     Cloudflare API secrets; **without them it auto-falls back** to a free quick tunnel — no paid token
     required for short dev runs.)
+  - **Keep the connector `--token-file` until the cloudflared process exits.** Named tunnels take
+    `--token-file` (0600 temp, never argv). Unlinking that file in a `finally` right after spawn can
+    leave a healthy-looking connector that later exits 255 on reconnect / token re-read. Delete the
+    file only when tearing the process down (or hold it for the held-child lifetime).
   - **A named tunnel on a proxied zone applies Cloudflare's bot protection — the platform handles the
     common case.** A named tunnel on your own Cloudflare zone (e.g. `*.example.bot`) is *proxied*, so
     Cloudflare's **Browser Integrity Check** runs on it and bans a plain HTTP client outright — the
@@ -773,7 +777,10 @@ not the team's running conversation.
   **thin**: it names the skill to load and the record ("record #id"), and **nothing else**.
   The bot fetches the record's DTO itself over its `/json/2/` uplink, so no business data (PII)
   ever rides the chat channel. The workflow shape emits the prompt from generic role flags, not
-  a hard-coded reference.
+  a hard-coded reference. **Steer the claim `bot_prompt` uplink-first:** tell the agent to
+  `search_read` that record **by id** in one call (DTO / JSON field only) — never "service data
+  below" or any phrasing that invites inventing filters, domains, or payloads from chat. The
+  channel message stays identity-only; improvisation is a PII leak and a wrong-record risk.
 - **The idempotent claim.** Before (or as) it dispatches, the owner's Odoo **claims** the
   record — advances it out of the queue state (e.g. into a visible "working" state). The claim
   is idempotent and removes the record from the queue, so a re-run never dispatches the same
