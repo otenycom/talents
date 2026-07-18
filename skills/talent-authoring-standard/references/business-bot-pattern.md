@@ -50,8 +50,8 @@ the generic toolsets are **OFF**:
   keeps a small `skills`/`clarify` **read floor** mounted — `skill_view` must work for the
   bot to load its own composing skills; what's off is skill *creation/self-editing*, see
   the lockdown below.)
-- **ON, named explicitly:** the `/json/2/` Odoo client (the data plane, §3); optionally the
-  secure browser (`browser` + `browser_request_human` + `browser_download` +
+- **ON, named explicitly:** `odoo_client` (the data plane — §3, always with `connection=<name>`);
+  optionally the secure browser (`browser` + `browser_request_human` + `browser_download` +
   `browser_fill_form`) for portal filing; optionally a mailbox reader for an inbox
   round-trip; optionally a knowledge lookup; plus `send_message` / `memory` / `todo` as
   the job needs. Which tools exist and how to request them:
@@ -102,21 +102,22 @@ nothing load-bearing (a workflow state, a filing outcome, an idempotency fact) m
 only in memory — the system of record (§3) is the truth, and the bot must behave
 correctly on a box where memory came back empty.
 
-## 2b. Your scope contract is adversarially gated — keep it coherent (D95)
+## 2b. Your scope contract is adversarially gated — keep it coherent
 
-Your `agent-profile.yaml` **is** the scope contract, and Oteny runs a **D95 adversarial probe
+Your `agent-profile.yaml` **is** the scope contract, and Oteny runs an **adversarial probe
 suite** against it on top of the authoring lint — a second pass with two halves you should author
 for:
 
 - **A static coherence check at delivery** (no box, always on): it *fails delivery* if your
   contract has a structural hole an attacker walks through. Keep it coherent:
-  - if you declare `portal.real_url`, its host **must** be covered by `portal.fence_hosts` (else a
-    non-prod bot could reach the live portal);
+  - for every **portal** connection (`connections.<name>.kind: portal`), the host in
+    `real_url` **must** appear in that connection's `fence_hosts` (else a non-prod bot could
+    reach the live portal);
   - a locked bot **must** declare a `routing.signature` and a non-empty `routing.channel_prompt`
     (the scope anchor the guard holds to);
-  - if you declare a data seam (§3), **do not also mount a generic shell/code toolset** — the seam
-    is your system-of-record path, so drop `terminal`/`execute_code` (a demo with a local sqlite
-    and *no* seam is the only place a bare `terminal` is allowed).
+  - if you declare an **odoo** connection (§3), **do not also mount a generic shell/code toolset**
+    — `odoo_client` is your system-of-record path, so drop `terminal`/`execute_code` (a demo with
+    a local sqlite and *no* odoo connection is the only place a bare `terminal` is allowed).
 - **A live red-team** (`red-team` verb, run against a clone): the platform generates an adversarial
   corpus **from your contract** — instruction-override, jailbreak/persona, obfuscated evasion,
   indirect injection (a payload planted in data you read), shell/code execution, off-task tool use,
@@ -131,54 +132,58 @@ You don't author the probes — they are generated from what you declare — but
 contract (minimal toolset, a fenced portal, least-privilege grants, a fail-closed playbook) is what
 turns them green.
 
-## 3. The `/json/2/` uplink is the data plane (checks 2 + 6)
+## 3. Named odoo connections + `odoo_client` (checks 2 + 6)
 
 A B2C bot's source of truth is a local SQLite db under `~/.hermes/data/<bot>/`. A business
-bot's source of truth is **the business's Odoo**, reached over the authorized **`/json/2/`
-uplink** — it reads and writes real business records, not a local db.
+bot's source of truth is **the business's Odoo**, reached over authorized **`/json/2/`**
+calls through the **`odoo_client`** tool — it reads and writes real business records, not a
+local db.
 
 - The bot connects with its **own least-privilege bot user + a scoped API key** (delivered
   by the deployer as a secret, never baked — check 4 + the `secret` artifact class). It is
   not a human's login and not an admin key.
-- The manifest declares **`odoo_grants`** — the explicit list of models/operations the bot
-  user may touch. That binds the bot's reach: a grant the manifest doesn't name is a record
-  the bot cannot read or write, even if its prompt tries.
+- Each odoo bind is a **named connection** under `connections:` with `kind: odoo`. Declare
+  **`odoo_grants`** on that connection — the explicit list of models/operations the bot user
+  may touch. A grant the manifest doesn't name is a record the bot cannot read or write,
+  even if its prompt tries.
+- Every `odoo_client` call passes **`connection=<name>`** (the same name as in `connections:`).
+  The platform binds `OTENY_CONN_<NAME>_URL`, `_DB`, and `_KEY` on the box; the tool resolves
+  them — never hard-code URLs or keys in the bundle.
 - `required_artifacts.yaml` declares the uplink as the readiness condition (the bot user
   resolves + the scoped key is present + a probe read returns), the business-bot analog of
-  "db file exists + tables present." A bot with no reachable uplink is NOT-READY and must
-  not serve.
+  "db file exists + tables present." A bot with no reachable odoo connection is NOT-READY
+  and must not serve.
 - **Namespacing still holds (check 6):** any *local* scratch the bot keeps stays under
   `~/.hermes/data/<bot>/`; the authoritative records live in the business's Odoo, reached
   only through the granted `/json/2/` scope.
 
-**The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`). The
-uplink client mounts as the tool named **`crewradar_json2`** — a platform tool whose
-name predates its generalization; despite the prefix it is the *generic* Odoo
-`/json/2/` client for **your** Odoo, taking `(model, method, kwargs)`. **The name is
-pinned deliberately** (it sits in schemas, locks, and shipped Talents): write your
-skill text as "the business-Odoo uplink tool" and use the literal `crewradar_json2`
-in tool lists and calls. If a generic alias ever ships it will arrive with a
-deprecation window and both names working — you need no defensive action now.
-Declare it in both lists:
+**The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`):
 
 ```yaml
 toolset_contribution:
-  - crewradar_json2          # the Odoo /json/2/ uplink client (the data plane)
+  - odoo_client              # Odoo /json/2/ — pass connection=<name> on every call
 tools:
   required:
-    - crewradar_json2
-seam:
-  kind: odoo_json2
-  uplink_user: yourbot.serviceuser   # the bot's OWN least-privilege login in your Odoo
-  odoo_grants:                       # exactly what the job touches — nothing else
-    read:  [your.workflow.model, res.partner, your.credential.model]
-    write: [your.workflow.model, your.credential.model]
+    - odoo_client
+connections:
+  crewradar:                 # name is yours → OTENY_CONN_CREWRADAR_*
+    kind: odoo
+    uplink_user: hr.otenybot # the bot's OWN least-privilege login in your Odoo
+    odoo_grants:             # exactly what the job touches — nothing else
+      read:  [riverflow.service, res.partner, rivercreds.credential]
+      write: [riverflow.service, rivercreds.credential]
+routing:
+  channel: discuss
+  home_connection: crewradar # Discuss polls this odoo bind (OTENY_HOME_CONNECTION)
 ```
 
-The platform binds the uplink URL/database/key onto the box at commission (the key is
-delivered as a secret, never baked). Declaring `seam:` is also what makes
-`neutralize.yaml` mandatory — a clone of a bot with a real uplink must be defanged
-before it serves.
+> **EXAMPLE — Barney (Cuneus MFNL):** the live bundle names the odoo connection `crewradar`,
+> sets `home_connection: crewradar`, and adds a portal connection `meldloket` for
+> postedworkers.nl filing (§4c). Copy the *shape*, not the model names, for your vertical.
+
+The platform binds each connection on the box at commission (keys delivered as secrets, never
+baked). Declaring **`connections:`** (odoo or portal) is also what makes `neutralize.yaml`
+mandatory — a clone of a bot with real binds must be defanged before it serves.
 
 ## 4. Stub doubles for side-effecting actions — dev/staging vs prod (checks 9 + 14)
 
@@ -287,37 +292,37 @@ system's identity are **yours, in your repo**; the platform provides only the ge
     rule** for your dev hostname, or point the uplink at a quick (`trycloudflare.com`, off-zone) tunnel,
     which has no such rule. A quick `curl --resolve … → 200` confirms the tunnel itself is fine and the
     block is Cloudflare's, not yours.
-- **You declare your external systems in the Talent; the platform binds each by tier.** Every
-  outside-world system the bot touches is **named in the agent profile** — `external_systems:` is a
-  list of `{name, env_var, real_url, fence_hosts}`, and `portal:` is sugar for a single system bound
-  to a default env var. The concrete YAML:
+- **You declare outside systems as named connections; the platform binds each by tier.** Every
+  side-effecting system the bot touches gets an entry under `connections:` with `kind: portal`
+  (browser-facing URL + fence). The concrete YAML:
 
   ```yaml
-  portal:                              # sugar: ONE system on the default env var
-    real_url: https://portal.example.gov     # what a PROD bot gets
-    fence_hosts: [portal.example.gov]        # what a NON-prod browser is blocked from
-  # …or, for several systems, the general form:
-  external_systems:
-    - name: mailbox
-      env_var: OTENY_MAILBOX_BASE_URL        # a non-reserved OTENY_* name you pick
+  connections:
+    meldloket:                           # name → OTENY_CONN_MELDLOKET_BASE_URL
+      kind: portal
+      real_url: https://meldloket.example.gov   # what a PROD bot gets
+      fence_hosts: [meldloket.example.gov]      # what a NON-prod browser is blocked from
+    mailbox:
+      kind: portal
       real_url: https://mail.example.com
       fence_hosts: [mail.example.com]
   ```
 
-  For each, the platform binds **one** URL by the uplink tier — **prod → the
-  Talent-declared `real_url`; any non-prod tier → the stub** — and exposes it to the bot's tool as
-  `<env_var>=<base>`; on a non-prod tier it also fences the browser off the **union** of every
-  declared `fence_hosts`. The platform *binds/fences whatever you named* and hard-codes no third
-  party's address, so it stays generic across every client's bot. **The prod identity (`real_url` +
-  `fence_hosts`) lives in your Talent** and is versioned with it; the throwaway stub value does not
-  (next bullet).
+  For each portal connection, the platform binds **one** URL by tier — **prod → the
+  Talent-declared `real_url`; any non-prod tier → the stub** — and exposes it as
+  `OTENY_CONN_<NAME>_BASE_URL` on the box; on a non-prod tier it also fences the browser off
+  the **union** of every declared `fence_hosts`. The platform *binds/fences whatever you named*
+  and hard-codes no third party's address, so it stays generic across every client's bot.
+  **The prod identity (`real_url` + `fence_hosts`) lives in your Talent** and is versioned with
+  it; the throwaway stub value does not (next bullet).
 
-  **`$OTENY_*` is a tool-target convention, not a template language.** Writing
-  `$OTENY_PORTAL_BASE_URL` in skill prose works where the bot **resolves it to make a call**
-  (`browser_navigate` to `$OTENY_PORTAL_BASE_URL/portal`) — that is the intended usage, and the demo
-  bundle models it. Nothing interpolates it in a **human-facing** message: a reply or escalation
-  telling an operator to "check `$OTENY_PORTAL_BASE_URL`" ships the literal token to a person who
-  cannot resolve it. In any text a human reads, instruct the bot to write the **resolved value**.
+  **`$OTENY_CONN_*` is a tool-target convention, not a template language.** Writing
+  `$OTENY_CONN_MELDLOKET_BASE_URL` in skill prose works where the bot **resolves it to make a
+  call** (`browser_navigate` to `$OTENY_CONN_MELDLOKET_BASE_URL/portal`) — that is the intended
+  usage, and the demo bundle models it. Nothing interpolates it in a **human-facing** message: a
+  reply or escalation telling an operator to "check `$OTENY_CONN_MELDLOKET_BASE_URL`" ships the
+  literal token to a person who cannot resolve it. In any text a human reads, instruct the bot to
+  write the **resolved value**.
 - **The stub URL is a request-time knob — never committed, never a platform config field.** Your
   local double's tunnel URL changes every run and is *not* part of the bundle, so you hand it to the
   platform **at request time**: the dev launcher passes it into the spin-up as the stub endpoint for
@@ -1035,7 +1040,7 @@ the next run reuses:
   fresh session opens on `about:blank`, and the person doing the login (an office user, not a developer)
   cannot be expected to know or type the portal address — in a test tier it is a machine-generated stub
   hostname they have never seen. So the mint call carries the workflow's **portal entry URL** (declared
-  client-side as tier config, exactly like the broker seam itself, so the test tier lands on its stub and
+  client-side as tier config, exactly like a portal connection bind, so the test tier lands on its stub and
   prod on the live portal) and the platform **navigates the session there server-side before returning
   the viewer link**; with no URL configured it falls back to the tenant's *single* stored-login origin
   (the stored credential already knows where its portal lives — and landing on it lets credential
@@ -1190,20 +1195,20 @@ Then state the residual honestly. A lock acquired *after* a transaction's snapsh
 width of that transaction's prologue; make the outcome in that window fail-closed, measure it, and write it
 down — an unstated residual is the one that surprises somebody at 2am.
 
-**How the client's own system reaches Oteny (the client-integration seam).** The mint-on-click and the
+**How the client's own system reaches Oteny (the client-integration hook).** The mint-on-click and the
 attended-refresh above are triggered by the **client's own system** (its ERP / back-office) calling Oteny
 **server-to-server** — not by the bot. That call rides a single **public HTTPS lane** the platform
 operates, and the contract is deliberately tiny: **one base URL + one `Authorization: Bearer <token>`
 header**, JSON body, synchronous response. The bearer is a **purpose-scoped client-integration
 credential** — issued per client-integration, independently revocable, and **distinct from any model /
-spend token** the bot uses — so exposing this seam can never leak model budget, and rotating it never
+spend token** the bot uses — so exposing this hook can never leak model budget, and rotating it never
 disturbs the bot. Treat the value like any secret: it lives in the client system's own secret store
 (never in chat, never on the bot's box), and the synchronous response (e.g. an ephemeral human-login
 viewer URL) is opened once and **never persisted or posted into a channel**. You do not build this lane —
-the platform provides it; you only need to know the seam is *one bearer header to one URL*, so a client
+the platform provides it; you only need to know the hook is *one bearer header to one URL*, so a client
 integration is a config value, not a bespoke protocol.
 
-**Rebind the client's credential every time the bot is (re)delivered — a stale seam fails GREEN.** The
+**Rebind the client's credential every time the bot is (re)delivered — a stale bind fails GREEN.** The
 client-integration credential authenticates a *specific bot instance*; a dev loop that rebuilds or
 replaces its bot (a durable-slot rebuild, a fresh commission) silently strands a hand-wired credential on
 the PREVIOUS instance. The failure is the worst kind: every step still reports success — the login
@@ -1212,7 +1217,7 @@ bot's browser profile, and the *current* bot still hits the wall. Nothing platfo
 (the platform cannot know which bot the client's workflow meant). So the pattern is structural
 freshness, not detection: at every delivery the platform mints a fresh purpose-scoped credential for the
 delivered bot and exposes it as a **one-shot claim** on the commissioning request (claimed once, then
-blanked); the dev-loop launcher claims it and **rewrites the client system's seam config on every run**.
+blanked); the dev-loop launcher claims it and **rewrites the client system's integration config on every run**.
 Hand-wiring stays only for prod cutovers — and even there, rotate the credential as part of any bot
 replacement, never after it.
 
@@ -1225,7 +1230,7 @@ mailbox; **every non-prod tier mounts a stub inbox**, and the same Talent ships 
 tiers.
 
 - **The stub inbox serves seeded fixtures.** On non-prod, the mailbox poll points — via a tier-bound
-  `external_systems` env var (§4c) — at a **stub inbox** shaped like the real mail API, serving seeded
+  the portal connection's env var (§4c) — at a **stub inbox** shaped like the real mail API, serving seeded
   `.eml` fixtures, plus a **driver** that lets a test *"simulate the counterparty confirmed / rejected
   item X."* The whole **confirm/reject round-trip is offline-verifiable** with zero third-party
   dependency, on the same tier your other doubles run.

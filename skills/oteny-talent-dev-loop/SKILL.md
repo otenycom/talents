@@ -16,8 +16,9 @@ The verification loop for a Talent: prove it *behaves* — not just that it lint
 by running it against a real, disposable, neutralized **clone** on Oteny's prod
 fleet, reading its debug traces, and gating a push *commit → staging → green/red*
 before you tag a release. This is the recipe an AI coding agent (or you) follows;
-the primitives are the Oteny dev CLI verbs + the `/json/2/` seam, all scoped by
-**your own account's key** — you can only touch your own (and granted/demo) bots.
+the primitives are the Oteny dev CLI verbs + named **connections** (odoo binds over
+`/json/2/`), all scoped by **your own account's key** — you can only touch your own
+(and granted/demo) bots.
 
 > **Read first:** the rubric [`talent-authoring-standard`](../talent-authoring-standard)
 > (what a bundle must satisfy) and the how-to [`oteny-talent-authoring`](../oteny-talent-authoring)
@@ -43,7 +44,7 @@ The one loop you actually run, and what each step *does*:
 3. **Get a container to test on** — `clone --from <a source you may touch> --bundle <slug> --branch
    <branch> --byob <token>` mints a disposable bot (`{ref: hh0…}`). This is the "set up a dev
    container" step — one command, no infra. (A business bot points its uplink at a **staging**
-   business Odoo; `neutralize.yaml` repoints the seam + stubs any real portal/mailbox before it
+   business Odoo; `neutralize.yaml` repoints connections + stubs any real portal/mailbox before it
    serves.)
 4. **Deliver your change** — `reload --ref <clone>` ships your pushed commit onto the clone
    (stage → swap → gate → auto-rollback). This is a "talent upgrade": the same delivery prod uses.
@@ -172,7 +173,7 @@ same way, with three differences:
   narration. Use `hand_off` (not a driver-posted flagged message) so the scenario exercises the
   real claim fence, not a legacy path. Fixture must match **exactly one** record (seed/reset it).
 - **The clone points its uplink at a STAGING business Odoo** (never prod), and `neutralize.yaml`
-  repoints the seam + confirms any side-effecting adapter (portal/browser/mailbox) is the stub.
+  repoints connections + confirms any side-effecting adapter (portal/browser/mailbox) is the stub.
 - **Adversarial red scenarios run in their OWN invocation.** A red scenario (the fail-closed
   proof — see the authoring standard's `behavioral-scenarios.md`) needs its failure **induced
   at converge/setup** (point the clone's portal env at a down/blocked URL, or revoke the bot
@@ -368,7 +369,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   Diagnose box-config from **behavior** (a fail-close, the wrong host fenced, a stub not taking) in
   `traces`, not by reading the box.
 - **Neutralize is default-ON.** Every clone runs the bundle's `neutralize.yaml`
-  *before it serves a turn* (outbound crons off, seams repointed to staging,
+  *before it serves a turn* (outbound crons off, connections repointed to staging,
   external logins swapped). If your Talent has any outbound action it **must** ship
   a `neutralize.yaml` (the lint enforces it). `--no-neutralize` is ops-only and only
   on a bot you own.
@@ -419,7 +420,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   - **A `403` result names the model it DENIED, not the one you called.** The result `error`
     is Odoo's native message ("_… not allowed to access 'Ship Type' (`crewradar.site.type`)
     records_") — e.g. a `search_read` on `riverflow.service` that pulls a computed DTO field can
-    403 on a *reference* model behind it. Grant your bot's seam user read on **that** model;
+    403 on a *reference* model behind it. Grant your bot's odoo user read on **that** model;
     don't chase the called model. (A 403 that starts the bot **inventing** method names is a
     Talent bug — its rule must be "a 403 is a STOP: report the denied model and escalate"; the
     `read_403_no_guess` scenario pins it.)
@@ -441,7 +442,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   state) with no run and no re-post. Boot the Odoo you point a bot at with cron threads **enabled**.
   See [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md)
   "The timeout reaper — the owner's backstop".
-- **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a seam
+- **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a connection
   still points at prod, or a required stub is missing). Fix `neutralize.yaml`; a clone never
   serves un-neutralized.
 - **A long run is reaped mid-task** — the agent budget (`agent.max_turns`) is too low for the

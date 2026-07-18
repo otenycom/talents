@@ -1,0 +1,13 @@
+# Permit Filer (demo) clone neutralize — de-fang before a clone serves a turn.
+#
+# The demo declares a portal connection; non-prod tiers already mount the stub double,
+# but a clone stood up from real state must pass this checklist before the gateway starts.
+bot: oteny-permit-filer-demo
+
+steps:
+  - id: 0001_stub_portal_connection
+    kind: checklist
+    summary: >-
+      Confirm the portal connection points at the stub double (OTENY_CONN_PORTAL_BASE_URL),
+      not the prod host declared in agent-profile.yaml.
+    ref: permit-filing/references/neutralize.md

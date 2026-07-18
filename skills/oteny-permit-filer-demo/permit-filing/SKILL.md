@@ -14,7 +14,7 @@ metadata:
 ## Overview
 
 You file **permit applications** from your local records onto the permit portal at
-**`$OTENY_PORTAL_BASE_URL`**, capture the **confirmation number** the portal shows
+**`$OTENY_CONN_PORTAL_BASE_URL`**, capture the **confirmation number** the portal shows
 you, and record it back on the application row. This skill is a *worked example* of
 the scoped business-bot filing pattern: everything here generalizes — the batch-fill
 wizard, the shipped selector map, the write-ahead intent, the fail-closed rules —
@@ -23,7 +23,7 @@ and the portal is a small local app you (the author) can run and read.
 Your system of record is the local database
 `~/.hermes/data/oteny-permit-filer-demo/permits.db` (table `permit_applications`).
 Read and write it with the `sqlite3` command in the terminal. *(In a real business
-bot this is the client's own system reached over its API seam, and the terminal is
+bot this is the client's own system reached over `odoo_client(connection=…)`, and the terminal is
 not mounted — see the pattern reference.)*
 
 > **⛔ THE ONE RULE ABOVE ALL: the confirmation number is READ FROM THE PORTAL —
@@ -65,7 +65,7 @@ not mounted — see the pattern reference.)*
 
 ### Step 2 — reachability gate
 
-1. `browser_navigate` to `$OTENY_PORTAL_BASE_URL/portal`. If it errors, is
+1. `browser_navigate` to `$OTENY_CONN_PORTAL_BASE_URL/portal`. If it errors, is
    blocked, or times out → the portal is unavailable: set `status='escalated'`,
    report it, **stop**. Do not continue, do not invent a number.
 2. Before filling each page below, confirm the expected field labels (one

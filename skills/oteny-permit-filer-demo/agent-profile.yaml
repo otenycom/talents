@@ -6,7 +6,7 @@
 # The pattern it demonstrates: talent-authoring-standard/references/
 # business-bot-pattern.md + browser-authoring.md. In a REAL business bot the
 # sqlite system of record becomes your client's own system reached over its API
-# seam, and `terminal` drops OFF the toolbox.
+# (crewradar + odoo_client in a real bot); the demo keeps sqlite + terminal.
 bot: oteny-permit-filer-demo
 display_name: Permit Filer (demo)
 tagline: "A worked example: files a permit on a demo portal, the business-bot way."
@@ -22,7 +22,7 @@ base_language: en
 # browser tools ride the same toolset; declare them by name under tools.required
 # below, not here). `terminal` is here ONLY because the demo's system of record is
 # a local sqlite db (kept via the sqlite3 CLI); a real business bot replaces that
-# with its API seam tool and drops terminal. Deliberately absent: execute_code,
+# with its API connection tool and drops terminal. Deliberately absent: execute_code,
 # skills, cron, open-web search — this bot files permits, nothing else.
 toolset_contribution:
   - browser
@@ -34,15 +34,17 @@ tools:
     - browser_fill_form
   stubbed: []
 
-# The tier-bound portal (the stub-double pattern): the platform points
-# $OTENY_PORTAL_BASE_URL at your tunnelled demo portal on a dev bot, and would
-# point it at the real host only on a prod-tier bot. fence_hosts keeps a non-prod
-# bot structurally unable to reach the real host through the browser. The host
-# below is fictional — the demo never has a prod tier.
-portal:
-  real_url: https://permits.example.org
-  fence_hosts:
-    - permits.example.org
+# The tier-bound portal connection (stub-double pattern): the platform points
+# OTENY_CONN_PORTAL_BASE_URL at your tunnelled demo portal on a dev bot, and would
+# point it at real_url only on a prod-tier bot. fence_hosts keeps a non-prod bot
+# structurally unable to reach the real host through the browser. The host below
+# is fictional — the demo never has a prod tier.
+connections:
+  portal:
+    kind: portal
+    real_url: https://permits.example.org
+    fence_hosts:
+      - permits.example.org
 
 delivery: baked
 price: free

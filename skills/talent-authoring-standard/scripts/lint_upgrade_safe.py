@@ -62,13 +62,13 @@ VERSIONING & MIGRATION SHAPE (Talent only — upgrade coherence):
 
 NEUTRALIZE SAFETY (Talent only — a clone of real state must not fire a live action, P4):
  13. a Talent with an OUTBOUND action — it declares required cron jobs (a ``cron`` artifact
-     with a non-empty ``jobs:`` list, e.g. a scheduled DM) or an external ``seam:`` in
-     ``agent-profile.yaml`` (a ``/json/2/`` integration) — MUST ship a ``neutralize.yaml``,
+     with a non-empty ``jobs:`` list, e.g. a scheduled DM) or a named ``connections:`` entry
+     in ``agent-profile.yaml`` (an odoo or portal bind) — MUST ship a ``neutralize.yaml``,
      and it must be well-shaped: a ``steps:`` LIST, each a unique ``id`` with ``kind`` ∈
      {``sql``, ``crons``, ``checklist``}; a ``crons`` step lists jobs to ``disable:`` and
      between them they cover EVERY declared required cron (else a clone would still fire the
      uncovered one); a ``sql`` step has a non-empty ``sql`` body. (Needs PyYAML; CI installs
-     it.) Without it, a disposable clone of a real tenant inherits live crons/seams and DMs
+     it.) Without it, a disposable clone of a real tenant inherits live crons/connections and DMs
      the real owner or files a real form — the whole point of P4's fail-closed gate.
 
 SCHEDULED-CRON COST POLICY (Talent only — a recurring cron is the fleet's biggest cost
@@ -334,10 +334,10 @@ def required_cron_jobs(bundle: Path) -> list[str]:
 
 
 def _has_external_seam(bundle: Path) -> bool:
-    """True if the Talent declares an external ``/json/2/`` seam in agent-profile.yaml (a
-    business bot like the CrewRadar HR bot). A clone must repoint it at staging, so the
-    Talent must ship a neutralize.yaml. Detection is an explicit ``seam:`` block — never a
-    guess — so a self-contained Talent (flatbelly owns its own db) is not falsely flagged."""
+    """True if the Talent declares outbound connections in agent-profile.yaml (odoo or portal).
+    A clone must repoint binds at staging, so the Talent must ship neutralize.yaml. Detection
+    is explicit ``connections:`` (any entry) or legacy ``seam:`` — never a guess — so a
+    self-contained Talent (flatbelly owns its own db) is not falsely flagged."""
     prof = bundle / "agent-profile.yaml"
     if yaml is None or not prof.is_file():
         return False
@@ -345,7 +345,10 @@ def _has_external_seam(bundle: Path) -> bool:
         data = yaml.safe_load(prof.read_text()) or {}
     except yaml.YAMLError:
         return False
-    return bool(data.get("seam"))
+    if data.get("seam"):
+        return True
+    conns = data.get("connections")
+    return isinstance(conns, dict) and bool(conns)
 
 
 # Check 15 — the hardware-requirement (`requires:`) block. A Talent declares a CAPABILITY it
@@ -638,11 +641,23 @@ def _neutralize_findings(bundle: Path) -> list[str]:
     needs = bool(required) or _has_external_seam(bundle)
     if not neu.is_file():
         if needs:
-            why = "required cron jobs" if required else "an external seam"
+            prof = bundle / "agent-profile.yaml"
+            why = "required cron jobs"
+            if not required:
+                try:
+                    pdata = yaml.safe_load(prof.read_text()) or {} if yaml and prof.is_file() else {}
+                except yaml.YAMLError:
+                    pdata = {}
+                if pdata.get("connections"):
+                    why = "named connections (odoo or portal)"
+                elif pdata.get("seam"):
+                    why = "a legacy seam declaration"
+                else:
+                    why = "an outbound bind"
             return [f"declares an outbound action ({why}) but ships no neutralize.yaml — a "
                     "clone of this Talent's real state would inherit it and fire a live "
                     "action; ship neutralize.yaml (kind: crons disables every declared job, "
-                    "kind: sql repoints the seam) — P4 fail-closed gate"]
+                    "kind: sql/checklist repoints connections) — P4 fail-closed gate"]
         return []
     if yaml is None:
         return []          # the structural check needs PyYAML; CI installs it

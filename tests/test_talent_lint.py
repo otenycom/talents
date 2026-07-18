@@ -173,7 +173,22 @@ def test_required_crons_without_neutralize_is_a_finding(tmp_path):
 
 def test_seam_without_neutralize_is_a_finding(tmp_path):
     b = _talent(tmp_path, profile_extra="seam:\n  base: crewradar\n")
-    assert any("external seam" in f and "neutralize.yaml" in f for f in lint.lint_bundle(b))
+    assert any("legacy seam" in f and "neutralize.yaml" in f for f in lint.lint_bundle(b))
+
+
+def test_odoo_connection_without_neutralize_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra=(
+        "connections:\n  crewradar:\n    kind: odoo\n    uplink_user: bot\n"
+        "    odoo_grants: {read: [res.partner], write: []}\n"))
+    assert any("named connections" in f and "neutralize.yaml" in f for f in lint.lint_bundle(b))
+
+
+def test_portal_connection_without_neutralize_is_a_finding(tmp_path):
+    b = _talent(tmp_path, profile_extra=(
+        "connections:\n  portal:\n    kind: portal\n"
+        "    real_url: https://permits.example.org\n"
+        "    fence_hosts: [permits.example.org]\n"))
+    assert any("named connections" in f and "neutralize.yaml" in f for f in lint.lint_bundle(b))
 
 
 def test_self_contained_talent_needs_no_neutralize(tmp_path):

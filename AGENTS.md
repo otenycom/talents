@@ -27,8 +27,9 @@ matches your task before you touch a bundle.**
 | **Create / edit / package / publish** a Talent, step by step | `oteny-talent-authoring` | [`skills/oteny-talent-authoring/SKILL.md`](skills/oteny-talent-authoring/SKILL.md) |
 | **Test / clone / debug / ship** — prove it *behaves*, not just that it lints; **how to use the Oteny dev CLI** | `oteny-talent-dev-loop` | [`skills/oteny-talent-dev-loop/SKILL.md`](skills/oteny-talent-dev-loop/SKILL.md) |
 
-Newcomer's narrative walk-through: [`docs/writing-a-talent.md`](docs/writing-a-talent.md). The
-full tool catalog a Talent may request: [`TOOLS.md`](TOOLS.md).
+Newcomer's narrative walk-through: [`docs/writing-a-talent.md`](docs/writing-a-talent.md). Author
+vocabulary (connections, `odoo_client`, scope-lock, …): [`skills/glossary.md`](skills/glossary.md).
+The full tool catalog a Talent may request: [`TOOLS.md`](TOOLS.md).
 
 ## The dev loop — how to use the Oteny CLI
 

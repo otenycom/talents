@@ -9,7 +9,7 @@ Everything a real one has, at toy scale, against a portal you run yourself.
 
 | In this bundle | The pattern | Explained in |
 | --- | --- | --- |
-| `agent-profile.yaml` — the minimal locked toolbox, `portal:` tier binding | scope-lock; the stub-double | `business-bot-pattern.md` §2, §5 |
+| `agent-profile.yaml` — minimal toolbox + `connections.portal` tier binding | scope-lock; stub-double | `business-bot-pattern.md` §2, §5 |
 | `permit-filing/SKILL.md` — one `browser_fill_form` call per wizard page, verified next-click | batch-fill | `business-bot-pattern.md` §6; `browser-authoring.md` |
 | `permit-filing/references/form-selectors.md` — the shipped selector map (+ how it was derived) | skills ship selectors; snapshots show refs, not CSS | `browser-authoring.md` |
 | write-ahead `PENDING-…` → explicit submit → number read off the page | fail-closed + the crash fence | `business-bot-pattern.md` §4 |
@@ -29,15 +29,15 @@ own record of what was submitted (the ground truth the scenarios assert against)
 
 **Run it as a real bot:** commission a dev bot from this bundle (the
 `oteny-talent-dev-loop` recipe), expose the portal over any HTTPS tunnel, and pass
-it as the bot's portal double at commission (`spinup_config:
-{stub_endpoints: {portal: <your tunnel url>}}` — the platform binds it to
-`$OTENY_PORTAL_BASE_URL` on the box). Then seed a row
+it as the stub endpoint at commission (`spinup_config:
+{stub_endpoints: {portal: <your tunnel url>}}` — keyed by the connection name; the
+platform binds it to `OTENY_CONN_PORTAL_BASE_URL` on the box). Then seed a row
 (`permit-filing/references/first-run.md`) and hand the bot the job.
 
 **What a real business bot changes:** the local sqlite becomes your client's own
-system reached over its API seam (declared by your Talent — see
-`business-bot-pattern.md` §3), `terminal` drops off the toolbox, the portal's
-`real_url`/`fence_hosts` become the real host, and the wizard grows the things
+system reached over `odoo_client(connection=…)` (declared under `connections:` —
+see `business-bot-pattern.md` §3), `terminal` drops off the toolbox, the portal
+connection's `real_url`/`fence_hosts` become the real host, and the wizard grows the things
 real portals have (login walls → `connect_login`/`browser_request_human`;
 search-then-pick interludes → never batched).
 
