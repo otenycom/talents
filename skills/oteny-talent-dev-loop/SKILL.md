@@ -335,7 +335,14 @@ means the box booted (on defaults) — for an **external-Talent** bot the privat
 skill-not-found race). `talent_delivered` is the true "your Talent is on the box" signal (a
 catalog-only bot is `true` by construction). On `active` without delivery, the async belt still
 converges it within ~5 min — poll `hh.talent.source.last_status == "delivered"` (visible to your
-account key) before you start testing, or read `talent_delivery_error` for the reason.
+account key) before you start testing, or read `hh.talent.source.last_error` /
+`talent_delivery_error` for the reason.
+
+**`last_status=gate_failed` — read the lint text.** Delivery runs the same
+`talent-authoring-standard` lint that you should run offline first. A frequent fail is a child
+`SKILL.md` **body over 20 000 characters** (`… chars (>20000) — split detail into references/`).
+Trim → push → `reload` (or wait for the follow-mode belt). Do not start graded `test` until
+`last_status` is `delivered`.
 
 ## Proving a migration (the case a fresh box can't cover)
 

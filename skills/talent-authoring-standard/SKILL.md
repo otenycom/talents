@@ -39,6 +39,7 @@ below. Two native facts it leans on:
 - **Lean bodies, native progressive disclosure.** Only the one-line `name: description`
   index is cached; bodies + references load on demand via `skill_view(name[, file_path])`.
   So a `SKILL.md` body sits at **8–14k chars** and **splits into `references/` past ~20k**
+  (the offline lint **and** on-bot delivery gate both fail past 20 000 — `last_status=gate_failed`)
   (hard cap 100k) — don't build a "load skill" tool, Hermes is one.
 - **The `description` is the router, truncated to ~60 chars**
   (`skill_utils.extract_skill_description`) — make it a **sharp ≤60-char trigger**, not a paragraph.

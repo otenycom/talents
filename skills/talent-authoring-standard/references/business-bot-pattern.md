@@ -156,6 +156,9 @@ local db.
 - **Namespacing still holds (check 6):** any *local* scratch the bot keeps stays under
   `~/.hermes/data/<bot>/`; the authoritative records live in the business's Odoo, reached
   only through the granted `/json/2/` scope.
+- **Keep call shapes lean in `SKILL.md`:** long exact `odoo_client(…)` examples belong in
+  `references/` — a child skill body over **20 000** characters fails both the offline lint
+  and on-bot delivery (`last_status=gate_failed`). See `oteny-talent-dev-loop` readiness.
 
 **The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`):
 
