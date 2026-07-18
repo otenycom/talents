@@ -504,14 +504,14 @@ element the page rendered (id / name / role / aria-label / text / tag / type) �
 inventory of the page's form controls. These are your own bot's real browser interactions on your
 **account-key dog-food surface** — no operator access needed.
 
-1. **`hermeshost selector-audit --manifest <file>` — static, before a live run.** Scores each
+1. **`selector-audit --manifest <file>` (Oteny author CLI) — static, before a live run.** Scores each
    selector against the rules above and **exits non-zero if any is brittle** — the "is my runbook
    flexible enough for the real website?" check. Harden what it flags (add ladder rungs down to a
    semantic anchor, add `expect_unique`, add `option_fallbacks`) until it passes. No bot needed —
    run it in CI.
 2. **Run the bot** — a scenario or a handed-off job — against the real (or stub) site so it emits
    `browser_fill_form` traces.
-3. **`hermeshost browser-diff --manifest <file> [--observed <traces.json> | --ref <ref>]` —
+3. **`browser-diff --manifest <file> [--observed <traces.json> | --ref <ref>]` (Oteny author CLI) —
    dynamic, after the run.** Diffs the observed `hh.browser.trace` rows against the manifest and
    **proposes** a verdict + fix per field:
    - **OK** — matched exactly one control, as expected.
@@ -525,10 +525,10 @@ inventory of the page's form controls. These are your own bot's real browser int
    - **NOT_EXERCISED** — the run never reached this field/page → your scenario didn't cover it.
 
    Fixes are **proposed, never auto-applied** — you read them, decide, and edit **your own** skill's
-   selector map + manifest. Read the raw rows yourself with `hermeshost traces --ref <ref>` (it
+   selector map + manifest. Read the raw rows yourself with `traces --ref <ref>` (author CLI — it
    returns a `browser_traces` list + a `browser_summary`) to tune the runbook by hand.
 
-**`hermeshost manifest-check --manifest <file> --stub-url <base>` — the third verb: is my double
+**`manifest-check --manifest <file> --stub-url <base>` (Oteny author CLI) — the third verb: is my double
 faithful to my manifest?** `selector-audit` proves the ladders are *flexible* and `browser-diff`
 proves they *matched* a page the bot reached — but neither catches a control your manifest **names**
 while your **stub never renders** it. That field simply never appears in a trace, so `browser-diff`
@@ -573,7 +573,7 @@ until the diff is clean:
 
 1. **Observe** — the belt-armed bot walks the real site; the platform captures the per-action traces
    (as above).
-2. **Diff** — `hermeshost browser-diff --manifest <file> --observed <traces.json>` scores the observed
+2. **Diff** — `browser-diff --manifest <file> --observed <traces.json>` (author CLI) scores the observed
    reality against your manifest (RENAMED / AMBIGUOUS / MISSED / …).
 3. **Harden** — apply each proposed fix to **your own** selector map + manifest, **and back-port the
    observed reality into your stub** (the real ids, the real option strings, any page the original
@@ -749,8 +749,10 @@ honest:
 `--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
 uplink + point the bot), `--seed-fixtures` = run the bundle's fixture seeder (`seed_mfnl_fixtures.py`:
 one synthetic worker per hand_off scenario, reset-on-rerun, verified against the scenarios' exact
-domains); each is a VS Code launch config. Then `hermeshost test --ref <bot> --bundle <bundle>
-[--scenario <glob>]…` runs the graded scenarios against the live, side-effect-safe bot.
+domains); each is a VS Code launch config. Then the Oteny author CLI
+`test --ref <bot> --bundle <bundle> [--scenario <glob>]…` (see [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md))
+runs the graded scenarios against the live, side-effect-safe bot — account key only, not a
+private platform checkout.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 

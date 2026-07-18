@@ -63,6 +63,40 @@ Everything below is the detail of those steps. Two equivalent fronts run the sam
 status). All of it is scoped to **your own account's key** — you can only touch your own, granted,
 and Oteny demo bots.
 
+## Author surface vs Oteny staff (pit of success)
+
+You are a **Talent author** (or a client team role-playing one). You hold an **account key** and
+this public recipe. You do **not** need Oteny's private control-plane repo, node SSH, or an
+**Oteny staff live run** (`commission --internal` with control-plane keys).
+
+| Everyday author loop (default) | Oteny staff live run (not this skill) |
+| --- | --- |
+| Account key + author CLI verbs below (`clone` / `reload` / `test` / `traces` / …) | Private control-plane CLI + mgmt keys |
+| Box access `inspect` / `shell` (your keypair + `cloudflared access tcp`) | Node / `runsc` into infrastructure you do not own |
+| Business Odoo: hand the job → **Bot Activity** / Discuss | Staff-only harvest tools (`logs-pull`, …) |
+| Reap / teardown your own author bots | Fleet terminate / reconcile of staff live-run bots |
+
+If a doc tells you to run a private platform binary for ordinary Talent work, treat that as a
+**footgun** — use the verbs in this skill instead.
+
+### What still needs Oteny staff (honest gaps)
+
+Until third-party Talent tooling is fully self-serve, some steps still need **Oteny staff**
+(or a trusted-partner exception). Do not invent a staff escape hatch in your client docs —
+name the gap and stretch the author path.
+
+| Still staff-gated / partner-only today | Author substitute |
+| --- | --- |
+| Live `clone` → `test` → `traces` / box-access helpers for **arbitrary** outside authors (today: Oteny + trusted partners; one-push staging CI rolling out) | Offline lint + scenario YAML; hand the job → Bot Activity / Discuss |
+| Prod-tier real external portals, submit-deny arming, SMS 2FA on a shared government account | Stub / neutralized doubles; schedule a staff live run only when product requires the real site |
+| Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + this skill’s verbs + box access |
+| New business-account mint + product “commission my bot” UX (Path C) | Staff onboarding assist until the product surface ships |
+
+*Business-bot canary (worked shape):* a client repo (e.g. CrewRadar/Barney) keeps the Talent
+bundle + a self-serve launcher that calls `request_dev_bot` with the account key; graded runs
+use `test` / `traces` / box access from **this** recipe — the same path a third-party author
+gets. Production later commissions through Oteny's product surfaces, not an Oteny staff live run.
+
 ## When to use
 
 - You changed a Talent (copy, a child skill, a tool request, a state-shape
