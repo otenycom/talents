@@ -156,9 +156,9 @@ Six graded rules; the failure chains and worked examples are in
   fallback `assistant`), never the raw OpenRouter slug — an un-pinned job silent-fails.
 - Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per
   terminal call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
-- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing baked dep**
+- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing system/apt dep**
   (D237) — degrade to a clean NOT-READY, never a traceback; the first-run/critical path
-  never depends on a baked dep.
+  never depends on a third-party import (feature deps → uv lock + `talent-run`, next bullet).
 - **Feature scripts that import third-party libs ship a uv lock** — `pyproject.toml` +
   `uv.lock` + `.python-version` at the Talent root; invoke via `talent-run <slug>
   <rel-script>` (or `uv run --project …`). The platform syncs the env at converge into

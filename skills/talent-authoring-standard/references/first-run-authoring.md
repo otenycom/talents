@@ -42,10 +42,10 @@ out of SQL output.
 tenant may lack `python3-yaml` (or any apt/pip lib). A readiness script must honor its
 "always exit 0, never look like a failure" contract even then — degrade to a clean
 NOT-READY, never raise a traceback (which makes the model grind on `pip install`). The
-canonical `selfcheck.py` reads YAML via a **vendored stdlib fallback**; a container can
-only get a baked dep via a disruptive rebase, so the first-run/critical path must not
-depend on one. (Non-readiness feature scripts — e.g. a matplotlib dashboard cron — MAY
-use a baked dep, declared per check 9.)
+canonical `selfcheck.py` reads YAML via a **vendored stdlib fallback**; readiness must
+never depend on a third-party import (system python on a cold box may lack it). Feature
+scripts that need libs (e.g. matplotlib dashboards) ship `pyproject.toml` + `uv.lock` and
+run via `talent-run` (D239 / check 18) — not via a parent bake or the readiness path.
 
 ## Collapse the per-turn preamble (D38)
 

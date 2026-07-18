@@ -230,6 +230,9 @@ passes, defence in depth.
    isn't namespaced or reliably backed up, and two skills can collide.
 2. **Improvising `python3 -c "…"` / a heredoc / inline `CREATE TABLE`.** It trips the
    approval gate mid-flow. Ship a `scripts/init.sql` / `scripts/*.py` and run it.
+   **Feature scripts that import third-party libs** must not be bare
+   `python3 …/scripts/foo.py` — ship `pyproject.toml` + `uv.lock` and invoke via
+   `talent-run <slug> <rel-script>` (readiness/`selfcheck` stay on bare `python3`).
 3. **A paragraph for a `description`.** Only the first ~60 chars route; make it a sharp
    trigger.
 4. **Forgetting `agent-profile.yaml` / `required_artifacts.yaml`** — then it's a skill,

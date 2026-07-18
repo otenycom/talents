@@ -49,9 +49,10 @@ ones first:
 | --- | --- |
 | `agent-profile.yaml` | The contract: the persona, which child skills load, the **tool request**, the routing, and a `version:`. Start here. |
 | `SKILL.md` (+ child skill dirs) | The markdown playbooks the bot reads — the actual know-how. A simple Talent has one; a richer one composes several. |
+| `pyproject.toml` + `uv.lock` (+ `.python-version`) | **Required when feature scripts import non-stdlib libs.** Platform syncs into `~/.hermes/runtimes/<slug>/`; invoke via `talent-run` (see glossary **Talent uv runtime**). |
 | `required_artifacts.yaml` | The bot's "setup goal" — every thing that must exist before it can work (a database, a profile file, registered routing), each with a machine-checkable condition. |
 | `references/` | Longer docs the skills link to, pulled on demand (kept out of the always-loaded context). |
-| `scripts/selfcheck.py` | The first-run judge — confirms the bot has everything `required_artifacts.yaml` lists before it serves. |
+| `scripts/selfcheck.py` | The first-run judge — confirms the bot has everything `required_artifacts.yaml` lists before it serves. Stay on bare `python3` (stdlib). |
 | `migrations.yaml`, `neutralize.yaml`, `tests/` | Forward-only data reconciliation, how to make a test-clone safe, and the author's behavioral tests (never delivered to a real bot). Skip these until you need them. |
 
 The single most important file is **`agent-profile.yaml`**. It is the whole contract.
