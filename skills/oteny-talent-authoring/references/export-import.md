@@ -4,7 +4,8 @@ Telegram can't show a whole multi-file Talent. So to let the owner **read one ba
 full**, **export/share** it, or **import** one someone else made, I package the bundle
 into an **Oteny Talent Drop**: a `bundle.zip` plus a self-contained `index.html` viewer
 (every file rendered, Markdown + code, a Download button) — published with my built-in
-`publish_file` ([oteny-drop](../../oteny-drop/SKILL.md)). The viewer link IS the
+`publish_file` (platform skill **oteny-drop**, on the bot at
+`~/.hermes/skills/talents/oteny-drop/` — not in this catalog). The viewer link IS the
 read-back surface, the export, and the thing others import from.
 
 The helper scripts ship beside this skill:

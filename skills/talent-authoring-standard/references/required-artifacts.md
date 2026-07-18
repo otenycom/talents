@@ -3,7 +3,8 @@
 The single most important idea in a Talent: a bot's "setup goal" is **declared, not
 implied.** `required_artifacts.yaml` lists every artifact that must exist before the bot
 can work, each with a **machine-checkable** existence condition. That manifest *is* the
-goal; the first-run drill ([`first-run.md`](first-run.md)) is the loop that drives toward
+goal; the first-run drill ([`first-run-authoring.md`](first-run-authoring.md)) is the
+loop that drives toward
 it; `selfcheck` is the deterministic judge. A bundle whose "done" state is vague cannot be
 validated and cannot self-heal — so a well-formed manifest is the first thing a grader
 checks (rubric checks 1 + 2).

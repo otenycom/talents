@@ -1,8 +1,8 @@
 # Bundle unit tests — Oteny's marketable-Talent content tests. talents.git is now the
 # canonical home of the marketable Talent bundles (the D146 cutover), so their unit tests
 # (SQL DDL idempotency, the cron/preflight/settle scripts, PII-clean, shipped-selfcheck-
-# matches-canonical, routing signatures) live + run HERE, not in the hermeshost control-
-# plane repo. (talent-lint.yml is the separate, copyable author-gate workflow.)
+# matches-canonical, routing signatures) live + run HERE, not in the private
+# control-plane repo. (talent-lint.yml is the separate, copyable author-gate workflow.)
 name: Bundle tests
 
 on:

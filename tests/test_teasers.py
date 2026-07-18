@@ -3,11 +3,12 @@
 A *teaser* is the believable sample conversation rendered on a Talent's storefront
 landing (authored shape: ``skills/talent-authoring-standard/references/store-presentation.md``).
 It is consumed by the Oteny seeder's canonical validator
-(``hermeshost.talent_teaser.validate_teaser``) — which lives in the control-plane repo, so a
-malformed teaser would otherwise only blow up at seed time, never in this bundle's CI. This
-test re-implements the same structural invariants (stdlib + PyYAML only, no control-plane
-import) so a dangling member reference, a media turn missing ``alt``, an empty card, or a bad
-role/colour fails *here*. Keep it in sync with the documented schema above.
+(the Oteny seeder's teaser validator) — which lives in the private control-plane
+repo, so a malformed teaser would otherwise only blow up at seed time, never in this
+bundle's CI. This test re-implements the same structural invariants (stdlib + PyYAML
+only, no control-plane import) so a dangling member reference, a media turn missing
+``alt``, an empty card, or a bad role/colour fails *here*. Keep it in sync with the
+documented schema above.
 """
 from __future__ import annotations
 
@@ -37,8 +38,8 @@ def _member_key(raw: dict, role: str) -> str:
 def validate_teaser(raw: object) -> None:
     """Raise ``AssertionError`` with a precise message on any schema violation.
 
-    Mirrors the seed-time authority (``hermeshost.talent_teaser.validate_teaser``): a
-    believable teaser needs a title, declared members with unique keys, and turns that each
+    Mirrors the seed-time authority (Oteny seeder teaser validator): a believable
+    teaser needs a title, declared members with unique keys, and turns that each
     reference a declared member + carry content; every media turn carries the required ``alt``.
     """
     assert isinstance(raw, dict), "teaser must be a mapping"

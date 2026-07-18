@@ -1,7 +1,7 @@
 # Local pre-commit gate — runs the SAME checks CI runs, before a commit lands, so a red
 # change (a PII leak, a broken teaser, a failing scenario, a lint violation) never reaches
 # main. CI (bundle-tests.yml + talent-lint.yml) is the backstop; this is the fast local
-# mirror. Mirrors the hermeshost .pre-commit-config.yaml pattern (repo: local hooks).
+# mirror. Uses local hooks (repo: local) so authors need no private-repo checkout.
 #
 # Enable once per clone:
 #   pip install pre-commit && pre-commit install

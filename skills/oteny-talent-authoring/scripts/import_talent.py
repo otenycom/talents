@@ -58,7 +58,7 @@ def _hermes_home(override=None) -> Path:
 
 
 def _protected_slugs(home: Path) -> set[str]:
-    """Every HermesHost-managed slug an import must never shadow (D34): the infra
+    """Every Oteny-managed slug an import must never shadow: the infra
     defaults ∪ the author-on-ramp ∪ the on-VM manifest's product bundles — the one
     managed set ``self_check`` also uses (no drifting second mirror)."""
     return _managed.managed_slugs(home)

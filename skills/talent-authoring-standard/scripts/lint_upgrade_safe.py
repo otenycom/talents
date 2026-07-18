@@ -40,8 +40,8 @@ the open catalog repo, so internal build refs are a leak):
  10. an internal-build artifact in ANY bundle file (incl. comments/docstrings): a
      decision ref ``Dnn`` (e.g. ``D30``), the internal product name ``HermesHost``,
      or internal lifecycle jargon (``M-Pilot`` / ``infra-proof`` / ``golden image``).
-     Ship plain English; the "why" lives in ``skills/design/``, never in a bundle. A
-     line carrying ``lint-ok:`` is an explicit, reviewed exception (use sparingly).
+     Ship plain English; the "why" belongs in Oteny's private design docs, never in a
+     bundle. A line carrying ``lint-ok:`` is an explicit, reviewed exception (use sparingly).
      NOTE: ``stub``/``baked`` are deliberately NOT banned — ``stubbed`` is the real
      selfcheck graceful-degrade contract (a code key) and ``baked`` is a valid
      ``delivery:`` value and ordinary food prose; a *stale tool claim* (a tool called
@@ -198,7 +198,7 @@ _NEGATIVE = re.compile(r"(?i)\b(never|don'?t|do not|must not|avoid)\b")
 # the how-to) legitimately name these patterns, and this rules file lives in one of
 # them — so it never lints itself. A line carrying `lint-ok:` is a reviewed exception.
 _INTERNAL_ARTIFACTS = [
-    (re.compile(r"\bD\d{2,3}\b"), "internal decision ref (Dnn) — drop it; rationale lives in skills/design/"),
+    (re.compile(r"\bD\d{2,3}\b"), "internal decision ref (Dnn) — drop it; state the rule in plain English"),
     (re.compile(r"HermesHost"), "internal product name 'HermesHost' (say 'Oteny' / 'your bot')"),
     (re.compile(r"(?i)\bM-?Pilot\b"), "internal milestone name 'M-Pilot'"),
     (re.compile(r"(?i)\binfra-?proof\b"), "internal jargon 'infra-proof'"),

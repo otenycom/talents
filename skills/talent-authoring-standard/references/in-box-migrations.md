@@ -48,11 +48,12 @@ they are **not** `required_artifacts.yaml` entries.
 
 ## Boundary with sidecar migrations (D52)
 
-Sidecar migrations (`src/hermeshost/migrations/`) run by the **deployer over SSH** on the
-**file layout** (dir moves, cron-name *text* retags), stamped in the on-VM manifest's
-`applied_migrations`. In-box Talent migrations run by the **agent** on **live state**,
-stamped in `migrations.json`. The rule: a file/dir/text op the deployer can do → sidecar
-migration; anything needing the LLM or the `cronjob` tool → in-box Talent migration.
+**Platform (deployer) migrations** run over SSH on the **file layout** (dir moves,
+cron-name *text* retags), stamped in the on-VM manifest's `applied_migrations`. Authors
+never write those. In-box Talent migrations run by the **agent** on **live state**,
+stamped in `migrations.json`. The rule: a file/dir/text op the platform can do → leave
+it to the platform; anything needing the LLM or the `cronjob` tool → in-box Talent
+migration.
 
 ## Reference implementation
 

@@ -1,8 +1,8 @@
 # Tool reference — the contracts behind the catalog
 
-> **Generated** by Oteny (`python -m hermeshost tools-catalog --format reference`) —
-> do not edit by hand. The [tools-catalog](tools-catalog.md) tells you WHICH tools
-> exist and how to request them; this reference is the **contract**: the exact
+> **Generated** by Oteny — do not edit by hand. The [tools-catalog](tools-catalog.md)
+> tells you WHICH tools exist and how to request them; this reference is the
+> **contract**: the exact
 > parameters, the result shape, the error modes, and one worked example per tool —
 > written so you (and your AI coding session) can author correct tool calls without
 > ever reading platform source or a live box. The description under each tool is the

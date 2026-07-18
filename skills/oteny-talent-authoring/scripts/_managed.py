@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""_managed — which overlay dirs HermesHost manages, so the rest are the owner's.
+"""_managed — which overlay dirs Oteny manages, so the rest are the owner's.
 
 A tenant's ``~/.hermes/skills/talents/`` holds THREE kinds of dir: the infra default
 skills, the delivered product bundles + the author-on-ramp, and the **owner-authored
 Talents** the tenant's own agent built. Only the last kind is the owner's to
-review / health-check / publish — everything else is managed by HermesHost and must
+review / health-check / publish — everything else is managed by Oteny and must
 never be flagged as a promotion candidate or shadowed by an import.
 
-This is the on-VM twin of the control-plane ``deploy/skills.partition_overlay_dirs``:
+This is the on-VM twin of the control-plane overlay partitioner:
 owner-authored == ``existing − managed``, where ``managed = DEFAULT_SKILLS ∪
 AUTHORING_DIRS ∪ (the on-VM manifest's recorded bundles)``. ``DEFAULT_SKILLS`` is a
-byte-mirror of the sidecar's tuple (a drift test in hermeshost keeps the two in sync,
+byte-mirror of the control-plane sidecar's tuple (Oteny CI keeps the two in sync,
 the same rule the shared bootstrap interpreters follow); the manifest supplies the
 per-tenant product set so a purchased bundle is never mistaken for owner content.
 
@@ -23,10 +23,10 @@ import json
 import os
 from pathlib import Path
 
-# Byte-mirror of hermeshost deploy/skills.py DEFAULT_SKILLS — the infra skills every
-# tenant gets regardless of product bundles. KEEP IN SYNC: hermeshost
-# tests/test_owner_talent_selfcheck.py asserts this tuple equals the sidecar's, so a
-# drifted mirror fails CI (the same defence the _shared bootstrap copies use).
+# Byte-mirror of the Oteny control-plane DEFAULT_SKILLS — the infra skills every
+# tenant gets regardless of product bundles. Oteny CI asserts this tuple equals the
+# sidecar's, so a drifted mirror fails there (the same defence the _shared bootstrap
+# copies use).
 DEFAULT_SKILLS = (
     "index-reconciler", "oteny-cron-authoring", "oteny-set-timezone", "oteny-drop",
     "oteny-investigate", "oteny-web-operator", "oteny-remember-login", "oteny-web-search",
@@ -65,7 +65,7 @@ def _manifest_bundles(home: Path) -> set[str]:
 
 
 def managed_slugs(home: Path | str | None = None) -> set[str]:
-    """Every overlay dir HermesHost manages: defaults ∪ authoring ∪ recorded bundles."""
+    """Every overlay dir Oteny manages: defaults ∪ authoring ∪ recorded bundles."""
     h = hermes_home(home)
     return set(DEFAULT_SKILLS) | set(AUTHORING_DIRS) | _manifest_bundles(h)
 

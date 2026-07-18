@@ -55,11 +55,12 @@ message — triage first"), the per-intent entry→analysis→reply
 the plain-language + fade-ladder
 [`glossary.md`](../../oteny-flatbelly-talent/food-tracker/references/glossary.md), and the
 input-by-input "Completeness checklist" in
-[`onboarding/SKILL.md`](../../oteny-flatbelly-talent/onboarding/SKILL.md).
+[`flatbelly-onboarding/SKILL.md`](../../oteny-flatbelly-talent/flatbelly-onboarding/SKILL.md).
 
-The non-Talent ordered protocol to copy is
-[`oteny-cron-authoring`](../../oteny-cron-authoring/SKILL.md) (*"do these in order, every
-time"*) — the same bar at single-skill scale.
+The non-Talent ordered-protocol shape to copy is the platform **oteny-cron-authoring**
+skill delivered on every bot (*"do these in order, every time"*) — the same bar at
+single-skill scale. It is not in this catalog; open it on a live box under
+`~/.hermes/skills/talents/oteny-cron-authoring/`.
 
 ## Talent nuances (check 11)
 

@@ -16,7 +16,7 @@ try:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 except ImportError:
-    # matplotlib is provisioned by the platform (the hermeshost deployer installs the
+    # matplotlib is provisioned by the platform (the Oteny deployer installs the
     # runtime.python_packages declared in agent-profile.yaml into the tenant's system
     # python3; the golden + parent images bake it). On a box that predates that, degrade
     # instead of crashing: main() returns 2 so the trip-card cron registers FAILED (ops

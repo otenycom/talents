@@ -19,7 +19,7 @@ triage, the hot paths (live **transit** + **itinerary**), and the hard rules; th
 lives in `references/` (loaded on demand via `skill_view(name='trip-planner',
 file_path='references/<file>')`). The concierge *voice* is
 [`travel-concierge-voice`](../travel-concierge-voice/SKILL.md); the *welcome/intake* is
-[`onboarding`](../onboarding/SKILL.md); the *visual* card is
+[`travel-onboarding`](../travel-onboarding/SKILL.md); the *visual* card is
 [`trip-dashboard`](../trip-dashboard/SKILL.md).
 
 > **The product rule:** this skill carries the **method**; the tenant's

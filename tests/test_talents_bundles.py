@@ -38,8 +38,8 @@ def test_shipped_selfcheck_matches_canonical():
         assert _sha(p) == canon, f"{p} drifted from skills/_shared/scripts/selfcheck.py"
 
 
-# The hermeshost-internal default-skill canonical check (skill-translator /
-# index-reconciler vs _shared) stays in hermeshost — those infra skills are not part of
+# The control-plane default-skill canonical check (index-reconciler vs _shared)
+# stays on the private control-plane side — those infra skills are not part of
 # this public catalog. This file tests the marketable Talents.
 
 

@@ -138,8 +138,9 @@ def main(argv=None) -> int:
 
     catalog_path = Path(args.catalog)
     if not catalog_path.is_file():
-        print(f"FATAL: tool catalog not found at {catalog_path} — regenerate it "
-              "(`hermeshost tools-catalog --format public --out …`).", file=sys.stderr)
+        print(f"FATAL: tool catalog not found at {catalog_path} — ask Oteny to "
+              "regenerate the committed tools-catalog.json (do not invent one).",
+              file=sys.stderr)
         return 2
     catalog = _load_catalog(catalog_path)
 

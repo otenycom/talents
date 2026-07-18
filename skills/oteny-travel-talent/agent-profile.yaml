@@ -108,17 +108,17 @@ task_escalations:
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 runtime:
   # Python libs this bundle's [terminal] scripts import at runtime, installed by the platform
-  # into the tenant's SYSTEM python3 (the hermeshost deployer + golden/parent images). Names
-  # only — the version is pinned by hermeshost (infra/tenant-runtime/constraints.txt).
-  # trip-dashboard/scripts/trip_card.py (the trip-card cron) needs matplotlib.
+  # into the tenant's SYSTEM python3 (Oteny deployer + golden/parent images). Names
+  # only — versions are platform-pinned. trip-dashboard/scripts/trip_card.py (the
+  # trip-card cron) needs matplotlib.
   python_packages: [matplotlib]
 delivery: baked                          # delivered with the bot
 price: free                              # free travel on-ramp (the OV demo Talent)
 
 # First-party tools the bot relies on; Oteny provisions these always-on in the
-# `web` toolset (see skills/tool-use). Calendar is intentionally ABSENT in v1 — the bot
-# degrades gracefully (no cron gated on it); see references/safety-boundaries.md + the
-# backlog note in skills/design/catalog-roadmap.md.
+# `web` toolset (see TOOLS.md at the repo root). Calendar is intentionally ABSENT
+# in v1 — the bot degrades gracefully (no cron gated on it); see
+# references/safety-boundaries.md.
 tools:
   required: [travel, web_search, flight_status]   # travel = Google routes/transit/departures;
                                           # flight_status = structured flight status/gate (AeroDataBox)

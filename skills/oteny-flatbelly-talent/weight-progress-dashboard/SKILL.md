@@ -69,7 +69,7 @@ weight #7dd3fc  trend #a78bfa  goal #34d399  milestone #fbbf24  start #f472b6
 - **Slope flips positive** (regain week) → ETA cards show "—" / "recovery week".
 - Keep dpi ≤ 200 so Telegram delivers it as a photo, not compressed-to-mush.
 - `matplotlib` is provisioned by the platform: it is declared in this bundle's
-  `agent-profile.yaml` (`runtime.python_packages`), the hermeshost deployer installs it into
+  `agent-profile.yaml` (`runtime.python_packages`), the Oteny deployer installs it into
   the tenant's system `python3`, and the golden + container images bake it. If it is ever
   missing the script degrades to a "chart unavailable" message and exits 2 (the cron then
   registers FAILED) rather than crashing with a raw `ImportError`.

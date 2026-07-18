@@ -21,11 +21,13 @@ It serves two jobs from one rubric:
 - **Author** — write a new bundle to this standard.
 - **Validate** — inspect an existing bundle and emit a PASS/FAIL verdict.
 
-It is the Talent-library counterpart to
-[`skill-writing`](../../../skills/skill-writing/SKILL.md) (the *design* library); the full
-rationale lives in [`skill-library`](../../../skills/skill-library/SKILL.md), and
-[`oteny-flatbelly-talent`](../oteny-flatbelly-talent/) + [`oteny-stock-talent`](../oteny-stock-talent/)
-are the worked examples.
+Authors in this repo use **this** skill plus
+[`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) and
+[`oteny-talent-dev-loop`](../oteny-talent-dev-loop/SKILL.md);
+[`oteny-flatbelly-talent`](../oteny-flatbelly-talent/) +
+[`oteny-stock-talent`](../oteny-stock-talent/) are the worked examples.
+(Package/delivery mechanics on the Oteny control plane are out of scope here — this
+repo is the whole public surface for Talent authors.)
 
 ## Defer to the native authoring skill (don't fork it)
 
@@ -56,7 +58,7 @@ both for any bundle:
 2. **No new Hermes code.** A bundle is plain files — `SKILL.md`, small YAML manifests,
    optional helper scripts — run by the tools the tenant's Hermes already has
    (`terminal`/`execute_code`/`cronjob` + the set Oteny provisions: web search, travel/maps,
-   MCP — the menu is [`tool-use`](../../../skills/tool-use/SKILL.md)). Building **on** present
+   MCP — the menu is the generated [`TOOLS.md`](../../TOOLS.md)). Building **on** present
    tools is expected; **banned** is a Talent that can't run until *we* fork/patch Hermes or
    author a **new** tool. Declare what it needs (check 9), stub charged/absent tools so the
    persona degrades, and keep the deterministic backbone in the bundle's own scripts.
@@ -251,7 +253,7 @@ the shipped `SKILL.md` / `agent-profile.yaml` / profile. Three rules a grader ch
   migration — slug-keyed data orphans silently (belly→flatbelly would have).
 - **Customization is a delta-only override** — corrections + additions only, one
   consolidated doc, **never a copy** of the base, so base improvements ship freely
-  ([D53](../../../skills/design/decisions.md) base/override rule, ported from Wilma).
+  (D53 base/override rule, ported from Wilma).
 
 **Mechanical gate.** [`scripts/lint_upgrade_safe.py`](scripts/lint_upgrade_safe.py)
 (`python3 lint_upgrade_safe.py <bundle_dir>`) FAILS on a concrete **upgrade-safety**
@@ -300,10 +302,10 @@ The exact output format is in
 
 ## Related
 
-- [`skill-library`](../../../skills/skill-library/SKILL.md) — the package contract,
-  first-run, routing/reconciler, delivery, and how Talents are authored,
-  priced, and delivered.
+- [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →
+  package → publish.
+- [`oteny-talent-dev-loop`](../oteny-talent-dev-loop/SKILL.md) — clone → reload →
+  test → traces → green → tag.
 - [`../oteny-flatbelly-talent/`](../oteny-flatbelly-talent/),
-  [`../oteny-stock-talent/`](../oteny-stock-talent/) — the shipped worked examples to validate against.
-- [`skill-writing`](../../../skills/skill-writing/SKILL.md) — the *design*-library
-  authoring standard (this skill's counterpart for `skills/`).
+  [`../oteny-stock-talent/`](../oteny-stock-talent/) — shipped worked examples to
+  validate against.

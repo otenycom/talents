@@ -94,9 +94,10 @@ Each marketable Talent is a self-contained directory:
 | `neutralize.yaml` | How to make a *clone* of this Talent safe to test (disable live emails/crons, point seams at staging). Required if the Talent does anything outbound. |
 | `tests/` | The author's own tests — `scenarios/*.yaml` (behavioral) + `unit/` + `fixtures/`. **Never delivered to a bot.** |
 
-Some bundle docs link to **Oteny platform skills** (e.g. `index-reconciler`, which wires the
-Talent's routing) that run on the bot's machine, not in this catalog — so a few in-bundle
-links resolve only once the Talent is delivered.
+Some bundle docs name **Oteny platform skills** (e.g. `index-reconciler`, which wires the
+Talent's routing) that run on the bot under `~/.hermes/skills/talents/<slug>/` — they are
+not in this catalog, so docs refer to them in prose plus that on-box path, never as
+relative markdown links into a missing folder.
 
 ---
 

@@ -441,7 +441,7 @@ def _current_prompts(config_path: Path, platform: str) -> dict:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="HermesHost routing index-reconciler")
+    ap = argparse.ArgumentParser(description="Oteny routing index-reconciler")
     ap.add_argument("--skills-root", default=str(default_skills_root()))
     ap.add_argument("--config", default=str(default_config()))
     ap.add_argument("--intents", default=str(default_intents()),

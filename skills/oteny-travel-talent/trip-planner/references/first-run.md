@@ -74,9 +74,9 @@ mkdir -p ~/.hermes/memories ~/.hermes/data/oteny-travel-talent
 ## Remediation: `routing` (register this bot's routing)
 
 DM routing is native (auto-satisfies). Only when the human has **bound the bot to a trip
-group** do you register the group `channel_prompt` — let the
-[`index-reconciler`](../../../index-reconciler/SKILL.md) apply this bot's routing
-declaration (from `../../agent-profile.yaml`); never hand-edit SOUL/config:
+group** do you register the group `channel_prompt` — let the platform
+**index-reconciler** (delivered on the bot, not in this catalog) apply this bot's
+routing declaration (from `../../agent-profile.yaml`); never hand-edit SOUL/config:
 
 ```bash
 python3 ~/.hermes/skills/talents/index-reconciler/scripts/index_reconciler.py --apply
