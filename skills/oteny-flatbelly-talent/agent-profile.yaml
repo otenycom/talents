@@ -27,7 +27,7 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.2.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.3.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.2.0: the daily reminders are the RICH "day so far" status summaries
                  # again (original behavior restored — the v1.1.x zero-tool nudge was a
@@ -75,6 +75,8 @@ runtime:
   # into the tenant's SYSTEM python3 (Oteny deployer + golden/parent images). Names
   # only — versions are platform-pinned.
   # weight-progress-dashboard/scripts/generate.py (the weekly cron) needs matplotlib.
+  # TRANSITIONAL union hint — the real pin travels in pyproject.toml + uv.lock (platform
+  # syncs into ~/.hermes/runtimes/<slug>/). Keep until dual-run ends; then delete this list.
   python_packages: [matplotlib]
 delivery: baked                          # delivered with the bot
 price: free                              # free on-ramp for the paid-retention pilot

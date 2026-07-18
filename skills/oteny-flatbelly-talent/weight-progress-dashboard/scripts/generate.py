@@ -20,11 +20,11 @@ try:
     from matplotlib.patches import FancyBboxPatch
     from matplotlib.patheffects import withStroke
 except ImportError:
-    # matplotlib is provisioned by the platform (the Oteny deployer installs the
-    # runtime.python_packages declared in agent-profile.yaml into the tenant's system
-    # python3; the golden + parent images bake it). On a box that predates that, degrade
-    # instead of crashing: main() returns 2 so the weekly-dashboard cron registers FAILED
-    # (ops sees a dead feature) rather than raising a raw ImportError. Same shape as `yaml`.
+    # matplotlib lives in this Talent's uv env (pyproject.toml + uv.lock → platform
+    # `uv sync` into ~/.hermes/runtimes/oteny-flatbelly-talent/). Invoke via
+    # `talent-run oteny-flatbelly-talent weight-progress-dashboard/scripts/generate.py`.
+    # On a box that predates that, degrade instead of crashing: main() returns 2 so the
+    # weekly-dashboard cron registers FAILED rather than raising a raw ImportError.
     plt = mdates = FancyBboxPatch = withStroke = None
 
 import argparse

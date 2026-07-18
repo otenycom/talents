@@ -87,6 +87,11 @@ spend):
      ``substrate: vm`` need names ``min_tier: max`` (the cheapest tier that provides a dedicated
      VM, D204). The Talent declares a CAPABILITY, never a raw customer tier as its contract; the
      platform resolves the tier (storefront gate + runtime self-gate). (Needs PyYAML.)
+ 18. UV RUNTIME LOCK — a Talent whose tenant scripts import a third-party module (not
+     stdlib, not a same-bundle module, not the platform-baked ``yaml``) MUST ship
+     ``pyproject.toml`` + ``uv.lock`` (+ ``.python-version``). When ``uv`` is on PATH,
+     ``uv lock --check`` must pass. Authors invoke feature scripts via ``talent-run`` /
+     ``uv run --project``; readiness scripts stay on bare ``python3`` (stdlib only).
  16. PER-TASK MODEL ESCALATION — ``task_escalations:`` is an OPTIONAL list mapping a named,
      fabrication-prone TASK (inside this Talent) to a stronger model, applied only WHILE the
      task runs (never a Talent-wide floor). Each entry is shape-checked: a ``task`` slug, a
@@ -116,8 +121,11 @@ Exits non-zero if any bundle has a violation.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -125,6 +133,10 @@ try:
     import yaml
 except ImportError:  # the migration-SHAPE structural check needs PyYAML (CI installs it);
     yaml = None      # everything else — including the version check — is stdlib.
+
+# Platform-baked into system python3 (not a Talent-lock concern). Readiness scripts may
+# import these; feature scripts that need other third-party libs MUST ship uv.lock.
+_PLATFORM_PYTHON_MODULES = frozenset({"yaml"})
 
 # Per-tenant state / data-plane artifacts that must NEVER ship in a delivered bundle.
 _STATE_GLOBS = (
@@ -766,6 +778,93 @@ def _semver_tuple(v: str | None):
     return tuple(int(x) for x in core.split("."))
 
 
+def _local_module_names(bundle: Path) -> set[str]:
+    """Top-level module names resolvable as ``*.py`` / packages inside the bundle."""
+    names: set[str] = set()
+    for p in bundle.rglob("*.py"):
+        if "tests" in p.parts or "__pycache__" in p.parts:
+            continue
+        names.add(p.stem)
+        # package dirs: skills/foo/bar/__init__.py → bar (and parent package names)
+        if p.name == "__init__.py":
+            names.add(p.parent.name)
+    return names
+
+
+def _third_party_imports_in_bundle(bundle: Path) -> dict[str, set[str]]:
+    """Map relpath → non-stdlib / non-local / non-platform import tops.
+
+    Requires Python ≥3.10 (``sys.stdlib_module_names``). On older interpreters returns
+    ``{}`` so the check is skipped rather than false-positiving every import."""
+    if not hasattr(sys, "stdlib_module_names"):
+        return {}
+    stdlib = set(sys.stdlib_module_names) | {"__future__"}
+    local = _local_module_names(bundle)
+    out: dict[str, set[str]] = {}
+    for p in sorted(bundle.rglob("*.py")):
+        if "tests" in p.parts or "__pycache__" in p.parts:
+            continue
+        try:
+            tree = ast.parse(p.read_text(errors="ignore"), filename=str(p))
+        except SyntaxError:
+            continue
+        tops: set[str] = set()
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Import):
+                for a in n.names:
+                    tops.add(a.name.split(".", 1)[0])
+            elif isinstance(n, ast.ImportFrom) and n.level == 0 and n.module:
+                tops.add(n.module.split(".", 1)[0])
+        third = {
+            t for t in tops
+            if t not in stdlib and t not in local and t not in _PLATFORM_PYTHON_MODULES
+        }
+        if third:
+            out[str(p.relative_to(bundle))] = third
+    return out
+
+
+def _uv_runtime_findings(bundle: Path) -> list[str]:
+    """(18) A Talent script that imports a third-party lib must ship ``pyproject.toml`` +
+    ``uv.lock`` (hash-pinned); when ``uv`` is on PATH, ``uv lock --check`` must pass."""
+    out: list[str] = []
+    third = _third_party_imports_in_bundle(bundle)
+    has_pyproject = (bundle / "pyproject.toml").is_file()
+    has_lock = (bundle / "uv.lock").is_file()
+    if third and not (has_pyproject and has_lock):
+        samples = ", ".join(
+            f"{rel} imports {sorted(mods)}"
+            for rel, mods in list(third.items())[:3]
+        )
+        out.append(
+            "tenant scripts import third-party modules but the Talent has no "
+            f"`pyproject.toml` + `uv.lock` ({samples}). Ship a locked uv project; the "
+            "platform syncs it into ~/.hermes/runtimes/<slug>/ at converge — invoke via "
+            "`talent-run <slug> <rel-script>` (not bare python3)"
+        )
+    if has_pyproject and not has_lock:
+        out.append("ships `pyproject.toml` but no `uv.lock` — run `uv lock` and commit both")
+    if has_lock and not has_pyproject:
+        out.append("ships `uv.lock` but no `pyproject.toml` — both are required together")
+    if has_pyproject and has_lock and shutil.which("uv"):
+        try:
+            r = subprocess.run(
+                ["uv", "lock", "--check"], cwd=bundle,
+                capture_output=True, text=True, timeout=60, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            out.append(f"`uv lock --check` could not run: {exc}")
+        else:
+            if r.returncode != 0:
+                err = (r.stderr or r.stdout or "").strip().splitlines()
+                detail = err[-1] if err else f"exit {r.returncode}"
+                out.append(
+                    f"`uv lock --check` failed — lock is stale vs pyproject.toml ({detail}). "
+                    "Re-run `uv lock` and commit the updated lock"
+                )
+    return out
+
+
 def check_upgrade_coherence(prev: dict, cur: dict) -> list[str]:
     """Cross-VERSION coherence between a prior published bundle state and the current one.
 
@@ -841,6 +940,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _cron_policy_findings(bundle)  # (14) scheduled-cron cost policy
         findings += _requires_findings(bundle)     # (15) requires: substrate↔min_tier consistency
         findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
+        findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
 
     # (17) selector-manifest ↔ human-doc twin equality — self-gates on a manifest with a
     # declared doc_twin, so it runs on any bundle (a shared browser bundle may ship one).

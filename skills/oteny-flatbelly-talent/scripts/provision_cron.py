@@ -210,7 +210,8 @@ def build_specs(profile: dict, ref: datetime | None = None,
             local_cron(w_hh, w_mm, dow=0),
             f"Sun {w_hh:02d}:{w_mm:02d} {tz} weekly",
             ["weight-progress-dashboard", "food-tracker"],
-            ("Run weight-progress-dashboard/scripts/generate.py, then write a "
+            ("Run `talent-run oteny-flatbelly-talent "
+             "weight-progress-dashboard/scripts/generate.py`, then write a "
              "4–6 line Telegram caption grounded in a fresh DB read (no "
              "vibe-served facts) and deliver the PNG via MEDIA:<path>."),
             enabled_toolsets=["terminal", "file"],

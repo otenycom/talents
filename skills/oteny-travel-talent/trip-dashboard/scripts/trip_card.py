@@ -16,11 +16,11 @@ try:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 except ImportError:
-    # matplotlib is provisioned by the platform (the Oteny deployer installs the
-    # runtime.python_packages declared in agent-profile.yaml into the tenant's system
-    # python3; the golden + parent images bake it). On a box that predates that, degrade
-    # instead of crashing: main() returns 2 so the trip-card cron registers FAILED (ops
-    # sees a dead feature) rather than raising a raw ImportError. Same shape as `yaml`.
+    # matplotlib lives in this Talent's uv env (pyproject.toml + uv.lock → platform
+    # `uv sync` into ~/.hermes/runtimes/oteny-travel-talent/). Invoke via
+    # `talent-run oteny-travel-talent trip-dashboard/scripts/trip_card.py`. On a box that
+    # predates that, degrade instead of crashing: main() returns 2 so the trip-card cron
+    # registers FAILED rather than raising a raw ImportError.
     plt = None
 
 import argparse

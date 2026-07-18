@@ -152,7 +152,7 @@ data-plane files** (converge never touches them) — **never** the shipped bundl
 1. Resolve the trip id. Run the visual ([`trip-dashboard`](../../trip-dashboard/SKILL.md)):
 
    ```bash
-   python3 ~/.hermes/skills/talents/oteny-travel-talent/trip-dashboard/scripts/trip_card.py --trip <id>
+   talent-run oteny-travel-talent trip-dashboard/scripts/trip_card.py --trip <id>
    ```
 2. Deliver the PNG by putting `MEDIA:<printed path>` in the reply.
 3. Caption per that skill's rules (countdown, today/next, settle-up headline, packing

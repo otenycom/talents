@@ -101,7 +101,8 @@ science to **their** goal; ④ end with **one** concrete next lever. Load
 say "let me check".
 
 ## §8 DASHBOARD  ("progress" / "chart" / "dashboard")
-1. Run `weight-progress-dashboard/scripts/generate.py` (reads `food.db` + `profile.yaml`).
+1. Run `talent-run oteny-flatbelly-talent weight-progress-dashboard/scripts/generate.py`
+   (reads `food.db` + `profile.yaml`).
 2. Deliver the PNG by putting `MEDIA:<printed path>` in the reply.
 3. Caption per that skill's rules: headline (kg lost + % to goal) + 3–4 bullets; validate
    the 7-day pace is in the **0.5–1.0% of body weight/week** band. Ground every number

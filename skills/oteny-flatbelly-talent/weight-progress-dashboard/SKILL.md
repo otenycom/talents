@@ -32,8 +32,13 @@ Nothing about a body is baked.
 ## How to run
 
 ```bash
-python3 ~/.hermes/skills/talents/oteny-flatbelly-talent/weight-progress-dashboard/scripts/generate.py
+talent-run oteny-flatbelly-talent weight-progress-dashboard/scripts/generate.py
 ```
+
+(Equivalent: `uv run --project ~/.hermes/skills/talents/oteny-flatbelly-talent
+weight-progress-dashboard/scripts/generate.py`.) The platform materializes the Talent's
+locked env under `~/.hermes/runtimes/oteny-flatbelly-talent/` at converge — do **not** use
+bare `python3` for this script (matplotlib lives in that env, not system python).
 
 Reads `~/.hermes/data/oteny-flatbelly-talent/food.db` + `~/.hermes/data/oteny-flatbelly-talent/profile.yaml`, writes
 `/tmp/hermes/cache/oteny_belly_progress_<YYYY-MM-DD>.png`, and prints the path. Deliver
@@ -68,8 +73,9 @@ weight #7dd3fc  trend #a78bfa  goal #34d399  milestone #fbbf24  start #f472b6
   data yet" message instead of crashing.
 - **Slope flips positive** (regain week) → ETA cards show "—" / "recovery week".
 - Keep dpi ≤ 200 so Telegram delivers it as a photo, not compressed-to-mush.
-- `matplotlib` is provisioned by the platform: it is declared in this bundle's
-  `agent-profile.yaml` (`runtime.python_packages`), the Oteny deployer installs it into
-  the tenant's system `python3`, and the golden + container images bake it. If it is ever
-  missing the script degrades to a "chart unavailable" message and exits 2 (the cron then
-  registers FAILED) rather than crashing with a raw `ImportError`.
+- `matplotlib` ships in this Talent's `pyproject.toml` + `uv.lock`; the platform runs
+  `uv sync --frozen` at converge into `~/.hermes/runtimes/oteny-flatbelly-talent/`.
+  Invoke via `talent-run` (above). If the env is missing the script degrades to a
+  "chart unavailable" message and exits 2 (the cron then registers FAILED) rather than
+  crashing with a raw `ImportError`. Readiness scripts (`preflight.py` / `selfcheck.py`)
+  stay on bare `python3` (stdlib only).

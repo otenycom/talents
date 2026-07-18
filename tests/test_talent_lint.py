@@ -473,3 +473,30 @@ def test_barney_manifest_twin_is_in_lockstep():
     bundle = Path("/Users/ries/oteny/radar/cuneus_barney/talents/cuneus-hr-talent")
     if bundle.is_dir():
         assert not any("twin DRIFT" in f for f in lint.lint_bundle(bundle))
+
+
+# --------------------------------------------------------------------------- #
+# uv runtime lock (check 18)                                                   #
+# --------------------------------------------------------------------------- #
+def test_flatbelly_ships_uv_lock_and_passes_check():
+    assert (FLATBELLY / "pyproject.toml").is_file()
+    assert (FLATBELLY / "uv.lock").is_file()
+    assert not any("uv.lock" in f or "uv lock" in f for f in lint.lint_bundle(FLATBELLY))
+
+
+def test_third_party_import_without_lock_is_a_finding(tmp_path):
+    b = _talent(tmp_path)
+    scripts = b / "scripts"
+    scripts.mkdir()
+    (scripts / "chart.py").write_text("import matplotlib\nprint(matplotlib.__version__)\n")
+    assert any("pyproject.toml` + `uv.lock`" in f or "uv.lock" in f
+               for f in lint.lint_bundle(b))
+
+
+def test_yaml_only_import_does_not_require_uv_lock(tmp_path):
+    # platform-baked PyYAML — readiness scripts may import it without a Talent lock
+    b = _talent(tmp_path)
+    scripts = b / "scripts"
+    scripts.mkdir()
+    (scripts / "read.py").write_text("import yaml\nprint(yaml.safe_load('a: 1'))\n")
+    assert not any("uv.lock" in f for f in lint.lint_bundle(b))
