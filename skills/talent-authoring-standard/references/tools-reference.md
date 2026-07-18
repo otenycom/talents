@@ -15,8 +15,8 @@ for a built-in toolset). *Parameters* is the JSON schema your bot's tool call mu
 satisfy. *Result* / *Errors* are what comes back. The example is a real call.
 
 Your bot's **system-of-record connection** (the `odoo_client` tool + a named
-`connections:` entry — see business-bot-pattern §3) is declared
-by YOUR Talent, not listed here — see `business-bot-pattern.md` §3. For the
+`connections:` entry — channel-agnostic; see business-bot-pattern §3) is declared
+by YOUR Talent, not listed here as a storefront row. For the
 browser-driving discipline (selector maps, batching, fail-closed), read
 [`browser-authoring.md`](browser-authoring.md) next to this file.
 

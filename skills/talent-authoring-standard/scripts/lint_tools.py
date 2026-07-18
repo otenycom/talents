@@ -39,6 +39,10 @@ from pathlib import Path
 # The published catalog lives next to this script's bundle, under references/.
 _DEFAULT_CATALOG = Path(__file__).resolve().parent.parent / "references" / "tools-catalog.json"
 
+# Platform data-plane tool / toolset not in the storefront catalog (business bots —
+# see business-bot-pattern §3). Suppresses the "unknown tool" WARN for legitimate requests.
+_KNOWN_EXTRA = frozenset({"odoo_client"})
+
 
 def _load_catalog(path: Path) -> dict:
     """Read the generated tool catalog → allow-lists + the live set.
@@ -110,9 +114,10 @@ def lint_bundle(bundle: Path, catalog: dict) -> tuple[list[str], list[str]]:
             )
 
     # WARN — a requested first-party tool not in the catalog (bundle-provided? typo?).
-    known_first_party = catalog["required"]
+    known_first_party = catalog["required"] | _KNOWN_EXTRA
+    known_toolsets = catalog["toolset"] | _KNOWN_EXTRA
     for name in dict.fromkeys(required):
-        if name not in known_first_party and name not in catalog["toolset"]:
+        if name not in known_first_party and name not in known_toolsets:
             warnings.append(
                 f"requests tool '{name}' which is not a known Oteny tool — fine if your "
                 "Talent ships it itself; otherwise check for a typo (see references/tools-catalog.md)"
@@ -120,7 +125,7 @@ def lint_bundle(bundle: Path, catalog: dict) -> tuple[list[str], list[str]]:
 
     # WARN — an unknown toolset in toolset_contribution.
     for name in dict.fromkeys(toolsets):
-        if name not in catalog["toolset"]:
+        if name not in known_toolsets:
             warnings.append(
                 f"contributes toolset '{name}' which is not a known Oteny toolset "
                 "(check for a typo; see references/tools-catalog.md)"

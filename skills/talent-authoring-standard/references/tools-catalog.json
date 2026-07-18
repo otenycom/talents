@@ -1,5 +1,5 @@
 {
-  "_generated": "by Oteny — do not edit by hand.",
+  "_generated": "by `python -m hermeshost tools-catalog --format public` — do not edit by hand.",
   "tools": [
     {
       "name": "web_search",

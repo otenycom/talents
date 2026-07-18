@@ -186,9 +186,10 @@ Six graded rules; the failure chains and worked examples are in
 - Per-bot **voice lives in the skill**, not a global SOUL.
 - Group/chat ids are **looked up at runtime** (from `channel_directory.json`),
   never hardcoded.
-- **Scoped business bots route to Odoo Discuss, not Telegram** — and shift the toolset
-  (checks 1 + 9), data plane (checks 2 + 6), and tests (check 14) accordingly; the full
-  authoring delta is [`references/business-bot-pattern.md`](references/business-bot-pattern.md).
+- **Scoped business bots usually route to Odoo Discuss** (Telegram allowed when that is
+  the team's surface) — and shift the toolset (checks 1 + 9), data plane (`odoo_client` +
+  named `connections:`, channel-agnostic — checks 2 + 6), and tests (check 14) accordingly;
+  the full authoring delta is [`references/business-bot-pattern.md`](references/business-bot-pattern.md).
 
 ### 6. Namespacing (so bots never collide)
 - Data under `~/.hermes/data/<bot>/` (D34); skills under

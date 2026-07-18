@@ -156,10 +156,11 @@ test   --ref hh00231 --bundle oteny-flatbelly-talent      # the result you trust
 reap   --ref hh00231                                       # done
 ```
 
-## Business-bot Talents (Discuss / a workflow trigger, not a chat DM)
+## Business-bot Talents (workflow / team chat + odoo data plane)
 
-A **business-bot** Talent (one whose `routing.channel` is an Odoo `discuss` channel and whose
-source of truth is a business Odoo over the `/json/2/` uplink, not a local sqlite db) tests the
+A **business-bot** Talent (source of truth is a business Odoo over `/json/2/` via
+`odoo_client` + named `connections:`, not a local sqlite db; chat is usually Odoo
+`discuss`, Telegram allowed — see `business-bot-pattern` §1/§3) tests the
 same way, with three differences:
 
 - **Scenarios are `live_only`** and assert **`uplink`** ground truth, not `state` over a local

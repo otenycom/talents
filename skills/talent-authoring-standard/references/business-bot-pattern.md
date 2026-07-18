@@ -11,15 +11,19 @@ A business bot still passes **every** rubric check in [`../SKILL.md`](../SKILL.m
 deltas here refine four of them: routing (check 5), toolset (checks 1 + 9), the data plane
 (checks 2 + 6), and testing (check 14).
 
-## 1. Channel routing — Discuss, not Telegram (check 5)
+## 1. Channel routing — Discuss usual, Telegram allowed (check 5)
 
-A B2C bot routes to a Telegram channel the owner DMs. A business bot routes to an Odoo
+A B2C bot routes to Telegram. A business bot **usually** routes to an Odoo
 **`discuss.channel`** — the chat built into the business's Odoo, where the team already
-works all day. In `agent-profile.yaml`:
+works all day — but **Telegram is allowed** when that is the team's surface. Channel is
+where humans talk; it does **not** gate the data plane (§3).
+
+**Discuss (typical internal team):**
 
 ```yaml
 routing:
-  channel: discuss                 # not "telegram"
+  channel: discuss
+  home_connection: crewradar       # Discuss poll target only — omit on Telegram
   channel_prompt: |
     You are <bot>, the team's <job> desk in this Odoo Discuss channel. Load the
     <bot> skill and follow its triage and hard rules. Never ask for a password or a
@@ -38,6 +42,18 @@ routing:
   skill + the main working skill: the platform injects their full text at the top of
   every fresh session — including each dispatched isolated run — so the job starts with
   its procedure in the cached prefix instead of spending calls on `skill_view`.
+
+**Telegram + odoo data plane** (when the team lives in Telegram):
+
+```yaml
+routing:
+  channel: telegram
+  # no home_connection — that is Discuss-poll-only
+  channel_prompt: |
+    You are <bot>, the team's <job> desk on Telegram. …
+  signature: "<bot>"
+# still declare connections: + odoo_client in toolset_contribution — see §3
+```
 
 ## 2. Minimal locked toolset (checks 1 + 9)
 
@@ -137,7 +153,9 @@ turns them green.
 A B2C bot's source of truth is a local SQLite db under `~/.hermes/data/<bot>/`. A business
 bot's source of truth is **the business's Odoo**, reached over authorized **`/json/2/`**
 calls through the **`odoo_client`** tool — it reads and writes real business records, not a
-local db.
+local db. This data plane is **channel-agnostic**: declare `connections:` + request
+`odoo_client` on Discuss **or** Telegram (or web). Only Discuss also sets
+`routing.home_connection` (the poll target).
 
 - The bot connects with its **own least-privilege bot user + a scoped API key** (delivered
   by the deployer as a secret, never baked — check 4 + the `secret` artifact class). It is
@@ -160,7 +178,7 @@ local db.
   `references/` — a child skill body over **20 000** characters fails both the offline lint
   and on-bot delivery (`last_status=gate_failed`). See `oteny-talent-dev-loop` readiness.
 
-**The concrete YAML** (the whole data-plane declaration in `agent-profile.yaml`):
+**The concrete YAML** (Discuss — poll + data plane):
 
 ```yaml
 toolset_contribution:
@@ -178,6 +196,26 @@ connections:
 routing:
   channel: discuss
   home_connection: crewradar # Discuss polls this odoo bind (OTENY_HOME_CONNECTION)
+```
+
+**Telegram + same data plane** (no poll target):
+
+```yaml
+toolset_contribution:
+  - odoo_client
+tools:
+  required:
+    - odoo_client
+connections:
+  crewradar:
+    kind: odoo
+    uplink_user: hr.otenybot
+    odoo_grants:
+      read:  [riverflow.service, res.partner]
+      write: [riverflow.service]
+routing:
+  channel: telegram
+  # no home_connection
 ```
 
 > **EXAMPLE — Barney (Cuneus MFNL):** the live bundle names the odoo connection `crewradar`,
