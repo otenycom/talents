@@ -4,7 +4,7 @@ version = "0"
 description = "Runtime deps for OtenyFlatBellyTalent tenant scripts (dashboard cron)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "matplotlib==3.11.0",
+    "matplotlib==3.11.1",
 ]
 
 [tool.uv]
