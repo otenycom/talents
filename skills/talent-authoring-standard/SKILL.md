@@ -162,9 +162,10 @@ Six graded rules; the failure chains and worked examples are in
 - **Feature scripts that import third-party libs ship a uv lock** — `pyproject.toml` +
   `uv.lock` + `.python-version` at the Talent root; invoke via `talent-run <slug>
   <rel-script>` (or `uv run --project …`). The platform syncs the env at converge into
-  `~/.hermes/runtimes/<slug>/`. Never teach bare `python3` for those scripts. Lint
-  enforces the lock when third-party imports are present. Worked example:
-  `oteny-flatbelly-talent` (matplotlib dashboard). See glossary **Talent uv runtime**.
+  `~/.hermes/runtimes/<slug>/`. System python on the bot does **not** provide those
+  libs — never teach bare `python3` for feature scripts. Lint enforces the lock when
+  third-party imports are present. Worked examples: `oteny-flatbelly-talent`,
+  `oteny-travel-talent`. See glossary **Talent uv runtime**.
 - **Collapse the per-turn preamble** (D38): the triage's first action is a **single**
   `preflight`-style call with hot intents inlined in `SKILL.md` — not 4–5 probe calls +
   a reference load.
