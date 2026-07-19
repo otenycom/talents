@@ -72,31 +72,28 @@ this public recipe. You do **not** need Oteny's private control-plane repo, node
 
 | Everyday author loop (default) | Oteny staff live run (not this skill) |
 | --- | --- |
-| Account key + author CLI verbs below (`clone` / `reload` / `test` / `traces` / …) | Private control-plane CLI + mgmt keys |
+| Account key + **`oteny`** verbs (`test` / `traces` / `lint` / box `inspect`/`shell` / …) from [`packages/oteny`](../../packages/oteny/) | Private control-plane CLI + mgmt keys |
 | Box access `inspect` / `shell` (your keypair + `cloudflared access tcp`) | Node / `runsc` into infrastructure you do not own |
 | Business Odoo: hand the job → **Bot Activity** / Discuss | Staff-only harvest tools (`logs-pull`, …) |
 | Reap / teardown your own author bots | Fleet terminate / reconcile of staff live-run bots |
 
-If a doc tells you to run a private platform binary for ordinary Talent work, treat that as a
-**footgun** — use the verbs in this skill instead.
+If a doc tells you to run a private platform binary (`python -m hermeshost test` with staff
+secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` instead.
 
 ### What still needs Oteny staff (honest gaps)
 
-Until third-party Talent tooling is fully self-serve, some steps still need **Oteny staff**
-(or a trusted-partner exception). Do not invent a staff escape hatch in your client docs —
-name the gap and stretch the author path.
-
 | Still staff-gated / partner-only today | Author substitute |
 | --- | --- |
-| Live `clone` → `test` → `traces` / box-access helpers for **arbitrary** outside authors (today: Oteny + trusted partners; one-push staging CI rolling out) | Offline lint + scenario YAML; hand the job → Bot Activity / Discuss |
-| Prod-tier real external portals, submit-deny arming, SMS 2FA on a shared government account | Stub / neutralized doubles; schedule a staff live run only when product requires the real site |
-| Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + this skill’s verbs + box access |
+| Fleet admission / account mint for **arbitrary** outside authors (trusted partners already hold keys) | Offline lint + mock scenarios; Hand to Barney + Bot Activity when you have a bot but not the CLI key |
+| Telegram DM transport on `oteny test` | Discuss (business bots) or CLI/hermes oneshot transport; Telegram is Phase 2 |
+| One-push CI drain (`request-staging-run` worker always-on) | Poll helpers exist on `oteny`; platform still drains the queue |
+| Prod-tier real external portals, submit-deny, SMS 2FA | Stub / neutralized doubles |
+| Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
 | New business-account mint + product “commission my bot” UX (Path C) | Staff onboarding assist until the product surface ships |
 
-*Business-bot canary (worked shape):* a client repo (e.g. CrewRadar/Barney) keeps the Talent
-bundle + a self-serve launcher that calls `request_dev_bot` with the account key; graded runs
-use `test` / `traces` / box access from **this** recipe — the same path a third-party author
-gets. Production later commissions through Oteny's product surfaces, not an Oteny staff live run.
+*Business-bot canary:* a client repo (e.g. CrewRadar/Barney) commissions with
+`request_dev_bot` + the account key; graded runs use **`oteny test --bundle-dir …`** from
+this recipe — not hermeshost staff secrets.
 
 ## When to use
 
@@ -124,36 +121,52 @@ Two equivalent fronts: **interactive** (you drive `clone`/`reload`/`test`/`trace
 yourself) and **CI** (`request-staging-run` + poll → a green/red commit status).
 Same machinery, same record-rule scope.
 
+## Install the author CLI (`oteny`)
+
+The verbs below are the public **`oteny`** package in this repo (`packages/oteny`).
+You do **not** need Oteny's private hermeshost checkout or staff `odoo-api-key`.
+
+```bash
+uv tool install "oteny @ git+https://github.com/otenycom/talents.git#subdirectory=packages/oteny"
+# monorepo / Path B dog-food:
+uv pip install -e ~/oteny/talents/packages/oteny
+```
+
+Auth: `--api-key-file` or `OTENY_ACCOUNT_KEY` → your **account** key file (0600).
+Business-bot Discuss scenarios also need `tests/discuss.yaml` → `tester_key_file`
+(CrewRadar tester — not the Oteny account key).
+
+Transports for `oteny test`: **Discuss** (business bots / `hand_off`), **CLI**
+(`hermes chat` oneshot over box-access — plain chat turns), auto-pick. **Telegram
+DM is Phase 2** (not in this package yet).
+
 ## The verbs (every one returns a JSON DTO; non-zero exit on failure)
 
 | Step | Verb | What it does |
 | --- | --- | --- |
-| Lint | `lint-talent --dir <bundle>` | The static authoring-standard gate, **offline**. Run before you ever clone. |
-| Clone | `clone --from <source> --bundle <slug> --branch <dev> --byob <token-file>` | Stand up a disposable, **neutralized**, budgeted clone of a permitted source's real state. Source is never touched. |
-| Reload | `reload`/`deliver-external-talents --ref <clone>` | Deliver your pushed commit to the clone (D35 stage→swap→gate→rollback). |
-| Test | `test --ref <clone> --bundle <slug> [--scenario <glob>]… [--junit out.xml]` | Run the bundle's `tests/scenarios/*.yaml` LIVE against the clone; green/red + trace. Repeatable `--scenario` (name or glob on the file stem) selects a subset — how mutually-exclusive scenario classes run as separate invocations; a glob matching nothing fails loud. |
-| Traces | `traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
-| Logs | `logs --ref <clone> [--lines N]` | Tail the clone's live gateway-log markers while iterating. |
-| Selfcheck | `selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the clone (`{ready, missing}`). |
-| Migrate | `migrate-talent --ref <clone> --bundle <slug> [--apply <id>]` | Drive `migrate.py --status` / `--apply <id>` on the clone. |
-| Reinit | `reinit --ref <clone>` | Re-create the clone clean — run before a *gating* test so a removed file can't leave a false PASS. |
-| Reap | `reap --ref <clone>` | Destroy the clone (container + snapshot). Source untouched. |
+| Lint | `oteny lint <bundle>` / `oteny-talent-lint` | The static authoring-standard gate, **offline**. Run before you ever clone. |
+| Clone | `oteny clone --source <ref> …` | Account-key clone **gate** (`request_clone`). Platform worker drains infra. |
+| Reload | `oteny reload --ref <clone>` | Request Talent re-delivery (seam when present; else staging-run / belt). |
+| Test | `oteny test --ref <clone> --bundle <slug> --bundle-dir <path> [--scenario <glob>]…` | Run `tests/scenarios/*.yaml` LIVE; **`--bundle-dir` required** (local checkout — no deploy key). |
+| Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
+| Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
+| Selfcheck | `oteny selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the box via account-scoped shell. |
+| Migrate | `oteny migrate-talent --ref <clone> --bundle <slug>` | Drive `migrate.py` on the box. |
+| Inspect / shell | `oteny inspect\|shell --ref <clone>` | Box-access look-inside / exec (your keypair + cloudflared). |
+| Staging CI | `oteny request-staging-run` / `staging-run-status` | Commit→staging→green/red poll (full suite on staging clone — not Path B stub). |
 
-CI path: `request-staging-run --source-id <id> --commit <sha>` → poll
-`staging-run-status --run-id <id>` until terminal.
+Private hermeshost `python -m hermeshost test` with staff secrets is a **footgun** for
+author work — use `oteny` above.
 
 ## The tight loop
 
 ```bash
-oteny-talent-lint skills/oteny-flatbelly-talent           # 1. offline gate, fix violations
-clone --from <canary> --bundle oteny-flatbelly-talent --branch dev --byob ./bot.token
-# → { ref: hh00231, ... }
-reload --ref hh00231                                       # deliver your branch
-test   --ref hh00231 --bundle oteny-flatbelly-talent      # green/red
-traces --ref hh00231                                       # read what it did, fix, push, repeat
-reinit --ref hh00231                                       # before the gating run (clean tree)
-test   --ref hh00231 --bundle oteny-flatbelly-talent      # the result you trust
-reap   --ref hh00231                                       # done
+oteny lint skills/oteny-flatbelly-talent                  # 1. offline gate
+oteny clone --api-key-file ./account.key --source <canary>
+# → request accepted; poll until active (or use request_dev_bot / client launcher)
+oteny test --api-key-file ./account.key --ref hh00231 \
+  --bundle oteny-flatbelly-talent --bundle-dir skills/oteny-flatbelly-talent
+oteny traces --api-key-file ./account.key --ref hh00231
 ```
 
 ## Business-bot Talents (workflow / team chat + odoo data plane)

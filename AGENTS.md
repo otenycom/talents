@@ -55,11 +55,13 @@ The CLI verbs (every one returns a JSON DTO; non-zero exit on failure) — full 
 
 CI path: `request-staging-run --source-id <id> --commit <sha>` → poll `staging-run-status`.
 
-**Availability (be honest with the author):** the lint, the offline behavioral scenarios, and
-the pre-commit gate below are runnable by **anyone, today**. The live `clone → test → traces`
-CLI loop is currently driven by **Oteny + trusted partners**; one-push self-serve
-`commit → staging → green/red` is rolling out. Don't tell an author to run a verb they can't
-yet reach — gate behavior with the offline scenarios + lint in the meantime.
+**Availability (be honest with the author):** install the public author CLI from
+[`packages/oteny`](packages/oteny/) (`uv tool install "oteny @ git+…#subdirectory=packages/oteny"`
+or editable). Offline `oteny lint` + mock scenarios are runnable by **anyone, today**. Live
+`oteny test` / `traces` / box verbs need an **account key** (and Discuss tester key for
+business bots). Telegram DM transport is **Phase 2**. One-push staging CI
+(`request-staging-run`) still needs platform drain. Don't prescribe private
+`python -m hermeshost test` with staff secrets for ordinary author work.
 
 ## Before you open a PR — run the gate
 
