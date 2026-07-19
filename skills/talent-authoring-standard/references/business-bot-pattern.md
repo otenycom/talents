@@ -937,19 +937,22 @@ to run into the session cap. **Batch the typing, never the thinking:**
   the group verify, so a whole page costs one round-trip instead of one per field. Pass the page's
   next/continue button as `submit_selector`: it is clicked **only when every field verified**, in
   the same call — so a dynamic page cannot reset a field between your fill and your navigate (the
-  classic lost-value loop). Steps run in order — sequence unlock-then-set interactions (a filter
-  checkbox that hides options) inside the one call. Ship the page's **selector map in the skill**
-  (a `references/` file): the browser snapshot shows accessibility refs and labels, not CSS ids, so
-  the skill — not the snapshot — is where selectors come from (`label=` targeting works too).
-  **Give each page an explicit `submit_selector` line in that map — a value the model copies
-  verbatim — not just prose naming the *Next*/*OK* button.** A model that has to *infer* the submit
-  selector from prose passes it on only a fraction of its fill calls (live-measured 2 of 12), losing
-  the atomic fill-then-submit and burning a separate navigate turn per page; a per-page map with an
-  explicit submit line binds far better than prose because the model copies structure instead of
-  interpreting it. For a
-  custom widget that is not a native control, use explicit `kind:'click'` steps (trigger, then
-  option). If the tool reports *unavailable*, fall back to per-field fills with **one** snapshot
-  verify per group.
+  classic lost-value loop). The platform scales the batch wall budget with field count and
+  reserves slack for that Next click — do not assume a flat 75 s, and do not pad one call with
+  huge step lists across page cascades. Steps run in order — sequence unlock-then-set interactions
+  (a filter checkbox that hides options) inside the one call. Ship the page's **selector map in
+  the skill** (a `references/` file): the browser snapshot shows accessibility refs and labels,
+  not CSS ids, so the skill — not the snapshot — is where selectors come from (`label=` targeting
+  works too). **Give each page an explicit `submit_selector` line in that map — a value the model
+  copies verbatim — not just prose naming the *Next*/*OK* button.** A model that has to *infer*
+  the submit selector from prose passes it on only a fraction of its fill calls (live-measured 2
+  of 12), losing the atomic fill-then-submit and burning a separate navigate turn per page; a
+  per-page map with an explicit submit line binds far better than prose because the model copies
+  structure instead of interpreting it. **If submit was skipped after a verified fill** (all
+  fields `ok`, skip reason mentions reserved time / budget), **click that button once** — do not
+  re-batch the same `steps`. For a custom widget that is not a native control, use explicit
+  `kind:'click'` steps (trigger, then option). If the tool reports *unavailable*, fall back to
+  per-field fills with **one** snapshot verify per group.
 - **Chain pages off `page_digest` — normally zero snapshots between pages.** A submitted call's
   result carries `page_digest` (headings + labels + buttons of the page you landed on): when it
   shows the expected page (per your shipped map), that IS your portal-change check and your next

@@ -90,7 +90,12 @@ misses mid-filing on the first re-skin.
 
 One `browser_fill_form` call per form page; steps run in order (sequence
 unlock-then-set interactions — e.g. untick a filter checkbox before selecting the
-option it hides). **Never batch across a server round-trip**: a search that
+option it hides). Prefer `submit_selector` for boring wizard Next/Continue when the
+fill report is all `ok` (the server scales the batch budget with field count and
+reserves time for that click — do not assume a flat 75 s). **If the tool says
+submit was skipped after a verified fill** (fields all `ok`, skip reason mentions
+reserved time / budget), **click that Next button once** — do not re-run the same
+`steps` batch. **Never batch across a server round-trip**: a search that
 populates fields, a cascade where each pick loads the next — those stay
 one-action-at-a-time with the native tools. **Never** pass an irreversible/final
 submission as `submit_selector` — final submits get a fresh full snapshot and an

@@ -46,8 +46,10 @@ not mounted — see the pattern reference.)*
 > per-field `ok`/`actual` IS your verify) and clicks next only when every field
 > verified. Steps run in order — on the site page, UNCHECK the "local
 > municipalities only" filter *before* selecting a non-local municipality, in the
-> same call. Fix and re-verify any `ok:false` field before moving on. The final
-> *Submit application* is **never** a `submit_selector` — see step 4.
+> same call. Fix and re-verify any `ok:false` field before moving on. If submit
+> was skipped after a verified fill, click that *Next* once — do not re-batch the
+> same steps. The final *Submit application* is **never** a `submit_selector` —
+> see step 4.
 
 ### Step 0 — pick the work
 
