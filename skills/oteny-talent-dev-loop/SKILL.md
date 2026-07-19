@@ -89,7 +89,7 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | One-push CI drain (`request-staging-run` worker always-on) | Poll helpers exist on `oteny`; platform still drains the queue |
 | Prod-tier real external portals, submit-deny, SMS 2FA | Stub / neutralized doubles |
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
-| New business-account mint + product “commission my bot” UX (Path C) | Staff onboarding assist until the product surface ships |
+| New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 
 *Business-bot canary:* a client repo (e.g. CrewRadar/Barney) commissions with
 `request_dev_bot` + the account key; graded runs use **`oteny test --bundle-dir …`** from
