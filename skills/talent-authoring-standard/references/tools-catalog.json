@@ -11,6 +11,15 @@
       "cost": "low"
     },
     {
+      "name": "web_extract",
+      "requestable_name": "web_extract",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low"
+    },
+    {
       "name": "x_search",
       "requestable_name": "x_search",
       "request_via": "tools.required",

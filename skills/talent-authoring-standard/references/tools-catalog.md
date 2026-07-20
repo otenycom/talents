@@ -33,6 +33,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | Request name | Request via | Skill to compose | Status | Cost | What it does |
 |---|---|---|---|---|---|
 | `web_search` | `tools.required` | oteny-web-search | live | A fraction of a cent | 🔍 Current answers from the web, with sources. |
+| `web_extract` | `tools.required` | oteny-web-search | live | A fraction of a cent | 📄 Pull clean text from a URL you already have. |
 | `x_search` | `tools.required` | oteny-web-search | live | A fraction of a cent | 🐦 What's happening on X, grounded in live posts. |
 | `youtube_transcript` | `tools.required` | oteny-youtube-transcript | live | A fraction of a cent | 📺 Read, summarize, or monitor any YouTube video. |
 | `travel` | `tools.required` | oteny-travel | live | A fraction of a cent | 🗺️ Door-to-door routes + live departure boards (in NL: real delays, platform/spoor & service alerts), places, flights & full itineraries — on Google Maps. |

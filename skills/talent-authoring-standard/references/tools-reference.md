@@ -1,8 +1,8 @@
 # Tool reference — the contracts behind the catalog
 
-> **Generated** by Oteny — do not edit by hand. The [tools-catalog](tools-catalog.md)
-> tells you WHICH tools exist and how to request them; this reference is the
-> **contract**: the exact
+> **Generated** by Oteny (`python -m hermeshost tools-catalog --format reference`) —
+> do not edit by hand. The [tools-catalog](tools-catalog.md) tells you WHICH tools
+> exist and how to request them; this reference is the **contract**: the exact
 > parameters, the result shape, the error modes, and one worked example per tool —
 > written so you (and your AI coding session) can author correct tool calls without
 > ever reading platform source or a live box. The description under each tool is the
@@ -14,9 +14,8 @@
 for a built-in toolset). *Parameters* is the JSON schema your bot's tool call must
 satisfy. *Result* / *Errors* are what comes back. The example is a real call.
 
-Your bot's **system-of-record connection** (the `odoo_client` tool + a named
-`connections:` entry — channel-agnostic; see business-bot-pattern §3) is declared
-by YOUR Talent, not listed here as a storefront row. For the
+Your bot's **system-of-record seam** (e.g. an Odoo `/json/2/` uplink tool) is declared
+by YOUR Talent, not listed here — see `business-bot-pattern.md` §3. For the
 browser-driving discipline (selector maps, batching, fail-closed), read
 [`browser-authoring.md`](browser-authoring.md) next to this file.
 
@@ -66,6 +65,69 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 ```
 
 **Authoring notes** — Grounded + cited — prefer it over improvising a curl scrape for anything time-sensitive or factual. Flat price per query.
+
+### `web_extract` — Read a web page
+
+*first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
+
+> Extract clean text/markdown from one or more page URLs (no LLM summarization). Use when you already have a URL and need the page body. Prefer web_search for open questions. For clicking, forms, logins, or hard anti-bot pages use the browser_* tools instead.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of URLs to extract (max 5).",
+      "maxItems": 5
+    },
+    "char_limit": {
+      "type": "integer",
+      "description": "Per-page character budget (default 15000).",
+      "minimum": 2000
+    }
+  },
+  "required": [
+    "urls"
+  ]
+}
+```
+
+**Result** — {results:[{url, title?, content, error?}, …]} — clean page text/markdown per URL (no LLM summary). Truncated with a head/tail ellipsis when over `char_limit` (default 15000). Partial results may accompany a top-level {error} when a later URL fails mid-batch.
+
+**Errors / edges** — {error:'urls is required'} on empty/missing urls. Plus the shared platform set.
+
+**Example**
+
+```json
+{
+  "urls": [
+    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/"
+  ],
+  "char_limit": 15000
+}
+```
+
+→
+
+```json
+{
+  "results": [
+    {
+      "url": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/",
+      "title": "Monetary policy decisions",
+      "content": "# Monetary policy decisions\n\nThe Governing Council \u2026"
+    }
+  ]
+}
+```
+
+**Authoring notes** — Use when you already have a URL and need the page body. Prefer `web_search` for open questions. For clicking, forms, logins, or hard anti-bot pages use the browser_* tools. Bills a short browser linger window per call (reuse within the linger is free).
 
 ### `x_search` — X (Twitter) search
 

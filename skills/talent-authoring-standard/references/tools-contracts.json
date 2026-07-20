@@ -1,5 +1,5 @@
 {
-  "_generated": "by Oteny — do not edit by hand.",
+  "_generated": "by `python -m hermeshost tools-catalog --format contracts` — do not edit by hand.",
   "tools": [
     {
       "name": "web_search",
@@ -26,6 +26,41 @@
       "example_request": "{\n  \"query\": \"ECB deposit rate today\"\n}",
       "example_result": "{\n  \"text\": \"The ECB deposit facility rate is 2.00% \\u2026\\n\\nSources:\\n- ECB key interest rates: https://www.ecb.europa.eu/\\u2026\"\n}",
       "notes": "Grounded + cited — prefer it over improvising a curl scrape for anything time-sensitive or factual. Flat price per query."
+    },
+    {
+      "name": "web_extract",
+      "requestable_name": "web_extract",
+      "request_via": "tools.required",
+      "group": "The live web",
+      "status": "live",
+      "cost": "low",
+      "description": "Extract clean text/markdown from one or more page URLs (no LLM summarization). Use when you already have a URL and need the page body. Prefer web_search for open questions. For clicking, forms, logins, or hard anti-bot pages use the browser_* tools instead.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of URLs to extract (max 5).",
+            "maxItems": 5
+          },
+          "char_limit": {
+            "type": "integer",
+            "description": "Per-page character budget (default 15000).",
+            "minimum": 2000
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "result": "{results:[{url, title?, content, error?}, …]} — clean page text/markdown per URL (no LLM summary). Truncated with a head/tail ellipsis when over `char_limit` (default 15000). Partial results may accompany a top-level {error} when a later URL fails mid-batch.",
+      "errors": "{error:'urls is required'} on empty/missing urls. Plus the shared platform set.",
+      "example_request": "{\n  \"urls\": [\n    \"https://www.ecb.europa.eu/stats/policy_and_exchange_rates/\"\n  ],\n  \"char_limit\": 15000\n}",
+      "example_result": "{\n  \"results\": [\n    {\n      \"url\": \"https://www.ecb.europa.eu/stats/policy_and_exchange_rates/\",\n      \"title\": \"Monetary policy decisions\",\n      \"content\": \"# Monetary policy decisions\\n\\nThe Governing Council \\u2026\"\n    }\n  ]\n}",
+      "notes": "Use when you already have a URL and need the page body. Prefer `web_search` for open questions. For clicking, forms, logins, or hard anti-bot pages use the browser_* tools. Bills a short browser linger window per call (reuse within the linger is free)."
     },
     {
       "name": "x_search",
