@@ -27,8 +27,11 @@ long_md: |
   what, and settles up at the end — greeting each traveller by name. It surfaces options and
   links but never books or pays for you, and visa, entry and health answers are advisory —
   always confirm with the official source.
-version: 1.8.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.8.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.8.1: maplink.py Google Maps deeplink → path form (/dir/origin/dest/) so
+                 # Telegram→Maps Universal Links on iOS/Android cannot drop origin/destination
+                 # (query-string ?api=1&origin=&destination= opened empty directions). PATCH.
                  # 1.1.0: deeplink-first transit (maplink.py) + anti-grind/anti-fabrication
                  # guardrails + OVpay check-out reminder. Behavior added, no new migration id.
                  # 1.2.0: in-chat Static-Maps route image (travel static_map=true) + forwarded

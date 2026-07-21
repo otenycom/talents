@@ -14,8 +14,9 @@ monitor_transport.py — the error-prone step lives in a deterministic SCRIPT, n
 
 It prints ready-to-paste links (one per line, ``LABEL: <url>``):
 
-  * **Google Maps** (universal, no key, every platform):
-    https://www.google.com/maps/dir/?api=1&origin=<enc>&destination=<enc>&travelmode=<mode>
+  * **Google Maps** (universal, no key, every platform) — path form so mobile
+    Universal Links cannot drop origin/destination:
+    https://www.google.com/maps/dir/<enc-origin>/<enc-destination>/?travelmode=<mode>
   * **9292** (the NL authoritative timetable + live delays) — only for an NL trip:
     https://9292.nl/reisadvies/<van-slug>/<naar-slug>
   * **9292 live departures board** ("when's the next one?") — printed for the destination
@@ -48,13 +49,20 @@ _GOOGLE_MODES = {"transit": "transit", "walking": "walking", "driving": "driving
 def google_dir(origin: str, destination: str, mode: str) -> str:
     """The universal, key-free Google Maps directions deeplink (every platform).
 
-    Place names are percent-encoded with NO safe chars (so ``,`` -> ``%2C`` and space ->
-    ``%20``), which is what Google's ``api=1`` directions endpoint expects."""
+    Path form — origin and destination ride in the URL path, not ``?api=1&origin=&destination=``
+    query params. Telegram → Google Maps on iOS/Android hands the URL to the Maps app via
+    Universal Links; that handoff has been observed to drop the query string, leaving an
+    empty directions form (prod 2026-07-21: ``dir/<coords>//@…`` with blank dest). Path
+    segments survive. Place names are percent-encoded with NO safe chars (``,`` → ``%2C``,
+    space → ``%20``, ``/`` → ``%2F`` so a slash in an address cannot split the path). Travel
+    mode stays a query param Google's web+app both honour when the query survives; when it
+    doesn't, origin/dest still open and Maps picks a sensible default mode.
+    """
     travelmode = _GOOGLE_MODES.get(mode, "transit")
     o = quote(origin.strip(), safe="")
     d = quote(destination.strip(), safe="")
-    return ("https://www.google.com/maps/dir/?api=1"
-            f"&origin={o}&destination={d}&travelmode={travelmode}")
+    return (f"https://www.google.com/maps/dir/{o}/{d}/"
+            f"?travelmode={travelmode}")
 
 
 def apple_dir(origin: str, destination: str, mode: str) -> str:

@@ -619,13 +619,16 @@ def test_trip_card_degrades_without_matplotlib(monkeypatch):
 # --------------------------------------------------------------------------- #
 def test_maplink_google_encoding_olvg_example():
     """The prod-incident route (OLVG Oost -> Haarlemmermeerstraat 6) must encode exactly:
-    comma -> %2C, space -> %20, the travelmode carried through."""
+    comma -> %2C, space -> %20, origin/dest in the PATH (not ?api=1 query — mobile
+    Universal Links drop query strings), travelmode carried as a query param."""
     url = ml.google_dir("OLVG Oost, Amsterdam", "Haarlemmermeerstraat 6, Amsterdam", "transit")
     assert url == (
-        "https://www.google.com/maps/dir/?api=1"
-        "&origin=OLVG%20Oost%2C%20Amsterdam"
-        "&destination=Haarlemmermeerstraat%206%2C%20Amsterdam"
-        "&travelmode=transit")
+        "https://www.google.com/maps/dir/"
+        "OLVG%20Oost%2C%20Amsterdam/"
+        "Haarlemmermeerstraat%206%2C%20Amsterdam/"
+        "?travelmode=transit")
+    # a slash in an address must not split the path
+    assert "%2F" in ml.google_dir("A/B Street", "Dest", "transit")
     # mode carries through; an unknown mode falls back to transit (the OV core)
     assert "travelmode=driving" in ml.google_dir("A", "B", "driving")
     assert "travelmode=walking" in ml.google_dir("A", "B", "walking")
@@ -693,7 +696,9 @@ def test_maplink_main_prints_links(capsys):
                   "--destination", "Haarlemmermeerstraat 6, Amsterdam", "--mode", "transit"])
     assert rc == 0
     out = capsys.readouterr().out
-    assert "Google Maps: https://www.google.com/maps/dir/?api=1" in out
+    assert "Google Maps: https://www.google.com/maps/dir/" in out
+    assert "?travelmode=transit" in out
+    assert "OLVG%20Oost" in out
     assert "9292.nl/reisadvies/" in out
     assert "/departures" in out
     assert "maps.apple.com" not in out          # Apple off by default
