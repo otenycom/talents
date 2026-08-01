@@ -51,9 +51,10 @@ It prints `ODOO_INSTALLED <sha>` on success. Idempotent — if interrupted, re-r
 
 **Hard ban while READY: no:** never `python3 -m http.server`, never a hand-rolled static
 HTML folder, never `host_website` on a non-Odoo port, never reuse an existing
-`*.oteny.bot` / drop link as if the new site were already built. The only site engine is
-Odoo via `install_odoo.sh` → `setup_admin.py` → `preflight.py` → `READY: yes`. A static
-fake or a leftover hosted marker is a failed install, not a shortcut.
+`*.oteny.bot` link, and **never** `oteny-drop` / `drop.oteny.bot` (that is a file share,
+not a website). The only site engine is Odoo via `install_odoo.sh` → `setup_admin.py` →
+`preflight.py` → `READY: yes`. If `host_website` returns `slug_taken`, pick another slug
+and retry — do **not** fall back to drop.
 
 ## Step 4 — Lock the admin login (mandatory, one script)
 

@@ -1,13 +1,15 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.0.3
+version: 1.0.6
 author: Oteny
 license: Apache-2.0
 metadata:
   hermes:
     tags: [website, odoo, host, online, shop, landing, page, booking, site, builder, web, publish]
-    related_skills: [oteny-sites, oteny-drop]
+    # oteny-drop is intentionally NOT related — drop.oteny.bot is a file share, not a site.
+    # Relating it made WebsiteBot skip install_odoo and "publish" a static drop (E2E 2026-08-01).
+    related_skills: [oteny-sites]
 ---
 
 # WebsiteBot — build a website in your box and put it online
@@ -41,7 +43,8 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 ```
 
 - **READY: no** → [`references/first-run.md`](references/first-run.md) (intake → install →
-  `setup_admin.py`) **before** building. Never a static `http.server` fake.
+  `setup_admin.py`) **before** building. Never a static `http.server` fake, never
+  `oteny-drop` / `drop.oteny.bot` as a website substitute.
 - **READY: yes**, build/change → BUILD checklist +
   [`references/build-and-host.md`](references/build-and-host.md).
 - **READY: yes**, "is my site up?" / "what's the link?" → `list_hosted_websites`.
