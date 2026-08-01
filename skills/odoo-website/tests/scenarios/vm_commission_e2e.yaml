@@ -32,7 +32,9 @@ turns:
       trace:
         loads_skill: odoo-website
 
-  # 2) Answer intake → install_odoo.sh + setup_admin (~3–5 min). Wait for READY phrasing.
+  # 2) Answer intake → install_odoo.sh + setup_admin (~3–5 min). Wait for the exact
+  #    first-run READY phrase — NOT a vague "engine is ready" (that matched a static
+  #    http.server fake on hh00379).
   - user: >
       Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
       Web address: moondive. Admin email: pilot@example.com. Language: English.
@@ -41,10 +43,10 @@ turns:
       reply:
         contains_any:
           - "website engine is ready"
-          - "engine is ready"
-          - "ready — what"
-          - "ready - what"
-          - "what should the site"
+          - "your website engine is ready"
+        not_contains:
+          - "http.server"
+          - "drop.oteny.bot"
 
   # 3) Build homepage via locked JSON-2 path (site_rpc.py), not the browser builder /
   #    not a static http.server fake.
@@ -63,14 +65,15 @@ turns:
       reply:
         contains_any: ["public", "confirm", "go ahead", "shall I", "publish"]
 
-  # 5) Go-ahead → host_website(8069); report public URL (drain may still be in flight).
-  - user: "yes, go ahead"
+  # 5) Go-ahead → host_website(8069) only — never port 8080 / http.server.
+  - user: "yes, go ahead — host the Odoo site on port 8069"
     reply_timeout: 600
     expect:
       tool_calls:
         - tool: host_website
       reply:
-        contains_any: ["oteny.bot", "moondive", "provisioning", "hosting", "publishing"]
+        contains_any: ["oteny.bot", "moondive", "8069", "provisioning", "hosting"]
+        not_contains: ["8080", "http.server", "drop.oteny.bot"]
 
   # 6) Status check — after the gate's background drain, the public URL should be live.
   - user: "is it up?"

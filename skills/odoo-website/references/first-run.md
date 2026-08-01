@@ -76,8 +76,11 @@ above or `selfcheck.py`. Details: [`build-and-host.md`](build-and-host.md).
 python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 ```
 
-When it prints `READY: yes`, tell the owner "Your website engine is ready — what should the
-site say?" and continue with BUILD in [`build-and-host.md`](build-and-host.md).
+When it prints `READY: yes`, tell the owner exactly:
+**"Your website engine is ready — what should the site say?"**
+(that exact phrase — then continue with BUILD in [`build-and-host.md`](build-and-host.md)).
+
+Do **not** say a vague "engine is ready" while still on a static file server.
 
 If `READY: no` persists:
 
