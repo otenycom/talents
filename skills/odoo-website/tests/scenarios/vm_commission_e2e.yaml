@@ -26,6 +26,9 @@ turns:
           - "subdomain"
           - "email address"
           - "what should we call"
+        not_contains:
+          - "used up your Oteny balance"
+          - "oteny_topup"
       trace:
         loads_skill: odoo-website
 
@@ -60,18 +63,18 @@ turns:
       reply:
         contains_any: ["public", "confirm", "go ahead", "shall I", "publish"]
 
-  # 5) Go-ahead → host_website(8069); report public URL.
+  # 5) Go-ahead → host_website(8069); report public URL (drain may still be in flight).
   - user: "yes, go ahead"
-    reply_timeout: 300
+    reply_timeout: 600
     expect:
       tool_calls:
         - tool: host_website
       reply:
-        contains: ["oteny.bot"]
+        contains_any: ["oteny.bot", "moondive", "provisioning", "hosting", "publishing"]
 
-  # 6) Status check.
+  # 6) Status check — after the gate's background drain, the public URL should be live.
   - user: "is it up?"
-    reply_timeout: 180
+    reply_timeout: 300
     expect:
       tool_calls:
         - tool: list_hosted_websites

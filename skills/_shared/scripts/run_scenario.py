@@ -416,6 +416,11 @@ def assert_reply(reply_text: str, spec) -> dict:
     for sub in _as_list(spec.get("contains")):
         if str(sub).lower() not in text.lower():
             fails.append(f"missing {sub!r}")
+    any_needles = _as_list(spec.get("contains_any"))
+    if any_needles and not any(
+        str(sub).lower() in text.lower() for sub in any_needles
+    ):
+        fails.append(f"missing any of {any_needles!r}")
     for sub in _as_list(spec.get("not_contains")):
         if str(sub).lower() in text.lower():
             fails.append(f"unexpected {sub!r}")
