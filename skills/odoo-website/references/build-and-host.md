@@ -65,5 +65,6 @@ Work in small steps. After each meaningful change, tell the owner what changed.
 - The embedded database has no `pg_trgm`/contrib extensions — fuzzy back-office search is
   slightly less fancy, but the public site is unaffected.
 - Requires the **Max plan** — a dedicated server with a full kernel (Odoo + its database run
-  alongside the agent). On any container plan (lite/power), or below ~3 GB of memory, the
-  install refuses.
+  alongside the agent). A healthy **cx23** (~4 GiB) is enough for light sites; containers
+  (lite/power) or boxes under ~3.2 GB are refused. The platform provides `python3-venv`
+  (needed for `~/odoo-site/venv`); older Max images get it on the next deploy heal.

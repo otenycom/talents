@@ -17,9 +17,11 @@ TARBALL_URL=https://nightly.odoo.com/19.0/nightly/src/odoo_19.0.latest.tar.gz
 SELF_DIR=$HOME/.hermes/skills/talents/odoo-website/scripts
 
 # 0. Refuse an under-provisioned envelope BEFORE any work (the §14.2 runtime self-gate).
-# Odoo CE + embedded Postgres + your agent need a dedicated machine (the Max plan) — a
-# packed gVisor container / <3 GB can't fit them. The deployer injects OTENY_SUBSTRATE from
-# the tenant's isolation_tier; else probe the kernel (gVisor names itself in /proc/version).
+# Odoo CE + embedded Postgres + your agent need a dedicated VM (the Max plan). A packed
+# gVisor container can't fit them. A healthy cx23 (~4 GiB) IS a valid floor — refuse only
+# clearly undersized envelopes (Lite-class ~1.5 GiB). The deployer injects OTENY_SUBSTRATE
+# from the tenant's isolation_tier; else probe the kernel (gVisor names itself in
+# /proc/version).
 substrate="${OTENY_SUBSTRATE:-}"
 if [ -z "$substrate" ] && grep -qi gvisor /proc/version 2>/dev/null; then
   substrate=container
@@ -30,8 +32,9 @@ if [ "$substrate" = "container" ]; then
        "upgrade to Max." >&2
   exit 1
 fi
-# Memory floor (~3 GB = 3145728 KiB): cgroup v2 hard cap first, then /proc/meminfo; an
-# OTENY_MEM_GB override wins (deployer injection / tests). An unknown reading does NOT block.
+# Memory floor (~3.2 GiB = 3355443 KiB): cgroup v2 hard cap first, then /proc/meminfo; an
+# OTENY_MEM_GB override wins (deployer injection / tests). An unknown reading does NOT
+# block. cx23 MemTotal (~3.8 GiB usable) clears this; refuse only tiny boxes.
 mem_kb=""
 if [ -r /sys/fs/cgroup/memory.max ]; then
   mm=$(cat /sys/fs/cgroup/memory.max 2>/dev/null)
@@ -43,18 +46,30 @@ fi
 if [ -n "${OTENY_MEM_GB:-}" ]; then
   mem_kb=$(awk "BEGIN{printf \"%d\", ${OTENY_MEM_GB} * 1024 * 1024}")
 fi
-if [ -n "$mem_kb" ] && [ "$mem_kb" -lt 3145728 ]; then
+if [ -n "$mem_kb" ] && [ "$mem_kb" -lt 3355443 ]; then
   echo "ODOO_INSTALL_REFUSED mem=$((mem_kb / 1024))MB — Odoo + Postgres + your agent need" \
-       "~3 GB. This box is too small; ask the owner to upgrade to the Max plan (a dedicated" \
-       "server)." >&2
+       "at least ~3.2 GB (a Max dedicated VM, e.g. cx23). This box is too small; ask the" \
+       "owner to upgrade to Max." >&2
   exit 1
 fi
 
 mkdir -p "$BASE"
 cd "$BASE"
 
-# 1. venv (Python 3.10+; the box ships 3.12)
-[ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
+# 1. venv (Python 3.10+; the box ships 3.12). Prefer /usr/bin/python3 so a PATH
+#    shim cannot skip ensurepip. Refuse early with an actionable message when the
+#    distro python3-venv package is missing (older Max goldens omitted it).
+PY3="${OTENY_PYTHON3:-/usr/bin/python3}"
+[ -x "$PY3" ] || PY3=python3
+if [ ! -x "$VENV/bin/python" ]; then
+  if ! "$PY3" -c "import ensurepip" 2>/dev/null; then
+    echo "ODOO_INSTALL_REFUSED missing_ensurepip — need the distro python3-venv package" \
+         "(apt install python3-venv / python3.12-venv). Max goldens bake this in;" \
+         "ask support to heal this box, then re-run install." >&2
+    exit 1
+  fi
+  "$PY3" -m venv "$VENV"
+fi
 "$VENV/bin/pip" install --quiet --upgrade pip wheel
 
 # 2. Odoo source (pin the tarball by sha256 for a reproducible install)
