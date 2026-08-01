@@ -27,13 +27,19 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.3.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.4.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
-                 # 1.2.0: the daily reminders are the RICH "day so far" status summaries
-                 # again (original behavior restored — the v1.1.x zero-tool nudge was a
-                 # workaround for since-fixed environment bugs: the platform-level cron
-                 # toolset cap (reverted host-side) and a file-search blindness (fixed
-                 # upstream)).
+                 # 1.4.0: morning/evening cron prompts invoke food-tracker's "Daily
+                 # reminder role" by name (preflight → DB read → grounded summary → ask
+                 # only open gaps). Removes the "do NOT pre-fill" footgun that made the
+                 # morning job ignore already-logged weight/sleep/meals; sleep maps from
+                 # daily_metrics.sleep_consistency_score. Adds checklist migration
+                 # 0004_cron_daily_reminder_prompts (delete+recreate the two daily jobs).
+                 # 1.3.0 / 1.2.0: the daily reminders are the RICH "day so far" status
+                 # summaries again (original behavior restored — the v1.1.x zero-tool
+                 # nudge was a workaround for since-fixed environment bugs: the
+                 # platform-level cron toolset cap (reverted host-side) and a file-search
+                 # blindness (fixed upstream)).
                  # Reminders load food-tracker, run preflight + a fresh DB read, open with
                  # the grounded summary, ask only what's missing. Steering kept: `lite`
                  # model, lean per-job toolsets [terminal, file, skills], max_turns 15

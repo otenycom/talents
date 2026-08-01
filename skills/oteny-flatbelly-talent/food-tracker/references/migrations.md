@@ -55,3 +55,29 @@ so this is a **checklist** you run via the `cronjob` tool — `migrate.py` can't
    planner gave (name, the local `schedule`, `skills`, `model`, `provider`, `prompt`, and
    `enabled_toolsets` where present). Do not re-derive or UTC-convert the schedule.
 4. **Record** it: `migrate.py --mark 0003_cron_localtime`.
+
+## 0004_cron_daily_reminder_prompts (checklist)
+
+Re-registers the **morning + evening** reminder crons so their prompts match
+food-tracker's "Daily reminder role". Live footgun (2026-08-01, hh00046): the old
+morning prompt said "do NOT pre-fill", so the model ignored already-logged
+weight/sleep/meals and re-asked for them; sleep was shown as open when only
+`sleep_consistency_score` was set. A converge swaps Talent files but never rewrites
+live cron prompts — delete + re-plan + create is required.
+
+Weekly dashboard is unchanged; leave it alone.
+
+Steps:
+
+1. **Delete** the two daily jobs via the `cronjob` tool (by exact name):
+   `OtenyFlatBellyTalent daily morning log`, `OtenyFlatBellyTalent daily evening log`.
+2. **Re-plan** — run the planner; with those jobs gone it lists them in `to_create`
+   with the corrected Daily-reminder-role prompts:
+   ```
+   python3 ~/.hermes/skills/talents/oteny-flatbelly-talent/scripts/provision_cron.py --json
+   ```
+3. **Create** each job in `to_create` via the `cronjob` tool, passing **every** field
+   the planner gave (name, local `schedule`, `skills`, `model`, `provider`, `prompt`,
+   and `enabled_toolsets` where present). Confirm each prompt names
+   `"Daily reminder role"` and does **not** say "do not pre-fill".
+4. **Record** it: `migrate.py --mark 0004_cron_daily_reminder_prompts`.

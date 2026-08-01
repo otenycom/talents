@@ -243,17 +243,26 @@ def test_cron_schedule_is_local_wall_clock():
 
 
 def test_cron_daily_reminders_are_rich_status_summaries():
-    # v1.2.0 restore: the daily reminders load food-tracker and run the grounded
-    # "day so far" summary (the ORIGINAL behavior — the v1.1.x zero-tool nudge was
-    # a workaround for the since-fixed terminal-less cron cap + search_files
-    # blindness, not a product choice). Cost steering stays via the crons: policy
-    # (lite model + lean toolsets + declared max_turns), not via thinning.
+    # v1.2.0 restore + v1.4.0 prompt contract: the daily reminders load food-tracker
+    # and run the grounded "day so far" summary via the skill's "Daily reminder
+    # role" (the ORIGINAL behavior — the v1.1.x zero-tool nudge was a workaround
+    # for the since-fixed terminal-less cron cap + search_files blindness, not a
+    # product choice). Cost steering stays via the crons: policy (lite model + lean
+    # toolsets + declared max_turns), not via thinning. The old "do NOT pre-fill"
+    # morning wording is banned — it taught the model to ignore already-logged rows.
     specs = {s["name"]: s for s in pc.build_specs({"timezone": "Europe/Amsterdam"})}
     for daily in ("OtenyFlatBellyTalent daily morning log",
                   "OtenyFlatBellyTalent daily evening log"):
         s = specs[daily]
         assert s["skills"] == ["food-tracker", "flatbelly-coach-voice"]
         assert "load food-tracker first" in s["prompt"].lower()
+        assert "Daily reminder role" in s["prompt"]
+        assert "sleep_consistency_score" in s["prompt"]
+        # The old operational instruction ("…do NOT pre-fill. Load food-tracker…")
+        # is gone. The prompt may still *mention* that phrase as a ban ("Do NOT say
+        # 'do not pre-fill'") — that is intentional, not a regression.
+        assert "Ask the tenant" not in s["prompt"]
+        assert "do NOT pre-fill. Load" not in s["prompt"]
     assert specs["OtenyFlatBellyTalent weekly dashboard"]["skills"] == [
         "weight-progress-dashboard", "food-tracker"]
 

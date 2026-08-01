@@ -51,6 +51,16 @@ languages):
 - ✅ `1194 kcal · 82 g protein · 79 g carbs · 56.5 g fat · 6.74 g leucine`
 - ❌ `82 g P · 79 g C · 56.5 g F`
 
+**No backticks / inline code** around numbers or macro lines in Telegram replies — they
+wreck mobile formatting. Prefer bold labels + clean spacing.
+
 Keep replies compact and Telegram-friendly. Quote source numbers whenever comparing to
 a prior value. For *how settled* to pitch the jargon (the fade ladder), see
 `glossary.md`.
+
+## Silent calories (portion-control coaching)
+
+Large free-pour nut/seed portions (e.g. 100–150 g pistachios from the bag) are a
+classic "silent" calorie bomb — often 600–900+ kcal that the tenant does not experience
+as a meal. When logging one, call out portion control in the reply (weigh ~30–40 g) as
+the one lever — warm, non-judgmental, one sentence.

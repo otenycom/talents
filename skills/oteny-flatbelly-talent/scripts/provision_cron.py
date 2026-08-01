@@ -186,24 +186,75 @@ def build_specs(profile: dict, ref: datetime | None = None,
     # hidden-dir blindness, fixed upstream); the cost steering stays: model
     # pinned `lite`, a lean per-job
     # toolset, and a declared max_turns from the measured healthy profile.
+    # Prompt contract (live-proven 2026-08-01 on hh00046): both daily jobs MUST
+    # invoke food-tracker's "Daily reminder role" by name. The old morning wording
+    # ("do NOT pre-fill") taught the model to IGNORE already-logged weight/sleep/
+    # meals and re-ask for them — opposite of the product. Sleep in the summary
+    # grid maps from daily_metrics.sleep_consistency_score (composite 0–100), not
+    # sleep_hours alone. Keep prompts language-agnostic (`profile.language`).
+    morning_prompt = (
+        f"Morning log reminder ({m_hh:02d}:{m_mm:02d} {tz}).\n\n"
+        "1. Load food-tracker first, then flatbelly-coach-voice. Reply in the "
+        "tenant's language (profile.language).\n"
+        "2. Run the food-tracker \"Daily reminder role\" exactly:\n"
+        "   a. Run preflight.py + a fresh DB read of TODAY (weight, meals totals, "
+        "daily_metrics including sleep_consistency_score AS sleep, steps, "
+        "workouts, waist). Hard rule: no vibe-served facts — every number from a "
+        "query this run.\n"
+        "   b. Open with the grounded \"day so far\" summary grid (✅ for logged, "
+        "— for open). Map sleep from daily_metrics.sleep_consistency_score "
+        "(NOT sleep_hours alone — a score of 70 means sleep IS logged).\n"
+        "   c. Ask ONLY for gaps that are still open. NEVER re-ask for "
+        "weight/sleep/meals already present in the DB this morning.\n"
+        "3. Framing (hard rule time-of-day): before ~18:00 this is \"so far today\" "
+        "+ \"X g protein to go\" vs the profile protein target — not a closed day "
+        "total.\n"
+        "4. If the day is still empty early on, say so in one line and anchor on "
+        "yesterday's close if useful — still do not invent numbers.\n"
+        "5. Keep the whole reply Telegram-scannable (1–2 short blocks). Macros "
+        "spelled out, no backticks around numbers. Final response IS the message "
+        "(auto-delivered) — never [SILENT] after producing the reminder.\n"
+        "Do NOT ignore already-logged rows. Do NOT say \"do not pre-fill\" — the "
+        "summary MUST reflect what is already in the DB."
+    )
+    evening_prompt = (
+        f"Evening log reminder ({e_hh:02d}:{e_mm:02d} {tz}).\n\n"
+        "1. Load food-tracker first, then flatbelly-coach-voice. Reply in the "
+        "tenant's language (profile.language).\n"
+        "2. Run the food-tracker \"Daily reminder role\" exactly:\n"
+        "   a. Run preflight.py + a fresh DB read of TODAY (weight, meals totals, "
+        "daily_metrics including sleep_consistency_score AS sleep, steps, "
+        "workouts, waist). Hard rule: no vibe-served facts — every number from a "
+        "query this run.\n"
+        "   b. Open with the grounded day-total summary grid (✅ for logged, — for "
+        "open). Map sleep from daily_metrics.sleep_consistency_score (NOT "
+        "sleep_hours alone).\n"
+        "   c. Ask ONLY for gaps that are still open (food/sleep/steps/workout/"
+        "waist as applicable). NEVER re-ask for rows already present in the DB "
+        "today. Write new rows when the owner replies later — this fire is the "
+        "nudge + summary.\n"
+        "3. Framing (hard rule time-of-day): after ~18:00 this is the day total + "
+        "any deficit / leucine miss vs the profile targets.\n"
+        "4. Keep the whole reply Telegram-scannable (1–2 short blocks). Macros "
+        "spelled out, no backticks around numbers. Final response IS the message "
+        "(auto-delivered) — never [SILENT] after producing the reminder.\n"
+        "Do NOT ignore already-logged rows. Do NOT say \"do not pre-fill\" — the "
+        "summary MUST reflect what is already in the DB."
+    )
     return [
         _spec(
             "OtenyFlatBellyTalent daily morning log",
             local_cron(m_hh, m_mm),
             f"{m_hh:02d}:{m_mm:02d} {tz} daily",
             ["food-tracker", "flatbelly-coach-voice"],
-            ("Morning log reminder. Ask the tenant (in their language) for their "
-             "morning weight and what they have eaten/plan to eat; do NOT pre-fill. "
-             "Load food-tracker first."),
+            morning_prompt,
         ),
         _spec(
             "OtenyFlatBellyTalent daily evening log",
             local_cron(e_hh, e_mm),
             f"{e_hh:02d}:{e_mm:02d} {tz} daily",
             ["food-tracker", "flatbelly-coach-voice"],
-            ("Evening log reminder. Ask for the full day's food + any "
-             "sleep/steps/workout; then write the rows and give a grounded day "
-             "total with leucine compliance. Load food-tracker first."),
+            evening_prompt,
         ),
         _spec(
             "OtenyFlatBellyTalent weekly dashboard",

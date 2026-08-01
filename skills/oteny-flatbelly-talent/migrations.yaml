@@ -50,3 +50,16 @@ migrations:
       re-creates each from the fresh spec. Cron jobs live in ~/.hermes/cron/jobs.json + the
       in-process scheduler, not food.db, so this is a checklist (agent judgement), not sql.
     ref: food-tracker/references/migrations.md
+
+  - id: 0004_cron_daily_reminder_prompts
+    kind: checklist
+    summary: >-
+      Re-register the morning + evening reminder crons so their prompts invoke
+      food-tracker's "Daily reminder role" (preflight → fresh DB read → grounded
+      summary → ask only open gaps). The prior morning prompt said "do NOT pre-fill",
+      which taught the model to ignore already-logged weight/sleep/meals and re-ask
+      for them; sleep must map from daily_metrics.sleep_consistency_score. Weekly
+      dashboard prompt is unchanged — only delete+recreate the two daily jobs. Cron
+      jobs live in ~/.hermes/cron/jobs.json + the in-process scheduler, not food.db,
+      so this is a checklist (agent judgement), not sql.
+    ref: food-tracker/references/migrations.md

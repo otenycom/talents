@@ -1,7 +1,7 @@
 ---
 name: food-tracker
 description: "Log meals, weight, macros, sleep, workouts, waist."
-version: 1.2.0
+version: 1.2.1
 author: Oteny
 license: MIT
 metadata:
@@ -184,6 +184,11 @@ their day stands** (run preflight, read today's rows fresh — hard rule ①), t
 only for what's still missing. The same applies when the owner replies to a reminder
 or messages you in the morning/evening.
 
+**Cron prompt contract:** the morning/evening job prompts must name this role and the
+order `preflight → fresh DB read → grounded summary → gap ask`. Never tell the model
+"do not pre-fill" — that wording made it ignore already-logged rows and re-ask for them
+(live footgun, 2026-08-01).
+
 1. **Read state first (grounding).** Run `preflight.py` (triage step 1) — it returns
    today's logged rows, the local clock and the targets. Then read today's totals
    (`references/reports.md` §1, optionally the full join §2) and, if a morning weight is
@@ -194,6 +199,11 @@ or messages you in the morning/evening.
    metric, ✅ for what's logged, `—` for what's still open. Frame by time-of-day (hard
    rule ③): before ~18:00 "so far today" + "X g protein to go"; after ~18:00 the **day
    total** + any deficit / leucine miss. Show only rows that apply.
+
+   **Sleep line:** map from `daily_metrics.sleep_consistency_score` (composite Apple
+   Watch 0–100 — see `references/datamodel.md`). A score of e.g. 70 means sleep **is**
+   logged (✅) — do **not** treat missing `sleep_hours` as "sleep open". Never report
+   sleep as `—` when `sleep_consistency_score` is non-null.
 
    > 📊 **Your day so far — Wed 26 Jun**
    > • ⚖️ Weight: 84.6 kg (morning) — 85.0 → 84.6, −0.4 kg/wk (7-day) ✅
@@ -207,13 +217,15 @@ or messages you in the morning/evening.
    yesterday's close + this morning's weight rather than printing a blank grid.
 3. **Then ask only for the gaps.** Name what's still missing and invite one message;
    you then write the exact INSERT/UPSERT statements (a `leucine_g` estimate per item)
-   and re-state the updated totals.
+   and re-state the updated totals. **Never re-ask** for weight / sleep / meals /
+   steps / workout / waist that the DB already has for today.
 
    > Still open today: **dinner · steps · sleep**. Send them in one message — I'll work
    > out the calories, macros and leucine and update your totals.
 
 Keep it to two short Telegram messages (the summary, then the ask), in the tenant's
-language, macros spelled out, ending with **one** concrete lever if a target is behind.
+language, macros spelled out (**no backticks / inline code** around numbers — they
+wreck mobile formatting), ending with **one** concrete lever if a target is behind.
 
 Everything beyond the hot paths above — per-intent checklists, exact write/report SQL,
 macro defaults, the jargon glossary and the full schema — is in `references/`. Pull the
