@@ -49,6 +49,11 @@ sh ~/.hermes/skills/talents/odoo-website/scripts/install_odoo.sh
 It prints `ODOO_INSTALLED <sha>` on success. Idempotent — if interrupted, re-run. (Python venv
 + Odoo Community 19 + embedded Postgres under `~/odoo-site`.)
 
+**Hard ban while READY: no:** never `python3 -m http.server`, never a hand-rolled static
+HTML folder, never `host_website` on a non-Odoo port. The only site engine is Odoo via
+`install_odoo.sh` → `setup_admin.py` → `preflight.py` → `READY: yes`. A static fake is a
+failed install, not a shortcut.
+
 ## Step 4 — Lock the admin login (mandatory, one script)
 
 Odoo must be serving, then set the admin to the owner's email (password stays in-box only):

@@ -488,9 +488,27 @@ def _drive_turn(driver, turn: dict) -> tuple[str, dict | None]:
             return "", {"kind": "hand_off", "ok": False, "spec": turn["hand_off"],
                         "reason": f"{type(e).__name__}: {e}"}
     if turn.get("user"):
-        if timeout is not None:
-            return driver.send(turn["user"], timeout), None
-        return driver.send(turn["user"]), None
+        # Needles from expect.reply → Telegram collect-until (long install/build turns
+        # must not settle on the opening "Setting up…" ack). Offline fakes ignore kwargs.
+        needles = None
+        reply_spec = (turn.get("expect") or {}).get("reply")
+        if isinstance(reply_spec, dict):
+            needles = []
+            for key in ("contains", "contains_any"):
+                val = reply_spec.get(key)
+                if isinstance(val, str) and val.strip():
+                    needles.append(val.strip().lower())
+                elif isinstance(val, (list, tuple)):
+                    needles.extend(str(v).strip().lower() for v in val if str(v).strip())
+            needles = needles or None
+        try:
+            if timeout is not None:
+                return driver.send(turn["user"], timeout, done_needles=needles), None
+            return driver.send(turn["user"], done_needles=needles), None
+        except TypeError:
+            if timeout is not None:
+                return driver.send(turn["user"], timeout), None
+            return driver.send(turn["user"]), None
     return "", None
 
 

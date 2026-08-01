@@ -4,45 +4,61 @@
 #
 # LIVE-ONLY + VM-ONLY: `requires: {substrate: vm}` SKIPS on mock + container clones.
 # Lab gate: test_vm_website_e2e_live.py + HH_VM_WEBSITE_SCENARIO=1 (pins this file).
+#
+# Telegram note: expect.reply needles drive collect-until — long turns wait for the
+# READY / host phrases, not the opening "Setting up…" ack (see hermeshost
+# collect_telegram_reply). Avoid bare substrings like "name" (matches "memory").
 bot: odoo-website
 live_only: true
 requires:
   substrate: vm
 
 turns:
-  # 1) First contact — bot must intake (name / address / email), NOT install yet.
+  # 1) First contact — bot must intake (site name / web address / admin email), NOT install.
   - user: "build me a funny website for a Moon Skydive Club"
     reply_timeout: 180
     expect:
       reply:
-        contains_any: ["name", "address", "email", "slug", "subdomain"]
+        contains_any:
+          - "site name"
+          - "web address"
+          - "admin email"
+          - "subdomain"
+          - "email address"
+          - "what should we call"
       trace:
         loads_skill: odoo-website
 
-  # 2) Answer intake → install (~3–5 min on Max) + setup_admin. Generous timeout.
+  # 2) Answer intake → install_odoo.sh + setup_admin (~3–5 min). Wait for READY phrasing.
   - user: >
       Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
       Web address: moondive. Admin email: pilot@example.com. Language: English.
     reply_timeout: 2400
     expect:
       reply:
-        contains_any: ["ready", "Moon", "moondive", "minutes", "set up", "installed", "engine"]
+        contains_any:
+          - "website engine is ready"
+          - "engine is ready"
+          - "ready — what"
+          - "ready - what"
+          - "what should the site"
 
-  # 3) Build homepage via locked JSON-2 path (site_rpc.py), not the browser builder.
+  # 3) Build homepage via locked JSON-2 path (site_rpc.py), not the browser builder /
+  #    not a static http.server fake.
   - user: >
       Set the homepage title to Moon Skydive Club and the body to:
       Jump from Starship. Land on the Moon. Bring snacks.
     reply_timeout: 900
     expect:
       reply:
-        contains_any: ["Moon", "Skydive", "homepage", "page", "done", "updated"]
+        contains_any: ["Moon Skydive", "homepage", "updated", "set the homepage", "done"]
 
   # 4) Publish — site is PUBLIC; bot must CONFIRM before hosting.
   - user: "put it online"
-    reply_timeout: 120
+    reply_timeout: 180
     expect:
       reply:
-        contains_any: ["public", "confirm", "go ahead", "shall I", "oteny.bot"]
+        contains_any: ["public", "confirm", "go ahead", "shall I", "publish"]
 
   # 5) Go-ahead → host_website(8069); report public URL.
   - user: "yes, go ahead"
@@ -55,7 +71,7 @@ turns:
 
   # 6) Status check.
   - user: "is it up?"
-    reply_timeout: 120
+    reply_timeout: 180
     expect:
       tool_calls:
         - tool: list_hosted_websites

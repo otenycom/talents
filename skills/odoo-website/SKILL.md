@@ -41,7 +41,7 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 ```
 
 - **READY: no** → [`references/first-run.md`](references/first-run.md) (intake → install →
-  `setup_admin.py`) **before** building.
+  `setup_admin.py`) **before** building. Never a static `http.server` fake.
 - **READY: yes**, build/change → BUILD checklist +
   [`references/build-and-host.md`](references/build-and-host.md).
 - **READY: yes**, "is my site up?" / "what's the link?" → `list_hosted_websites`.
