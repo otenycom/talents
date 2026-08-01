@@ -38,6 +38,9 @@ turns:
   - user: >
       Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
       Web address: moondive. Admin email: pilot@example.com. Language: English.
+      Please follow first-run.md exactly: write the profile, run install_odoo.sh
+      (not http.server), then setup_admin.py, then preflight until READY: yes.
+      When done, say exactly: Your website engine is ready — what should the site say?
     reply_timeout: 2400
     expect:
       reply:
