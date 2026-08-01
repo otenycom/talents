@@ -4,7 +4,7 @@
 site_name: ""          # what the site is called (e.g. "Bella's Cafe")
 site_purpose: ""       # one line: what it's for (e.g. "cafe landing page + menu + hours")
 site_slug: ""          # the public subdomain, <slug>.oteny.bot (3–30 chars, lowercase/digits/-)
-owner_email: ""        # where Odoo sends the admin login link (never a password in chat)
+owner_email: ""        # back-office login email after publish (password never in chat)
 language: "en"         # the owner's reply language
 timezone: ""           # IANA tz (e.g. "Europe/Amsterdam"); leave blank to ask
 name: ""               # the owner's name (for the shared identity memory)

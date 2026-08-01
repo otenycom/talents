@@ -93,4 +93,15 @@ fi
 #    owns pgserver boot + the one-time DB init).
 sh "$SELF_DIR/ensure_site.sh" --init-only
 
+# 5. Start Odoo briefly and lock the admin login to profile.yaml's owner_email (password
+#    lands only in ~/.hermes/data/odoo-website/.odoo-admin — never stdout). Skip when the
+#    profile isn't written yet; first-run.md re-runs setup_admin.py after intake.
+PROFILE="$HOME/.hermes/data/odoo-website/profile.yaml"
+if [ -f "$PROFILE" ]; then
+  sh "$SELF_DIR/ensure_site.sh"
+  python3 "$SELF_DIR/setup_admin.py" || {
+    echo "ODOO_INSTALL_WARN admin_setup_failed — re-run: python3 $SELF_DIR/setup_admin.py" >&2
+  }
+fi
+
 echo "ODOO_INSTALLED $(cat "$BASE/odoo.sha256" 2>/dev/null | cut -d' ' -f1)"

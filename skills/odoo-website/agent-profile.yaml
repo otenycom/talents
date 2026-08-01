@@ -15,9 +15,9 @@ long_md: |
   configure, no code to write. You describe; it builds and publishes.
 
   Under the hood it installs Odoo Community — the same open-source engine thousands of real
-  businesses run — right inside your private box, and drives its drag-and-drop website builder
-  for you. That means a genuine site with real pages, a blog, a shop with a cart, or a booking
-  form — not a throwaway template. Everything lives in your box; nothing is shared with anyone.
+  businesses run — right inside your private box, and builds real pages for you (you can also
+  open the website editor yourself after publish). That means a genuine site with pages, a
+  shop with a cart, or a booking form — not a throwaway template. Everything stays in your box.
 
   When it's ready, WebsiteBot exposes it at https://<your-name>.oteny.bot over secure HTTPS,
   with a valid certificate and nothing exposed to the open internet — the connection is dialed
@@ -27,11 +27,13 @@ long_md: |
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time. Runs on the Max plan — your own dedicated server, with
   room for a real website engine alongside your agent.
-version: 1.0.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.3   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
-                 # 1.0.0: first release — install Odoo CE user-space (venv + pinned nightly +
-                 # pip-embedded pgserver, no root), build the site via Odoo's website builder,
-                 # host it at <slug>.oteny.bot via host_website, keep it alive.
+                 # 1.0.3: site_rpc.py on Odoo External JSON-2 (/json/2/ + bearer api_key);
+                 # setup_admin mints the key; XML-RPC retired for the locked build path.
+                 # 1.0.2: honest ~3–5 min install copy; setup_admin + site_rpc locked path;
+                 # owner /web/login handoff (password never in chat).
+                 # 1.0.0: first release — Odoo CE user-space + host_website.
 
 # The skills delivered together.
 skills:
@@ -73,10 +75,11 @@ routing:
     On the FIRST message from a new owner (no ~/.hermes/data/odoo-website/profile.yaml yet), or
     when asked "build me a website" / "put my site online" / "what can you do?", load the
     odoo-website skill (skill_view name='odoo-website') and follow its checklists step by step:
-    the one-time INSTALL drill (references/first-run.md) creates the Odoo install; then BUILD
-    the site via Odoo's website builder and HOST it with host_website; then ongoing CARE
-    (content edits, health). Never improvise shell — run the shipped scripts. The site is
-    PUBLIC: confirm with the owner before the first publish, and always give back the URL.
+    INSTALL (first-run.md — usually a few minutes, then setup_admin.py); BUILD only via
+    site_rpc.py (Odoo JSON-2 /json/2/ — not the browser builder, not XML-RPC); HOST with
+    host_website; then CARE + owner /web/login handoff (password never in chat). Never
+    improvise shell or odoo-shell password resets. The site is PUBLIC: confirm before first
+    publish; always give back the URL.
     Reply in the owner's language; keep replies compact and Telegram-friendly.
   signature: "odoo-website"
 

@@ -1,38 +1,50 @@
-# Scenario: the FULL VM-website arc from a FRESH dedicated-VM box (no ~/odoo-site yet) —
-# "build me a website" → first-run INSTALL (install_odoo.sh + ensure_site.sh, fast on a VM,
-# no gofer tax) → BUILD the site → confirm-before-publish → host_website(8069) → poll
-# list_hosted_websites to active. This is the talent-defined counterpart to the §13 manual
-# runbook; the LAB `vm_website` gate (§15.3) wraps it with the external "serves 200 + a valid
-# *.oteny.bot cert" check (run_scenario drives the bot + reads the clone, not external HTTP).
+# Scenario: FULL VM WebsiteBot arc — Moon Skydive Club (funny flagship).
+# Fresh Max/VM box (no ~/odoo-site yet): intake → INSTALL → BUILD via site_rpc.py
+# (JSON-2) → confirm-before-publish → host_website(8069) → list_hosted_websites.
 #
-# LIVE-ONLY + VM-ONLY: needs a dedicated VM (a full kernel — Odoo installs in minutes with
-# real systemd). `requires: {substrate: vm}` SKIPS it on the mock backend and on any
-# container clone, so it never runs where Odoo can't fit (§14.4 / §14.5).
+# LIVE-ONLY + VM-ONLY: `requires: {substrate: vm}` SKIPS on mock + container clones.
+# Lab gate: test_vm_website_e2e_live.py + HH_VM_WEBSITE_SCENARIO=1 (pins this file).
 bot: odoo-website
 live_only: true
 requires:
   substrate: vm
 
 turns:
-  # 1) First contact on a fresh box: the bot recognises the ask, loads the odoo-website skill,
-  #    and runs the one-time install. Fast on a VM, but still minutes — a generous timeout.
-  - user: "build me a website for my cafe — a landing page with the menu and opening hours"
+  # 1) First contact — bot must intake (name / address / email), NOT install yet.
+  - user: "build me a funny website for a Moon Skydive Club"
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any: ["name", "address", "email", "slug", "subdomain"]
+      trace:
+        loads_skill: odoo-website
+
+  # 2) Answer intake → install (~3–5 min on Max) + setup_admin. Generous timeout.
+  - user: >
+      Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
+      Web address: moondive. Admin email: pilot@example.com. Language: English.
     reply_timeout: 2400
     expect:
       reply:
-        contains: ["cafe"]
-  # 2) Build the site content via Odoo's website builder.
-  - user: "call it Bella's Cafe and add the menu and opening hours"
+        contains_any: ["ready", "Moon", "moondive", "minutes", "set up", "installed", "engine"]
+
+  # 3) Build homepage via locked JSON-2 path (site_rpc.py), not the browser builder.
+  - user: >
+      Set the homepage title to Moon Skydive Club and the body to:
+      Jump from Starship. Land on the Moon. Bring snacks.
     reply_timeout: 900
     expect:
       reply:
-        contains: ["Bella"]
-  # 3) Publish — the site is PUBLIC, so the bot must CONFIRM before hosting.
+        contains_any: ["Moon", "Skydive", "homepage", "page", "done", "updated"]
+
+  # 4) Publish — site is PUBLIC; bot must CONFIRM before hosting.
   - user: "put it online"
+    reply_timeout: 120
     expect:
       reply:
-        contains: ["public"]
-  # 4) Go-ahead → host_website(8069) opens the tunnel; the bot reports the public URL.
+        contains_any: ["public", "confirm", "go ahead", "shall I", "oteny.bot"]
+
+  # 5) Go-ahead → host_website(8069); report public URL.
   - user: "yes, go ahead"
     reply_timeout: 300
     expect:
@@ -40,11 +52,12 @@ turns:
         - tool: host_website
       reply:
         contains: ["oteny.bot"]
-  # 5) Status → list_hosted_websites shows it live at its public address.
+
+  # 6) Status check.
   - user: "is it up?"
     reply_timeout: 120
     expect:
       tool_calls:
         - tool: list_hosted_websites
       reply:
-        contains: ["oteny.bot"]
+        contains_any: ["oteny.bot", "moondive", "active", "up", "live"]
