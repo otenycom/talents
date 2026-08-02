@@ -82,7 +82,8 @@ turns:
           - "SITE_MODULE_ERR"
           - "homepage_id"
 
-  # 4) Publish ask.
+  # 4) Publish ask — bot should confirm, but may race ahead and call host_website
+  #    (hh00390: "Tunnel is provisioning…" before the go-ahead turn). Accept either.
   - user: "put it online"
     reply_timeout: 300
     expect:
@@ -98,6 +99,8 @@ turns:
           - "hosting"
           - "Live"
           - "active"
+          - "provisioning"
+          - "tunnel"
         not_contains: ["8080", "http.server", "drop.oteny.bot"]
 
   # 5) Go-ahead → host 8069.
