@@ -1,0 +1,22 @@
+# Copy check: wanting a module must name the Max upgrade command.
+# On a Max E2E box the bot may say they're already on Max — still require the
+# command string when explaining the requirement, OR accept "already on Max".
+# Prefer running this on lite/power when available; on Max, "already" is OK.
+bot: odoo-website
+live_only: true
+requires:
+  substrate: vm
+
+turns:
+  - user: >
+      Quick question before we build anything: I want a custom Odoo module for my
+      website (Python + SCSS). What plan do I need, and what exact Telegram command
+      upgrades me if I'm not on it yet?
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any:
+          - "/oteny_subscribe upgrade max"
+          - "already on Max"
+          - "you're on Max"
+          - "you are on Max"

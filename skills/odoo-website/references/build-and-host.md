@@ -1,113 +1,114 @@
 # Building the site + hosting it (WebsiteBot)
 
-Loaded after INSTALL is done (`preflight.py` → `READY: yes`). This is the BUILD → HOST → CARE
-detail behind the SKILL body's checklists.
+Loaded after INSTALL is done (`preflight.py` → `READY: yes`), or for Online/remote after
+credentials land. This is the BUILD → HOST → CARE detail behind the SKILL body.
 
-## Locked build path (do not improvise)
+## Pick the locked path (do not debate)
 
-**One path only: Odoo External JSON-2 via the shipped scripts** (`POST /json/2/<model>/<method>`
-with a bearer API key). That is how you create and edit pages. Do **not** use XML-RPC /
-`/jsonrpc` (deprecated in Odoo 19).
+Read `build_backend` + `odoo_locus` from `~/.hermes/data/odoo-website/profile.yaml`.
+
+| `build_backend` | When | Edit with |
+| --- | --- | --- |
+| **`module`** (default on local Max) | Local Odoo on this Max VM | `site_module.py` (files → `-u`) |
+| **`json2`** | Odoo Online / remote URL, or local opt-in | `site_rpc.py` (External JSON-2) |
+
+- **Online/remote:** custom module is **impossible** — always `json2`.
+- **Not on Max but wants module:** stop and send `/oteny_subscribe upgrade max`.
+- Never invent a third stack. Never `python -m http.server` / `oteny-drop`.
 
 | Do | Don't |
 | --- | --- |
-| `ensure_site.sh` then `site_rpc.py …` | Drive the drag-and-drop builder in a browser |
-| `setup_admin.py` for any admin/password / API-key change | `odoo shell`, SQL, or "reset via the database" |
-| Small HTML content through `set-homepage` | Install custom modules / invent a new stack |
-| Confirm copy with the owner before publish | Debate "API vs builder vs custom module" in chat |
+| Follow `build_backend` from the profile | Debate module vs RPC in chat |
+| `ensure_site.sh` before local edits | Browser drag-and-drop as the primary editor |
+| `setup_admin.py` for admin/password / API-key | `odoo shell` / SQL password resets |
+| Confirm before first publish | Fall back to drop.oteny.bot |
 
-The website builder UI exists for the **owner** in the back office after handoff — not as
-your primary edit tool. You build for them over JSON-2.
+## Admin credentials (bot-only file, local)
 
-## Admin credentials (bot-only file)
+After local INSTALL, `setup_admin.py` has already set admin email + password + JSON-2
+`api_key` in `~/.hermes/data/odoo-website/.odoo-admin` (mode 0600). **Never post secrets in
+chat.** `site_rpc.py` loads `api_key` itself.
 
-After INSTALL, `setup_admin.py` has already:
+## BUILD — module path (default on Max/local)
 
-1. Set the admin **login/email** to `owner_email` from `profile.yaml`.
-2. Generated a strong **password** (owner `/web/login`) and a persistent **API key**
-   (`rpc` scope for JSON-2), stored **only** at
-   `~/.hermes/data/odoo-website/.odoo-admin` (mode 0600:
-   `login=` / `password=` / `api_key=`).
-
-**Never post those secrets in chat.** `site_rpc.py` loads `api_key` itself. If auth fails,
-re-run `setup_admin.py` — do not improvise a shell reset.
-
-## Build the site
-
-1. Make sure Odoo is up:
+1. Ensure Odoo is up:
    ```
    sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
    ```
-2. Sanity-check RPC:
+2. Scaffold once (idempotent; creates git repo):
    ```
-   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_rpc.py ping
+   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_module.py init \
+     --slug <slug> --name "<site_name>"
    ```
-3. Set homepage content (example):
+3. Set homepage (writes QWeb XML + optional SCSS lives under
+   `~/odoo-site/addons/oteny_site_<slug>/`, then `-u`):
    ```
-   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_rpc.py set-homepage \
+   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_module.py set-homepage \
      --title "Moon Skydive Club" \
      --body-html '<p>Jump from Starship. Land on the Moon. Bring snacks.</p>'
    ```
-4. Add more pages later the same way (extend `site_rpc.py` or call `/json/2/` through
-   `execute_code` with the same `.odoo-admin` `api_key` — still no browser builder).
-5. Record what you built in `~/.hermes/data/odoo-website/memory.md`.
+4. Python controllers/models and `static/src/scss/site.scss` are allowed — edit files in the
+   module, then:
+   ```
+   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_module.py upgrade
+   ```
+5. **Git:** bot-owned by default. Ask once (and again later): want this repo customer-facing?
+   If yes → remote URL via Oteny credential intake (never Telegram) →
+   `site_module.py git-remote --url <url>`.
+6. Record what you built in `~/.hermes/data/odoo-website/memory.md`.
 
-Work in small steps. After each meaningful change, tell the owner what changed.
+**UI note:** the Website Builder can edit pages, but **module upgrades can overwrite** those
+edits. Prefer chat/module as source of truth in module mode.
 
-Shop (`website_sale`) or booking (`website_appointment`): only if the owner asked — install
-via RPC (`ir.module.module` button_immediate_install), not by improvising Apps UI clicks.
+## BUILD — JSON-2 path (Online / opt-in local)
 
-## Host it (make it public)
+1. Local: `ensure_site.sh` then `site_rpc.py ping`. Online/remote: use their base URL + API
+   key from secure intake (extend `site_rpc` / env as needed — still External JSON-2, never
+   XML-RPC).
+2. Homepage:
+   ```
+   python3 ~/.hermes/skills/talents/odoo-website/scripts/site_rpc.py set-homepage \
+     --title "…" --body-html "…"
+   ```
+3. Builder UI is fine for the owner after handoff in JSON-2 mode.
 
-1. **Confirm** with the owner: "Shall I put it online at `https://<slug>.oteny.bot`?" Wait for yes.
-2. Host with the built-in tool, passing the keep-alive so the platform can auto-restart Odoo:
+Shop (`website_sale`) / booking (`website_appointment`): only if asked — install via RPC
+(`ir.module.module` button_immediate_install) on local, or Apps on Online.
+
+## Host it (local Max — make it public)
+
+1. **Confirm:** "Shall I put it online at `https://<slug>.oteny.bot`?" Wait for yes.
+2. Host:
    ```
    host_website(local_port=8069, site_slug="<slug>",
                 ensure_cmd="sh /home/hermes/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh")
    ```
 3. Poll `list_hosted_websites` until `status: active` + `health_state: ok` (~1 min).
-4. Point Odoo at the public URL:
+4. Base URL:
    ```
    python3 ~/.hermes/skills/talents/odoo-website/scripts/site_rpc.py set-base-url \
      --url https://<slug>.oteny.bot
    ```
-5. **Give the owner the public `url`**, then run the **owner handoff** below.
+5. Give the public URL, then owner handoff below.
 
-## Owner handoff — back-office login (after first host)
+## Owner handoff — back-office login (after first host, local)
 
-The owner may want to open the website editor themselves. Chat never carries a password
-([credential-intake](https://oteny.com) rule). Do this, in order:
+1. Facts (no secrets): public URL, `/web/login`, login **email** = `owner_email`.
+2. Password via private credential form / connect link — never chat. Apply with
+   `setup_admin.py --from-env` / `--password-file`.
+3. If module mode: remind that Website Builder edits may be overwritten when the bot
+   upgrades the site module.
 
-1. **Tell them the facts (no secrets):**
-   - Public site: `https://<slug>.oteny.bot`
-   - Back office login page: `https://<slug>.oteny.bot/web/login`
-   - **Login email:** the `owner_email` they gave at setup (already configured)
-2. **They choose a password (secure, not Telegram):**
-   - Ask: "Want your own password for the website editor? Reply **set my website password**
-     and paste it through Oteny's private credential form / connect link — never in this chat."
-   - When a password arrives out-of-band as env `ODOO_WEBSITE_OWNER_PASSWORD` or a 0600 file,
-     apply it:
-     ```
-     python3 ~/.hermes/skills/talents/odoo-website/scripts/setup_admin.py --from-env ODOO_WEBSITE_OWNER_PASSWORD
-     # or:  …/setup_admin.py --password-file ~/.hermes/data/odoo-website/.owner-password-pending
-     ```
-     Then delete the pending file / clear the env. Confirm: "Your login email is … — open
-     `/web/login` and use the password you just set."
-3. **If they don't set a password:** that's fine — you keep editing for them via `site_rpc.py`.
-   Do **not** email "Reset Password" unless mail is actually configured (it usually isn't on
-   this embedded Odoo). Do **not** paste the generated admin password into Telegram.
+## Care loop
 
-## Care loop (ongoing)
-
-- **Content edits / new pages** → `ensure_site.sh`, then `site_rpc.py` (or the same RPC
-  pattern). Same public URL — no re-host.
-- **Health** → `list_hosted_websites`; on `down`, run `ensure_site.sh`, re-check.
-- **SEO basics:** clear titles, `web.base.url` set (above), sensible menu. Odoo generates a sitemap.
-- **Take it down** → `unhost_website(site_slug="<slug>")`. The install stays; re-host anytime.
+- **Module edits** → edit files → `site_module.py upgrade` (or `set-homepage`).
+- **JSON-2 edits** → `site_rpc.py`.
+- **Down?** → `list_hosted_websites` + `ensure_site.sh`.
+- **Take down** → `unhost_website(site_slug="<slug>")`.
 
 ## Notes / limits (honest)
 
-- First install on Max is usually **~3–5 minutes**, not half an hour. Later starts are seconds.
-- The site is only live while the bot is **active** (archived bot → hosted site sleeps).
-- The embedded database has no `pg_trgm` — fuzzy back-office search is weaker; the public site is fine.
-- Requires the **Max plan** (dedicated VM). A healthy **cx23** (~4 GiB) is enough for light sites.
+- First local install on Max is usually **~3–5 minutes**. Later starts are seconds.
+- Module backend requires **Max** (`/oteny_subscribe upgrade max` if they are not).
+- Online/remote: any plan, JSON-2 only — no custom module.
+- The site is only live while the bot is **active**.

@@ -8,3 +8,8 @@ owner_email: ""        # back-office login email after publish (password never i
 language: "en"         # the owner's reply language
 timezone: ""           # IANA tz (e.g. "Europe/Amsterdam"); leave blank to ask
 name: ""               # the owner's name (for the shared identity memory)
+# Build backend (hard switch; do not debate in chat)
+odoo_locus: "local"    # local | online | remote — Online/remote ⇒ JSON-2 only (no module)
+build_backend: "module"  # module (Max/local default) | json2 (Online / opt-in)
+git_customer_facing: false  # after prompt; remote origin via credential intake, never chat
+git_remote_url: ""     # set when customer-facing git is enabled

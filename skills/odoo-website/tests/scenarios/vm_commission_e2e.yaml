@@ -1,6 +1,5 @@
 # Scenario: FULL VM WebsiteBot arc — Moon Skydive Club (funny flagship).
-# Fresh Max/VM box (no ~/odoo-site yet): intake → INSTALL → BUILD via site_rpc.py
-# (JSON-2) → confirm-before-publish → host_website(8069) → list_hosted_websites.
+# Fresh Max/VM: intake → INSTALL → MODULE build (site_module.py) → host 8069 → status.
 #
 # LIVE-ONLY + VM-ONLY: `requires: {substrate: vm}` SKIPS on mock + container clones.
 # Lab gate: test_vm_website_e2e_live.py + HH_VM_WEBSITE_SCENARIO=1 (pins this file).
@@ -14,10 +13,7 @@ requires:
   substrate: vm
 
 turns:
-  # 1) First contact — bot must intake (site name / web address / admin email), NOT build/host.
-  #    Live turns often take ~3–4 min (skill load + first model round); 180s timed out on
-  #    hh00383 while the gateway was still generating the 858-char intake reply.
-  #    hh00384 freelanced a drop.oteny.bot fake on a vague "build me…" — be explicit.
+  # 1) First contact — intake only (incl. locus/backend when asked).
   - user: >
       I want a funny website for a Moon Skydive Club. Do NOT build or publish anything yet.
       Do NOT use oteny-drop, drop.oteny.bot, http.server, or any static HTML.
@@ -46,15 +42,16 @@ turns:
       trace:
         loads_skill: odoo-website
 
-  # 2) Answer intake → install_odoo.sh + setup_admin (~3–5 min). Wait for the exact
-  #    first-run READY phrase — NOT a vague "engine is ready" (that matched a static
-  #    http.server fake on hh00379).
+  # 2) Answers + local module backend + install → exact READY phrase + site_module init.
   - user: >
       Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
       Web address: moondive. Admin email: pilot@example.com. Language: English.
-      Please follow first-run.md exactly: write the profile, run install_odoo.sh
-      (not http.server), then setup_admin.py, then preflight until READY: yes.
-      When done, say exactly: Your website engine is ready — what should the site say?
+      Host Odoo on this Max bot (local). Use the default custom MODULE build backend
+      (build_backend: module, odoo_locus: local) — not JSON-2, not http.server.
+      Follow first-run.md: write the profile (include odoo_locus/build_backend), run
+      install_odoo.sh, setup_admin.py, preflight until READY: yes, then
+      site_module.py init --slug moondive. When done, say exactly:
+      Your website engine is ready — what should the site say?
     reply_timeout: 2400
     expect:
       reply:
@@ -64,19 +61,19 @@ turns:
         not_contains:
           - "http.server"
           - "drop.oteny.bot"
+          - "/oteny_subscribe upgrade max"
 
-  # 3) Build homepage via locked JSON-2 path (site_rpc.py), not the browser builder /
-  #    not a static http.server fake.
+  # 3) Homepage via site_module.py (not site_rpc).
   - user: >
-      Set the homepage title to Moon Skydive Club and the body to:
-      Jump from Starship. Land on the Moon. Bring snacks.
+      Set the homepage with site_module.py set-homepage (not site_rpc). Title:
+      Moon Skydive Club. Body HTML: <p>Jump from Starship. Land on the Moon. Bring snacks.</p>
     reply_timeout: 900
     expect:
       reply:
-        contains_any: ["Moon Skydive", "homepage", "updated", "set the homepage", "done"]
+        contains_any: ["Moon Skydive", "homepage", "updated", "set the homepage", "done", "module"]
+        not_contains: ["drop.oteny.bot", "http.server"]
 
-  # 4) Publish ask — confirm OR host immediately (hh00383 hosted on this turn; both OK
-  #    as long as the reply is about publishing the real Odoo site, not a static fake).
+  # 4) Publish ask.
   - user: "put it online"
     reply_timeout: 300
     expect:
@@ -94,8 +91,7 @@ turns:
           - "active"
         not_contains: ["8080", "http.server", "drop.oteny.bot"]
 
-  # 5) Go-ahead → host_website(8069) only — never port 8080 / http.server.
-  #    Idempotent: if turn 4 already hosted, "Already done" + URL is a pass.
+  # 5) Go-ahead → host 8069.
   - user: "yes, go ahead — host the Odoo site on port 8069"
     reply_timeout: 600
     expect:
@@ -103,7 +99,7 @@ turns:
         contains_any: ["oteny.bot", "moondive", "8069", "provisioning", "hosting", "Already done", "active"]
         not_contains: ["8080", "http.server", "drop.oteny.bot"]
 
-  # 6) Status check — after the gate's background drain, the public URL should be live.
+  # 6) Status.
   - user: "is it up?"
     reply_timeout: 300
     expect:

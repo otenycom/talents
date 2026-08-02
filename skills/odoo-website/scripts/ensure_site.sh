@@ -5,17 +5,23 @@
 #
 #   ensure_site.sh              -> ensure Postgres up, DB inited, Odoo serving 0.0.0.0:8069
 #   ensure_site.sh --init-only  -> ensure Postgres up + DB inited, then exit (used by install)
+#
+# Always passes --addons-path so site modules under ~/odoo-site/addons load.
 set -eu
 
 BASE=$HOME/odoo-site
 VENV=$BASE/venv
 SRC=$BASE/odoo
+ADDONS=$BASE/addons
 PGDATA=$BASE/pgdata
 PORT=8069
 export PYTHONPATH=$SRC
+mkdir -p "$ADDONS"
+# Community addons + per-site custom modules (oteny_site_<slug>).
+ADDONS_PATH="$SRC/addons,$ADDONS"
 # Odoo refuses to run as a Postgres SUPERUSER ("security risk, aborting"), so the site runs
 # as a dedicated non-superuser `odoo` role (CREATEDB, to create the `website` DB on init).
-DB_ARGS="--db_host=$PGDATA --db_port=5432 --db_user=odoo"
+DB_ARGS="--db_host=$PGDATA --db_port=5432 --db_user=odoo --addons-path=$ADDONS_PATH"
 
 # 1. embedded Postgres — start persistent (cleanup_mode=None keeps it running after this
 #    Python process exits, so the separate Odoo process can connect over the unix socket),

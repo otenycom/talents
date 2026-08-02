@@ -1,0 +1,25 @@
+# Online locus → custom module impossible (JSON-2 only). Live DM; no install required.
+bot: odoo-website
+live_only: true
+requires:
+  substrate: vm
+
+turns:
+  - user: >
+      I want to use my Odoo Online database for the website — not an install on this bot.
+      Can you build it as a custom Odoo module there?
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any:
+          - "impossible"
+          - "not possible"
+          - "can't use a custom module"
+          - "cannot use a custom module"
+          - "no custom module"
+          - "JSON-2"
+          - "json2"
+          - "API"
+        not_contains:
+          - "site_module.py init"
+          - "install_odoo.sh"
