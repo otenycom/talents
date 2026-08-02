@@ -14,10 +14,15 @@ requires:
   substrate: vm
 
 turns:
-  # 1) First contact — bot must intake (site name / web address / admin email), NOT install.
+  # 1) First contact — bot must intake (site name / web address / admin email), NOT build/host.
   #    Live turns often take ~3–4 min (skill load + first model round); 180s timed out on
   #    hh00383 while the gateway was still generating the 858-char intake reply.
-  - user: "build me a funny website for a Moon Skydive Club"
+  #    hh00384 freelanced a drop.oteny.bot fake on a vague "build me…" — be explicit.
+  - user: >
+      I want a funny website for a Moon Skydive Club. Do NOT build or publish anything yet.
+      Do NOT use oteny-drop, drop.oteny.bot, http.server, or any static HTML.
+      Follow first-run.md Step 1 only: ask me for the site name, web address slug, admin email,
+      and language — then wait for my answers.
     reply_timeout: 360
     expect:
       reply:
@@ -30,9 +35,14 @@ turns:
           - "what should we call"
           - "what should we call it"
           - "call the site"
+          - "slug"
+          - "language"
         not_contains:
           - "used up your Oteny balance"
           - "oteny_topup"
+          - "drop.oteny.bot"
+          - "http.server"
+          - "is live"
       trace:
         loads_skill: odoo-website
 

@@ -14,6 +14,9 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 
 ## Step 1 — Welcome + intake
 
+**Stop here until the owner answers.** Your first reply is intake only — no install, no
+`site_rpc`, no `host_website`, no HTML, no browser, no `oteny-drop` / `drop.oteny.bot`.
+
 Greet the owner, say what you do in one line ("I build a real website inside your box and put
 it online at your own address"), then ask for — in one or two short messages:
 

@@ -27,8 +27,10 @@ long_md: |
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time. Runs on the Max plan — your own dedicated server, with
   room for a real website engine alongside your agent.
-version: 1.0.9   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.10  # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.10: first reply = intake questions only (never drop.oteny.bot / static).
+                 # 1.0.9: Moon scenario timeouts + publish expects match live host path.
                  # 1.0.8: Moon E2E requires exact "website engine is ready"; host on 8069 only.
                  # 1.0.7: assert_reply honors contains_any; Moon host turns tolerate
                  # provisioning while the gate drains CF tunnels.
@@ -82,15 +84,17 @@ routing:
     yourself by your own bot name; the Talent is a capability you're using, not your identity.
     On the FIRST message from a new owner (no ~/.hermes/data/odoo-website/profile.yaml yet), or
     when asked "build me a website" / "put my site online" / "what can you do?", load the
-    odoo-website skill (skill_view name='odoo-website') and follow its checklists step by step:
-    INSTALL (first-run.md — usually a few minutes, then setup_admin.py); BUILD only via
-    site_rpc.py (Odoo JSON-2 /json/2/ — not the browser builder, not XML-RPC); HOST with
-    host_website on the Odoo port (8069) only after READY: yes. Never python -m http.server,
-    a static HTML fake, oteny-drop / drop.oteny.bot, or reusing an existing *.oteny.bot
-    while READY: no — always install_odoo.sh first. If host_website returns slug_taken,
-    choose another slug; never fall back to drop. Never improvise shell or odoo-shell
-    password resets. The site is PUBLIC: confirm before first publish; always give the URL.
-    Reply in the owner's language; keep replies compact and Telegram-friendly.
+    odoo-website skill (skill_view name='odoo-website') and follow first-run.md. Your FIRST
+    reply must ONLY run intake (ask site name, web-address slug, admin email, language) —
+    do not build, publish, host, write HTML, open a browser, or call any upload/share tool.
+    Forbidden substitutes forever: oteny-drop, drop.oteny.bot, python -m http.server, static
+    HTML folders, reusing an existing *.oteny.bot while READY: no. After intake answers:
+    INSTALL (install_odoo.sh + setup_admin.py); BUILD only via site_rpc.py (Odoo JSON-2
+    /json/2/ — not the browser builder, not XML-RPC); HOST with host_website on port 8069
+    only after READY: yes. If host_website returns slug_taken, choose another slug — never
+    fall back to drop. Never improvise shell or odoo-shell password resets. The site is
+    PUBLIC: confirm before first publish; always give the URL. Reply in the owner's
+    language; keep replies compact and Telegram-friendly.
   signature: "odoo-website"
 
 # Shared identity + this bot's domain memory.
