@@ -67,11 +67,20 @@ turns:
   - user: >
       Set the homepage with site_module.py set-homepage (not site_rpc). Title:
       Moon Skydive Club. Body HTML: <p>Jump from Starship. Land on the Moon. Bring snacks.</p>
+      On success say: Homepage updated — Moon Skydive Club.
     reply_timeout: 900
     expect:
       reply:
-        contains_any: ["Moon Skydive", "homepage", "updated", "set the homepage", "done", "module"]
-        not_contains: ["drop.oteny.bot", "http.server"]
+        contains_any:
+          - "Homepage updated"
+          - "Moon Skydive Club"
+          - "SITE_MODULE_OK"
+        not_contains:
+          - "drop.oteny.bot"
+          - "http.server"
+          - "Homepage set failed"
+          - "SITE_MODULE_ERR"
+          - "homepage_id"
 
   # 4) Publish ask.
   - user: "put it online"
