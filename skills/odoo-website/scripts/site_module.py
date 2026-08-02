@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 _SLUG_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$")
@@ -253,10 +254,43 @@ def _odoo_bin_env() -> dict:
 
 def _stop_odoo() -> None:
     # Best-effort: free port 8069 so -u can run --stop-after-init cleanly.
-    subprocess.run(
-        ["pkill", "-f", r"python -m odoo -d website"],
-        check=False, capture_output=True,
-    )
+    # Match both `python` and `python3` / venv paths (hh00386: loose pattern left a
+    # zombie bind and ensure_site thought the site was already up).
+    for pat in (
+        r"python[0-9.]* -m odoo -d website",
+        r"/odoo-site/venv/bin/python.*-m odoo",
+    ):
+        subprocess.run(["pkill", "-f", pat], check=False, capture_output=True)
+    time.sleep(1)
+
+
+def _odoo_serving(timeout: float = 3.0) -> bool:
+    import http.client
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", 8069, timeout=timeout)
+        conn.request("GET", "/web/login")
+        resp = conn.getresponse()
+        return resp.status < 500
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _ensure_serving(*, attempts: int = 45) -> bool:
+    ensure = Path(__file__).resolve().parent / "ensure_site.sh"
+    proc = subprocess.run(["sh", str(ensure)], check=False, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print(
+            f"SITE_MODULE_ERR ensure_site failed rc={proc.returncode} "
+            f"stderr={(proc.stderr or '')[-300:]!r}",
+            file=sys.stderr,
+        )
+        return False
+    for _ in range(attempts):
+        if _odoo_serving():
+            return True
+        time.sleep(1)
+    print("SITE_MODULE_ERR odoo not serving on 8069 after ensure_site", file=sys.stderr)
+    return False
 
 
 def _upgrade(slug: str) -> int:
@@ -285,11 +319,12 @@ def _upgrade(slug: str) -> int:
     if proc.returncode != 0:
         print(f"SITE_MODULE_ERR odoo {action} {mod} failed rc={proc.returncode}",
               file=sys.stderr)
+        # Still try to bring the previous site back — never leave 8069 dark after -u.
+        _ensure_serving()
         return proc.returncode
     marker.write_text("ok\n", encoding="utf-8")
-    # Bring the site back up
-    ensure = Path(__file__).resolve().parent / "ensure_site.sh"
-    subprocess.run(["sh", str(ensure)], check=False)
+    if not _ensure_serving():
+        return 1
     print(f"SITE_MODULE_OK upgrade {action} {mod}")
     return 0
 

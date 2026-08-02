@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.0.11
+version: 1.0.12
 author: Oteny
 license: Apache-2.0
 metadata:
