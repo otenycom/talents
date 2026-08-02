@@ -26,8 +26,9 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.0.12  # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.13  # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.13: Odoo 19 homepage_url (not homepage_id); page at /oteny-home.
                  # 1.0.12: site_module upgrade must leave Odoo serving on 8069 (hh00386 502).
                  # 1.0.11: dual backend — module default (Max/local) vs JSON-2 Online;
                  # non-Max module asks → /oteny_subscribe upgrade max; bot-owned git.

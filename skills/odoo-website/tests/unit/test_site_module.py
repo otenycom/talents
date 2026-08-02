@@ -53,6 +53,10 @@ def test_init_scaffolds_git_and_files(mod, tmp_path):
     xml = (root / "data/website_homepage.xml").read_text(encoding="utf-8")
     assert "Moon Skydive Club" in xml
     assert "oteny_site_moondive.homepage" in xml
+    assert "/oteny-home" in xml
+    hooks = (root / "hooks.py").read_text(encoding="utf-8")
+    assert "homepage_url" in hooks
+    assert "homepage_id" not in hooks
 
 
 def test_set_homepage_rewrites_xml(mod, tmp_path, monkeypatch):

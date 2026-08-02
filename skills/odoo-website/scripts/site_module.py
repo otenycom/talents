@@ -95,6 +95,8 @@ def _write(path: Path, text: str) -> None:
 def _homepage_xml(mod: str, title: str, body_html: str) -> str:
     # Escape for embedding inside an XML arch attribute-less element body.
     # body_html is trusted owner content the bot already sanitized for publish.
+    # Page lives at /oteny-home (not /) so it never collides with website's default
+    # homepage record; post_init_hook points website.homepage_url at it (Odoo 19).
     t = html.escape(title)
     return f'''<?xml version="1.0" encoding="utf-8"?>
 <odoo>
@@ -119,7 +121,7 @@ def _homepage_xml(mod: str, title: str, body_html: str) -> str:
   </record>
   <record id="homepage_page" model="website.page">
     <field name="name">{t}</field>
-    <field name="url">/</field>
+    <field name="url">/oteny-home</field>
     <field name="view_id" ref="homepage_view"/>
     <field name="is_published" eval="True"/>
     <field name="website_indexed" eval="True"/>
@@ -153,15 +155,18 @@ def _manifest(mod: str, name: str) -> str:
 
 
 def _hooks_py(mod: str) -> str:
+    # Odoo 19 website: Char homepage_url (e.g. /oteny-home). homepage_id is gone
+    # (hh00387: -i failed; bot diagnosed "homepage_url instead of homepage_id").
     return f'''# -*- coding: utf-8 -*-
-"""Post-init: make this module's page the website homepage."""
+"""Post-init: make this module's page the website homepage (Odoo 19)."""
 
 
 def post_init_hook(env):
     page = env.ref("{mod}.homepage_page", raise_if_not_found=False)
     website = env.ref("website.default_website", raise_if_not_found=False)
     if page and website:
-        website.sudo().write({{"homepage_id": page.id}})
+        url = (page.url or "/oteny-home").rstrip("/") or "/oteny-home"
+        website.sudo().write({{"homepage_url": url}})
 '''
 
 
