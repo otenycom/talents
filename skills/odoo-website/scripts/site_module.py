@@ -197,7 +197,10 @@ def cmd_init(args: argparse.Namespace) -> int:
         return 0
     title = name
     body = f"<p>{html.escape(name)}</p>"
-    _write(root / "__init__.py", "from . import hooks\n")
+    # Odoo resolves post_init_hook on the addon package itself (not hooks submodule).
+    # `from . import hooks` loads the module but does NOT export the name — install then
+    # fails with "hook is not exported" (live: RiesDummy3Bot / moonskydive 2026-08-02).
+    _write(root / "__init__.py", "from .hooks import post_init_hook\n")
     _write(root / "hooks.py", _hooks_py(mod))
     _write(root / "__manifest__.py", _manifest(mod, name))
     _write(root / "data" / "website_homepage.xml", _homepage_xml(mod, title, body))

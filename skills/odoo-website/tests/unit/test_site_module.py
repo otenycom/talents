@@ -50,6 +50,12 @@ def test_init_scaffolds_git_and_files(mod, tmp_path):
     assert (root / "static/src/scss/site.scss").exists()
     assert (root / "hooks.py").exists()
     assert (root / ".git").is_dir()
+    # Odoo looks up post_init_hook on the addon package — must re-export from hooks.
+    init_py = (root / "__init__.py").read_text(encoding="utf-8")
+    assert "from .hooks import post_init_hook" in init_py
+    assert "from . import hooks" not in init_py
+    manifest = (root / "__manifest__.py").read_text(encoding="utf-8")
+    assert '"post_init_hook": "post_init_hook"' in manifest
     xml = (root / "data/website_homepage.xml").read_text(encoding="utf-8")
     assert "Moon Skydive Club" in xml
     assert "oteny_site_moondive.homepage" in xml
@@ -57,6 +63,20 @@ def test_init_scaffolds_git_and_files(mod, tmp_path):
     hooks = (root / "hooks.py").read_text(encoding="utf-8")
     assert "homepage_url" in hooks
     assert "homepage_id" not in hooks
+    # Prove the package namespace actually binds the hook (not just submodule import).
+    import sys
+    import types
+    pkg_name = "oteny_site_moondive_testpkg"
+    pkg = types.ModuleType(pkg_name)
+    pkg.__path__ = [str(root)]  # type: ignore[attr-defined]
+    sys.modules[pkg_name] = pkg
+    hooks_mod = types.ModuleType(f"{pkg_name}.hooks")
+    exec(compile(hooks, f"{pkg_name}.hooks", "exec"), hooks_mod.__dict__)
+    sys.modules[f"{pkg_name}.hooks"] = hooks_mod
+    exec(compile(init_py, f"{pkg_name}", "exec"), pkg.__dict__)
+    assert callable(pkg.post_init_hook)
+    del sys.modules[pkg_name]
+    del sys.modules[f"{pkg_name}.hooks"]
 
 
 def test_set_homepage_rewrites_xml(mod, tmp_path, monkeypatch):
