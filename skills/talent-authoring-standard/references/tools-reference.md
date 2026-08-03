@@ -1259,6 +1259,174 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
+### `attach_site_domains` — Attach a custom domain
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Attach a customer's own domain (vanity hostname) to an already-hosted site. Pass `site_slug` plus `domain` (example.com expands to example.com + www) or an explicit `hostnames` list. Returns CNAME instructions — the customer must point DNS at customers.oteny.bot (NEVER at <slug>.oteny.bot — that causes Cloudflare Error 1014). Preferred: Cloudflare DNS (free OK) with apex CNAME flattening. AWS Route53: use www on SaaS + apex redirect to www. SSL is automatic once DNS validates. Use list_site_domains to poll status.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "site_slug": {
+      "type": "string",
+      "description": "The hosted site subdomain (e.g. pioneer) already online."
+    },
+    "domain": {
+      "type": "string",
+      "description": "Apex domain to attach (example.com → example.com + www.example.com)."
+    },
+    "hostnames": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Explicit hostnames (e.g. [\"www.example.com\"] for AWS-only www)."
+    }
+  },
+  "required": [
+    "site_slug"
+  ]
+}
+```
+
+**Result** — {ok, site_slug, cname_target, domains[], skipped[]} — each domain row has hostname + ssl/dns status. ALWAYS tell the owner to CNAME at cname_target (customers.oteny.bot), never at <slug>.oteny.bot.
+
+**Errors / edges** — {error: missing site_slug/domain} · no active site · hostname taken · cap (4 custom hostnames per site).
+
+**Example**
+
+```json
+{
+  "site_slug": "my-shop",
+  "domain": "example.com"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "site_slug": "my-shop",
+  "cname_target": "customers.oteny.bot",
+  "domains": [
+    {
+      "hostname": "example.com",
+      "status": "pending_dns"
+    },
+    {
+      "hostname": "www.example.com",
+      "status": "pending_dns"
+    }
+  ],
+  "skipped": []
+}
+```
+
+**Authoring notes** — domain=example.com expands to apex + www. Preferred DNS: Cloudflare (free OK) with apex CNAME flattening. AWS Route53: attach www + apex Alias→S3/CloudFront 301→www. SSL is automatic once DNS validates — poll with list_site_domains.
+
+### `detach_site_domain` — Remove a custom domain
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Remove a custom domain from a hosted site. Pass the `hostname` (and optional `site_slug`). The public vanity URL stops working after detach completes.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string",
+      "description": "The vanity hostname to remove."
+    },
+    "site_slug": {
+      "type": "string",
+      "description": "Optional site slug filter."
+    }
+  },
+  "required": [
+    "hostname"
+  ]
+}
+```
+
+**Result** — {ok, hostname, status} — the vanity URL stops after detach completes.
+
+**Errors / edges** — Only the shared platform-error set. Owner-scoped.
+
+**Example**
+
+```json
+{
+  "hostname": "www.example.com",
+  "site_slug": "my-shop"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "hostname": "www.example.com",
+  "status": "reaping"
+}
+```
+
+### `list_site_domains` — List custom domains
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> List custom domains on your hosted sites (status, SSL, DNS CNAME target). Optional `site_slug` filter. Side-effect-free.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "site_slug": {
+      "type": "string",
+      "description": "Optional site slug filter."
+    }
+  },
+  "required": []
+}
+```
+
+**Result** — {domains: [{hostname, status, ssl_status, cname_target, …}]} — side-effect-free DNS/SSL status for vanity hostnames.
+
+**Errors / edges** — Only the shared platform-error set.
+
+**Example**
+
+```json
+{
+  "site_slug": "my-shop"
+}
+```
+
+→
+
+```json
+{
+  "domains": [
+    {
+      "hostname": "www.example.com",
+      "status": "active",
+      "ssl_status": "active",
+      "cname_target": "customers.oteny.bot"
+    }
+  ]
+}
+```
+
 ## Share a file as a link
 
 ### `publish_file` — Share a file as a link

@@ -743,6 +743,97 @@
       "notes": ""
     },
     {
+      "name": "attach_site_domains",
+      "requestable_name": "attach_site_domains",
+      "request_via": "tools.required",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free",
+      "description": "Attach a customer's own domain (vanity hostname) to an already-hosted site. Pass `site_slug` plus `domain` (example.com expands to example.com + www) or an explicit `hostnames` list. Returns CNAME instructions — the customer must point DNS at customers.oteny.bot (NEVER at <slug>.oteny.bot — that causes Cloudflare Error 1014). Preferred: Cloudflare DNS (free OK) with apex CNAME flattening. AWS Route53: use www on SaaS + apex redirect to www. SSL is automatic once DNS validates. Use list_site_domains to poll status.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_slug": {
+            "type": "string",
+            "description": "The hosted site subdomain (e.g. pioneer) already online."
+          },
+          "domain": {
+            "type": "string",
+            "description": "Apex domain to attach (example.com → example.com + www.example.com)."
+          },
+          "hostnames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Explicit hostnames (e.g. [\"www.example.com\"] for AWS-only www)."
+          }
+        },
+        "required": [
+          "site_slug"
+        ]
+      },
+      "result": "{ok, site_slug, cname_target, domains[], skipped[]} — each domain row has hostname + ssl/dns status. ALWAYS tell the owner to CNAME at cname_target (customers.oteny.bot), never at <slug>.oteny.bot.",
+      "errors": "{error: missing site_slug/domain} · no active site · hostname taken · cap (4 custom hostnames per site).",
+      "example_request": "{\n  \"site_slug\": \"my-shop\",\n  \"domain\": \"example.com\"\n}",
+      "example_result": "{\n  \"ok\": true,\n  \"site_slug\": \"my-shop\",\n  \"cname_target\": \"customers.oteny.bot\",\n  \"domains\": [\n    {\n      \"hostname\": \"example.com\",\n      \"status\": \"pending_dns\"\n    },\n    {\n      \"hostname\": \"www.example.com\",\n      \"status\": \"pending_dns\"\n    }\n  ],\n  \"skipped\": []\n}",
+      "notes": "domain=example.com expands to apex + www. Preferred DNS: Cloudflare (free OK) with apex CNAME flattening. AWS Route53: attach www + apex Alias→S3/CloudFront 301→www. SSL is automatic once DNS validates — poll with list_site_domains."
+    },
+    {
+      "name": "detach_site_domain",
+      "requestable_name": "detach_site_domain",
+      "request_via": "tools.required",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free",
+      "description": "Remove a custom domain from a hosted site. Pass the `hostname` (and optional `site_slug`). The public vanity URL stops working after detach completes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "The vanity hostname to remove."
+          },
+          "site_slug": {
+            "type": "string",
+            "description": "Optional site slug filter."
+          }
+        },
+        "required": [
+          "hostname"
+        ]
+      },
+      "result": "{ok, hostname, status} — the vanity URL stops after detach completes.",
+      "errors": "Only the shared platform-error set. Owner-scoped.",
+      "example_request": "{\n  \"hostname\": \"www.example.com\",\n  \"site_slug\": \"my-shop\"\n}",
+      "example_result": "{\n  \"ok\": true,\n  \"hostname\": \"www.example.com\",\n  \"status\": \"reaping\"\n}",
+      "notes": ""
+    },
+    {
+      "name": "list_site_domains",
+      "requestable_name": "list_site_domains",
+      "request_via": "tools.required",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free",
+      "description": "List custom domains on your hosted sites (status, SSL, DNS CNAME target). Optional `site_slug` filter. Side-effect-free.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_slug": {
+            "type": "string",
+            "description": "Optional site slug filter."
+          }
+        },
+        "required": []
+      },
+      "result": "{domains: [{hostname, status, ssl_status, cname_target, …}]} — side-effect-free DNS/SSL status for vanity hostnames.",
+      "errors": "Only the shared platform-error set.",
+      "example_request": "{\n  \"site_slug\": \"my-shop\"\n}",
+      "example_result": "{\n  \"domains\": [\n    {\n      \"hostname\": \"www.example.com\",\n      \"status\": \"active\",\n      \"ssl_status\": \"active\",\n      \"cname_target\": \"customers.oteny.bot\"\n    }\n  ]\n}",
+      "notes": ""
+    },
+    {
       "name": "publish_file",
       "requestable_name": "publish_file",
       "request_via": "tools.required",
