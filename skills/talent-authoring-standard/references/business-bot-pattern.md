@@ -351,11 +351,17 @@ system's identity are **yours, in your repo**; the platform provides only the ge
 
   For each portal connection, the platform binds **one** URL by tier — **prod → the
   Talent-declared `real_url`; any non-prod tier → the stub** — and exposes it as
-  `OTENY_CONN_<NAME>_BASE_URL` on the box; on a non-prod tier it also fences the browser off
-  the **union** of every declared `fence_hosts`. The platform *binds/fences whatever you named*
-  and hard-codes no third party's address, so it stays generic across every client's bot.
-  **The prod identity (`real_url` + `fence_hosts`) lives in your Talent** and is versioned with
-  it; the throwaway stub value does not (next bullet).
+  `OTENY_CONN_<NAME>_BASE_URL` on the box only (there is no separate `OTENY_PORTAL_BASE_URL`
+  alias). On a non-prod tier it also writes `OTENY_PORTAL_FENCE_HOSTS` — the **union** of every
+  declared `fence_hosts` — so the cloud browser cannot open those real hosts. That fence list is
+  not a connection bind; the URL the bot must navigate is always the named `OTENY_CONN_*_BASE_URL`.
+  Discuss (and webchat) append the **resolved** named URL into the channel prompt because a
+  toolset-locked bot cannot shell-expand `$OTENY_…` itself. The platform *binds/fences whatever
+  you named* and hard-codes no third party's address. **The prod identity (`real_url` +
+  `fence_hosts`) lives in your Talent** and is versioned with it; the throwaway stub value does
+  not (next bullet). Pass the stub at request time under the connection **name** (e.g.
+  `stub_endpoints.meldloket`), not a legacy `portal` key unless your Talent's connection is
+  literally named `portal`.
 
   **`$OTENY_CONN_*` is a tool-target convention, not a template language.** Writing
   `$OTENY_CONN_MELDLOKET_BASE_URL` in skill prose works where the bot **resolves it to make a
@@ -364,6 +370,12 @@ system's identity are **yours, in your repo**; the platform provides only the ge
   reply or escalation telling an operator to "check `$OTENY_CONN_MELDLOKET_BASE_URL`" ships the
   literal token to a person who cannot resolve it. In any text a human reads, instruct the bot to
   write the **resolved value**.
+
+  **Footgun — cloud browser "private/internal address" on navigate.** Almost always the prompt
+  never carried a public stub URL (missing `OTENY_CONN_*_BASE_URL` on the box, or the bot
+  improvised a loopback). Confirm with box `inspect` that the named portal env is the public
+  tunnel/stub host, then re-hand the service. Fresh-restoring the client ERP DB does not fix a
+  missing bot-box bind.
 - **The stub URL is a request-time knob — never committed, never a platform config field.** Your
   local double's tunnel URL changes every run and is *not* part of the bundle, so you hand it to the
   platform **at request time**: the dev launcher passes it into the spin-up as the stub endpoint for
