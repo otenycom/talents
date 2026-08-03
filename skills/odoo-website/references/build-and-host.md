@@ -90,6 +90,9 @@ Shop (`website_sale`) / booking (`website_appointment`): only if asked — insta
      --url https://<slug>.oteny.bot
    ```
 5. Give the public URL, then owner handoff below.
+6. **Custom domain (optional):** see [`custom-domain.md`](custom-domain.md) —
+   preferred Cloudflare CNAME → `customers.oteny.bot`; AWS Route53 = www + apex redirect.
+   After SSL active, re-run `set-base-url` to the vanity HTTPS URL.
 
 ## Owner handoff — back-office login (after first host, local)
 

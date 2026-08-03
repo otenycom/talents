@@ -112,3 +112,4 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 
 - [`references/first-run.md`](references/first-run.md) — INSTALL + intake (incl. Max upgrade).
 - [`references/build-and-host.md`](references/build-and-host.md) — module vs JSON-2, host, handoff.
+- [`references/custom-domain.md`](references/custom-domain.md) — own domain (preferred CF path + AWS reference).

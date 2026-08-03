@@ -1,0 +1,18 @@
+# Custom-domain DNS target must be customers.oteny.bot (never the slug). Live DM.
+bot: odoo-website
+live_only: true
+requires:
+  substrate: vm
+
+turns:
+  - user: >
+      My site pioneer is already online at pioneer.oteny.bot. Attach www.example.com
+      as a custom domain and tell me exactly what DNS record to create.
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any:
+          - "customers.oteny.bot"
+        not_contains:
+          - "CNAME to pioneer.oteny.bot"
+          - "cname to pioneer.oteny.bot"
