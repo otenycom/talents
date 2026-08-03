@@ -52,7 +52,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 
 | Request name | Request via | Skill to compose | Status | Cost | What it does |
 |---|---|---|---|---|---|
-| `image_generate` | `tools.required` | — | live | A fraction of a cent | 🎨 Generates & edits images with accurate text — posters, diagrams, logos. |
+| `image_generate` | `tools.required` | — | live | A fraction of a cent | 🎨 Generates, enhances, edits, or combines images — posters, diagrams, logos, and multi-photo merges. |
 | `imagine_image` | `tools.required` | — | live | A fraction of a cent | 🖼️ Photoreal & artistic pictures, fast. |
 | `text_to_speech` | `tools.required` | — | live | A fraction of a cent | 🔊 Speaks a reply as a voice note, with a choice of voices. |
 | `video_generate` | `tools.required` | — | live | Billed by length — confirms first | 🎬 Makes a short AI video clip from a prompt or an image (the priciest tool). |

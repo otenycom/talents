@@ -585,11 +585,11 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 ## Create media
 
-### `image_generate` — Generate & edit images
+### `image_generate` — Generate, enhance & combine images
 
 *first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
 
-> Generate (or EDIT) an image and deliver it to the user as a native photo. Best for images that need ACCURATE PROMPT-FOLLOWING or READABLE TEXT — posters, infographics, diagrams, signs, UI mockups, logos with words — or for editing/refining an image the user shared (pass `source`). Backed by Gemini Nano Banana. DEFAULT to `quality:"standard"` (fast, cheap — a few cents). Escalate to `quality:"high"` (Nano Banana Pro) only for complex text/typography or precise edits, and 2K/4K only when needed — those cost noticeably more, so tell the user the higher cost and get a yes first. For a photorealistic or artistic picture with no important text, prefer `imagine_image`. Do NOT use this to ANALYZE an image — that is `vision_analyze`. Never shell out to an image CLI; this is the metered, delivered image path.
+> Generate, ENHANCE, EDIT, or COMBINE images and deliver the result as a native photo. Best for ACCURATE PROMPT-FOLLOWING or READABLE TEXT — posters, infographics, diagrams, signs, UI mockups, logos with words — and for enhancing/refining a photo the user shared (pass `source` or `sources`) or combining up to 14 photos into one output (pass `sources` with every input path). Backed by Gemini Nano Banana. DEFAULT to `quality:"standard"` (fast, cheap — a few cents). Escalate to `quality:"high"` (Nano Banana Pro) only for complex text/typography, precise multi-image combines, or careful edits, and 2K/4K only when needed — those cost noticeably more, so tell the user the higher cost and get a yes first. For a photorealistic or artistic picture with no important text and NO input image, prefer `imagine_image`. Do NOT use this to ANALYZE an image — that is `vision_analyze`. Never shell out to an image CLI; this is the metered, delivered image path.
 
 **Parameters**
 
@@ -599,7 +599,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
   "properties": {
     "prompt": {
       "type": "string",
-      "description": "What to draw/generate. Be specific: subject, style, composition, colors, mood, and any exact text to render."
+      "description": "What to draw, how to enhance/edit, or how to combine the inputs. Be specific: subject, style, composition, colors, mood, and any exact text to render."
     },
     "quality": {
       "type": "string",
@@ -607,7 +607,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
         "standard",
         "high"
       ],
-      "description": "standard = fast/cheap (default). high = Nano Banana Pro for text-heavy images or precise edits; costs more — confirm with the user first."
+      "description": "standard = fast/cheap (default). high = Nano Banana Pro for text-heavy images, precise edits, or multi-image combines; costs more — confirm with the user first."
     },
     "image_size": {
       "type": "string",
@@ -622,9 +622,16 @@ browser-driving discipline (selector maps, batching, fail-closed), read
       "type": "string",
       "description": "e.g. '1:1', '16:9', '9:16', '4:3', '3:4'. Default '1:1'."
     },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Input images to enhance, edit, or combine (1–14). Each entry is a local path, http(s) URL, or data: URL. Prefer this when the user shared multiple photos. Wins over `source` when non-empty."
+    },
     "source": {
       "type": "string",
-      "description": "Optional input image to EDIT (local path, http(s) URL, or data: URL)."
+      "description": "Optional single input image to enhance/edit (local path, http(s) URL, or data: URL). Prefer `sources` when combining multiple images."
     }
   },
   "required": [
@@ -635,14 +642,18 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 **Result** — {success: true, image: '<abs path>', text: '<caption>'} — the photo is delivered to the user AUTOMATICALLY; never paste the path into your reply.
 
-**Errors / edges** — {error:'image_blocked', reason, message} → rephrase; do NOT retry the identical prompt. {error:'prompt is required'}. Editing: {error:'source is not valid base64'} · {error:'input image exceeds N MB limit'}. Plus the shared platform set.
+**Errors / edges** — {error:'image_blocked', reason, message} → rephrase; do NOT retry the identical prompt. {error:'prompt is required'}. Input images: {error:'source is not valid base64'} · {error:'input image exceeds N MB limit'} · {error:'at most 14 source images allowed'}. Plus the shared platform set.
 
 **Example**
 
 ```json
 {
-  "prompt": "poster reading 'GRAND OPENING SATURDAY' in bold art-deco lettering, teal and gold",
-  "aspect_ratio": "3:4"
+  "prompt": "Enhance this photo: sharpen detail, fix lighting and white balance, reduce noise, keep the subject and composition unchanged. Natural look, no filters or style transfer.",
+  "sources": [
+    "/home/user/.hermes/media/photo.jpg"
+  ],
+  "quality": "standard",
+  "image_size": "1K"
 }
 ```
 
@@ -652,11 +663,11 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 {
   "success": true,
   "image": "/home/user/.hermes/media/img_0012.png",
-  "text": "Here's the image."
+  "text": "Here's the enhanced photo."
 }
 ```
 
-**Authoring notes** — Best for ACCURATE PROMPT-FOLLOWING and READABLE TEXT (posters, diagrams, logos) and for EDITING a shared image (pass `source`). quality:'high' costs more — confirm first. Fast photoreal/stylized → imagine_image.
+**Authoring notes** — Best for ACCURATE PROMPT-FOLLOWING and READABLE TEXT (posters, diagrams, logos), ENHANCING a shared photo (pass `source` or `sources`), and COMBINING up to 14 photos (pass `sources`). quality:'high' costs more — confirm first. Fast photoreal/stylized with no input image → imagine_image. Combine example: {"prompt":"Combine these images into one natural photo: place the person from image 1 into the scene from image 2. Match lighting and perspective; keep faces and clothing faithful; no text overlays.","sources":["/path/person.jpg","/path/beach.jpg"],"quality":"high","aspect_ratio":"4:3"}.
 
 ### `imagine_image` — Photoreal & artistic images
 
