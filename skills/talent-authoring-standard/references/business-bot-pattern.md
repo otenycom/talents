@@ -852,6 +852,15 @@ not the team's running conversation.
   resolves the bot's work purely from those flags and the workflow shape — it never
   hard-codes a specific state or transition, so any workflow-bearing model becomes
   bot-drivable just by flagging its states.
+- **Transition buttons name the action, not the result.** In the client's Odoo workflow, the
+  transition `name` is the form-header button people click. Name **what the clicker does**
+  (imperative: `Manually log in`, `Approve & submit`), never the destination state or a
+  completed result (`Needs login`, `Login complete — continue`, bare `Confirmed`). States may
+  still describe the situation (`Needs Login`). Bot-driven transitions (`bot_role` claim /
+  work / escalate, or only the bot takes them) prefix the bot's display name
+  (`Barney: ask HR to log in`, `Barney: mark filed`) so a human scanning the strip never
+  confuses a harness exit for their own next step. Lowest sequence = primary button — put the
+  state's **owner's** intended next action first.
 - **The escalate hand-back.** When the agent cannot finish (a rejection, an unexpected
   state), it takes the **escalate** transition — the bot's own failure hand-back to a human.
   This is the agent reporting "I can't", distinct from the reaper below.
@@ -1108,6 +1117,14 @@ the next run reuses:
   fresh claim epoch** and fires a *second*, fresh isolated turn that does the real side-effect against the
   now-authenticated session. A stale parked turn cannot act on the resumed record — the resume→queue claim
   bumps the epoch and fences a late writer out. The login is a **state boundary, not a shared session.**
+- **Expect the platform to settle the profile flush before the resume create.** Saving the human login
+  flushes cookies into the shared browser profile; that write is **not** instantly visible to the next
+  agent browser create. The broker holds `finalize-login` (~5s by default) and, on a later create, closes
+  same-tenant idle linger siblings before minting — so an OK that advances + dispatches inline does not
+  race a half-written profile. Authors do **not** invent client-side sleeps; if a resume still hits the
+  wall after a completed human login, that is belt-2 escalate once (§ below), not a second SMS. A
+  proactive **Refresh portal login** (finalize without advancing the workflow) remains the way to renew
+  a session before it expires — still useful, not a substitute for the settle.
 - **Fail closed — and never re-drive the login (no re-code).** If the re-dispatched run *still* finds the
   session unauthenticated (the human hasn't finished, the session expired, the flush hadn't landed), the
   work **did not happen**: write nothing, advance nothing, take the **escalate** transition (§4b), and
