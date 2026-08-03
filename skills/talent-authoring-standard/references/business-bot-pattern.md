@@ -877,6 +877,9 @@ not the team's running conversation.
   channel writes — so it is **off** unless the workflow turns it on (Barney carries the flag on
   its claim transition); enable it to watch a filing run, disable it once the workflow's
   run-health is trusted.
+- **Final replies: write `Service #N` / `record #N`, not URLs.** The Discuss adapter turns those
+  mentions into clickable backend form links from the dispatch's work-claim model + uplink base
+  URL. Keep Talent prose free of hardcoded `/web#…` links (they break across DBs / tunnels).
 
 An **inbound webhook + a manual per-record dispatch command** remain as an operator
 **escape hatch** for backfill and recovery, but the two triggers must not both run
