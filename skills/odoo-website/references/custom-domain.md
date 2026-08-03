@@ -1,43 +1,98 @@
-# Custom domain for a WebsiteBot site
+# Custom domain — what to type in chat
 
-Use after the site is live on `https://<slug>.oteny.bot` (`list_hosted_websites` →
-`status: active`). Tools: `attach_site_domains`, `list_site_domains`,
-`detach_site_domain` (charge 0).
+Your site must already be live at `https://<slug>.oteny.bot`. Then talk to your
+OtenyBot in Telegram (or web chat). **Copy the lines below**, swap in your domain
+and site name, and send them one step at a time. You never run tools or code —
+the bot does that.
 
-## Preferred: Cloudflare DNS (or ALIAS)
+---
 
-Most WebsiteBot owners: put the domain on **Cloudflare DNS** (free plan OK), or any
-DNS that supports apex ALIAS/ANAME.
+## 1. Ask the bot to attach your domain
 
-1. Confirm with the owner before attaching.
-2. `attach_site_domains(site_slug=<slug>, domain="example.com")` — expands to
-   `example.com` + `www.example.com`.
-3. Owner creates **CNAME** (proxied/flattened) for **both** `@` and `www` →
-   **`customers.oteny.bot`**.
-4. **Never** CNAME to `<slug>.oteny.bot` — if they are also on Cloudflare that is
-   Error **1014**.
-5. Poll `list_site_domains` until status/SSL active (~15–30 min after DNS).
-6. Set Odoo `web.base.url` to `https://example.com` (canonical apex).
+Send:
 
-True apex URL in the address bar.
+```
+Attach my domain example.com to site <slug> (include www).
+My DNS is on Cloudflare (free is fine).
+```
 
-## Reference: AWS Route53
+That covers both `example.com` and `www.example.com`. You do not need a special
+`+www` flag.
 
-Route53 cannot CNAME the zone apex to `customers.oteny.bot`. Use this pattern:
+**What to expect back:** the bot confirms, then gives you DNS rows. Enter them in
+Cloudflare → DNS (Proxied / orange cloud):
 
-1. `attach_site_domains(site_slug=<slug>, hostnames=["www.example.com"])`.
-2. Route53: `www` **CNAME** → `customers.oteny.bot`.
-3. Route53: apex **Alias** → S3 website endpoint (or CloudFront) configured to
-   **301** all requests to `https://www.example.com`.
-4. Set `web.base.url` to `https://www.example.com`.
+| Type | Name | Content |
+|------|------|---------|
+| CNAME | `@` | `customers.oteny.bot` |
+| CNAME | `www` | `customers.oteny.bot` |
 
-Visitors typing the root land on `www`. Offer the preferred Cloudflare path when
-they want a bare-apex URL.
+If it also asks for a TXT ownership record, add that too.
 
-## Troubleshooting
+**Do not** point DNS at `https://<slug>.oteny.bot` or CNAME to `<slug>.oteny.bot`
+— on Cloudflare that shows Error **1014**. Always use `customers.oteny.bot`.
 
-| Symptom | Fix |
-|---------|-----|
-| Error 1014 | They CNAMEd to `<slug>.oteny.bot` — change target to `customers.oteny.bot` |
-| Stuck validating | DNS not pointing yet, or wrong target; wait for SSL `active` |
-| Cap refused | Max 4 custom hostnames per site — detach one first |
+---
+
+## 2. Check when the certificate is ready
+
+After DNS is saved, wait a bit, then send:
+
+```
+What's the status of my custom domains on site <slug>?
+```
+
+Repeat until the bot says the domain and SSL are **active** (often 15–30 minutes
+after DNS).
+
+---
+
+## 3. Make that domain the site's public address
+
+When status is active, send:
+
+```
+Set my site's public URL to https://example.com
+```
+
+Then open `https://example.com` and `https://www.example.com` in a browser.
+
+---
+
+## If your DNS is on AWS Route53 (not Cloudflare)
+
+Route53 cannot CNAME the bare domain the same way. Send this instead of step 1:
+
+```
+Attach only www.example.com to site <slug>.
+I'll redirect the bare domain to www myself on Route53.
+```
+
+Then follow the bot's DNS instructions (`www` → `customers.oteny.bot`, apex redirect
+to `https://www…`). When ready, send:
+
+```
+Set my site's public URL to https://www.example.com
+```
+
+Prefer Cloudflare DNS if you want the bare domain itself to work without a separate
+redirect setup.
+
+---
+
+## Remove a domain later
+
+```
+Remove custom domain www.example.com from site <slug>.
+```
+
+---
+
+## Bot notes (when the owner sends the lines above)
+
+- Step 1 → confirm → `attach_site_domains(site_slug=…, domain="example.com")`
+  (apex + www). Route53 line → `hostnames=["www.example.com"]` only.
+- Reply with the CNAME paste sheet (`customers.oteny.bot`, never `<slug>.oteny.bot`).
+- Step 2 → `list_site_domains` until status/SSL active.
+- Step 3 → set Odoo `web.base.url` to the vanity HTTPS URL.
+- Cap: 4 custom hostnames per site. Charge 0.

@@ -5,10 +5,11 @@
 # WebsiteBot — {{site_name}}
 
 - **Site**: {{site_name}} — {{site_purpose}}
-- **Public URL**: https://{{site_slug}}.oteny.bot (once hosted)
+- **Public URL**: https://{{site_slug}}.oteny.bot (once hosted; owner asks "what's the link?")
 - **Odoo admin email**: {{owner_email}}
 - Install lives under ~/odoo-site (venv + Odoo CE + embedded Postgres); the site DB is
-  named `website`. The site is served on local port 8069 and hosted via `host_website`.
+  named `website`. Served on local port 8069; public via host_website when the owner says
+  "put my site online".
 
 ## Decisions & structure (append as the site grows)
 <!-- e.g. pages added, theme chosen, shop enabled, content the owner asked to keep -->

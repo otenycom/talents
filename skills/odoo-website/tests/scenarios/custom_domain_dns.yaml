@@ -1,4 +1,5 @@
 # Custom-domain DNS target must be customers.oteny.bot (never the slug). Live DM.
+# Owner speaks in plain chat — never "call attach_site_domains()".
 bot: odoo-website
 live_only: true
 requires:
@@ -6,13 +7,14 @@ requires:
 
 turns:
   - user: >
-      My site pioneer is already online at pioneer.oteny.bot. Attach www.example.com
-      as a custom domain and tell me exactly what DNS record to create.
+      Attach my domain example.com to site mysite (include www)
+      and tell me exactly what DNS records to create.
     reply_timeout: 180
     expect:
       reply:
         contains_any:
           - "customers.oteny.bot"
         not_contains:
-          - "CNAME to pioneer.oteny.bot"
-          - "cname to pioneer.oteny.bot"
+          - "CNAME to mysite.oteny.bot"
+          - "cname to mysite.oteny.bot"
+          - "run attach_site_domains"

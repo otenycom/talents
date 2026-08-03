@@ -8,8 +8,10 @@ single-job bot that converses inside a chat channel) — the kind of bot **Barne
 (more on Barney below).
 
 This is a guide for humans, so it reads as prose. (A Talent's own files follow a
-stricter "checklist-first" style for the bot to execute — that rule is for the bot,
-not for this page.)
+stricter dual style: **owner** gets plain "type this in chat" lines; the **bot** gets
+checklist-first **Bot notes** — see
+[`audience-and-voice.md`](../skills/talent-authoring-standard/references/audience-and-voice.md).
+That rule is for the shipped Talent, not for this page.)
 
 ---
 

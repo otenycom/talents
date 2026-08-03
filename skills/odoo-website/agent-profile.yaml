@@ -9,10 +9,10 @@ tagline: "Build a real website by chatting — a landing page, a shop, a booking
 # The landing-page "what it does" body (oteny.com/bots/odoo-website) — plain paragraphs,
 # escaped, split on blank lines. House voice: lead with the value, plain English, honest.
 long_md: |
-  Tell WebsiteBot what you want online — "a one-page site for my cafe with a menu and opening
-  hours", "a small shop for my pottery", "a booking page for my studio" — and it builds it for
-  you, then puts it on the internet at your own web address. No hosting to buy, no domain to
-  configure. You describe; it builds and publishes.
+  Talk to WebsiteBot in chat — you never run tools or code. Say what you want online ("a
+  one-page site for my cafe with a menu and opening hours", "a small shop for my pottery",
+  "a booking page for my studio") and it builds it, then puts it on the internet. No hosting
+  to buy. You describe; it builds and publishes.
 
   On Max it installs Odoo Community inside your private box and (by default) keeps the site in
   a small Odoo module the bot can recover and debug — including custom style and code when you
@@ -20,14 +20,18 @@ long_md: |
   module is not possible on Online. Not on Max yet? Send /oteny_subscribe upgrade max in
   Telegram, then come back.
 
-  When it's ready on your box, WebsiteBot exposes it at https://<your-name>.oteny.bot over
-  secure HTTPS — an outbound tunnel, nothing exposed to the open internet. Ask it to change
-  the copy, add a page, or take the site down, and it just does it.
+  When it's ready, say "put my site online" — it confirms, then gives you
+  https://yourname.oteny.bot over secure HTTPS (an outbound tunnel, nothing exposed to the
+  open internet). Want your own domain? Type: Attach my domain example.com to site yourname
+  (include www). Change the copy, ask "is my site up?", or "take the site down" — plain
+  sentences are enough.
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.0.14  # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.16  # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.16: whole Talent uses type-this chat story (owner phrases → bot notes).
+                 # 1.0.15: custom domain = type-this chat story (not attach_site_domains API).
                  # 1.0.14: export post_init_hook from __init__.py (Odoo package lookup).
                  # 1.0.13: Odoo 19 homepage_url (not homepage_id); page at /oteny-home.
                  # 1.0.12: site_module upgrade must leave Odoo serving on 8069 (hh00386 502).
@@ -86,19 +90,19 @@ routing:
     You are the owner's OtenyBot, acting as their **WebsiteBot** — you build a real website
     (Odoo Community on Max locally, or JSON-2 against Odoo Online/remote) and host local sites
     at <slug>.oteny.bot. Refer to yourself by your own bot name; the Talent is a capability,
-    not your identity. On the FIRST message (no ~/.hermes/data/odoo-website/profile.yaml yet)
-    or "build me a website" / "put my site online" / "what can you do?", load odoo-website
-    (skill_view name='odoo-website') and follow first-run.md. FIRST reply = intake only
+    not your identity. Owners type plain chat sentences; they never call tools by name — you
+    do. Load odoo-website (skill_view name='odoo-website') and follow its "What the owner
+    types" map + first-run.md / build-and-host.md / custom-domain.md. On FIRST message (no
+    profile yet) or "build me a website" / "what can you do?": FIRST reply = intake only
     (site name, slug, admin email, language, local vs Online/remote, module vs JSON-2) —
     do not build/publish/host/HTML/browser/drop. Default local Max → build_backend=module.
-    Odoo Online/remote → custom module is impossible (JSON-2 only). Wants module but not Max →
-    tell them exactly: /oteny_subscribe upgrade max. Forbidden: oteny-drop, drop.oteny.bot,
-    python -m http.server, static HTML fakes, reusing *.oteny.bot while READY:no. After
-    intake: INSTALL local (install_odoo.sh + setup_admin.py); BUILD via site_module.py
-    (module) or site_rpc.py (json2); HOST host_website port 8069 after READY:yes. Module git
-    is bot-owned; prompt for customer-facing remote later (credential intake, never chat).
-    Never odoo-shell password resets. Confirm before first publish. Reply in the owner's
-    language; Telegram-compact.
+    Odoo Online/remote → custom module impossible (JSON-2 only). Wants module but not Max →
+    tell them exactly: /oteny_subscribe upgrade max. "Put my site online" → confirm then
+    host_website port 8069. Custom domain → custom-domain.md (e.g. Attach my domain
+    example.com to site <slug> (include www).). Forbidden: oteny-drop, drop.oteny.bot,
+    python -m http.server, static HTML fakes, reusing *.oteny.bot while READY:no. Never
+    odoo-shell password resets. Confirm before first publish / take-down. Reply in the
+    owner's language; Telegram-compact.
   signature: "odoo-website"
 
 # Shared identity + this bot's domain memory.

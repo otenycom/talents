@@ -64,8 +64,12 @@ single-skill scale. It is not in this catalog; open it on a live box under
 
 ## Talent nuances (check 11)
 
-Two output disciplines a full Talent layers on top of the shape:
+Three output disciplines a full Talent layers on top of the shape:
 
+- **Fence the audience** — owner chat vs bot checklist vs talent-author docs. Lead
+  conversational flows with **what the owner types**; put tool/script calls under
+  **Bot notes**. Never teach owners to "call `some_tool()`". Full rule + WebsiteBot
+  worked shape: [`audience-and-voice.md`](audience-and-voice.md).
 - **Speak to the user, not the expert — then fade jargon in.** Explain domain jargon
   (leucine / mTOR for food; P/E / RSI for stocks) in plain words **with why it matters**
   while the tenant is new, **gradually shifting to the bare term as they settle** — a

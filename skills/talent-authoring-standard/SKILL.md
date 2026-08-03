@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.2
+version: 0.5.3
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -63,6 +63,23 @@ both for any bundle:
    author a **new** tool. Declare what it needs (check 9), stub charged/absent tools so the
    persona degrades, and keep the deterministic backbone in the bundle's own scripts.
 
+## Audience first — owner chat vs bot checklist vs author docs
+
+A Talent bundle is read by **different people for different jobs**. Fence them or the
+copy fails (tool APIs aimed at owners, platform jargon in chat, eng runbooks in the
+hot path):
+
+| Reader | Write for them with |
+| --- | --- |
+| **End-user (owner)** | Plain chat — *what to type*, never tool/shell names |
+| **Bot (weak model)** | Checklist-first **Bot notes** — tools, scripts, verify steps |
+| **Talent author / platform eng** | Authoring skills + HermesHost design library — **not** shipped runtime copy |
+
+**Owner-facing shape:** lead with copy-paste chat lines (`Attach my domain example.com…`);
+put `attach_site_domains(...)` only under a labelled **Bot notes** footer. Worked example:
+[`odoo-website`](../odoo-website/). Full rule:
+[`references/audience-and-voice.md`](references/audience-and-voice.md).
+
 ## The checklist-first bar (the airline-pilot rule)
 
 The bot runs on the tier the Talent declares (`model_tier` in `agent-profile.yaml`;
@@ -82,6 +99,8 @@ The shape (master triage → per-task *input → check → reply/act* → comple
 **five disciplines** that keep it runnable by the weak tier, the worked examples, and check
 11's Talent expansion are in [`references/checklist-first.md`](references/checklist-first.md).
 **Keep checklists lean — tune against real test-VM logs**, don't over-specify up front.
+Audience fencing ([`audience-and-voice.md`](references/audience-and-voice.md)) sits **on
+top** of this bar — it does not replace it.
 
 ## When to use
 
@@ -247,7 +266,9 @@ state, **grounded** reads (quote the store **this turn**, never from memory), an
 call** after a structured tool answers (a `web_search`/second grounded lookup is the Flash-tier
 fabrication vector — durable fix is a feed/tool-gate/stronger tier, not prose). Detail + the
 Talent nuances (jargon fade-ladder + glossary; hot-path-in-body):
-[`references/checklist-first.md`](references/checklist-first.md).
+[`references/checklist-first.md`](references/checklist-first.md). Owner **type-this** vs
+bot **Bot notes** vs author docs:
+[`references/audience-and-voice.md`](references/audience-and-voice.md).
 
 ### 12. Upgrade-safe (base/override split, D53)
 The bundle is **fully replaced on every `update-talents`/converge** — so it must carry
@@ -302,8 +323,10 @@ The exact output format is in
 1. Start from `required_artifacts.yaml` — declare the goal first.
 2. Write the mechanical first-run section that drives to it (check 3).
 3. Write the behavior + voice + references; add the safety boundary + routing
-   declaration; namespace everything. **Write to the checklist-first bar (check 11):** a
-   master triage + per-intent entry→analysis→reply sub-checklists + completeness loops.
+   declaration; namespace everything. **Fence audiences**
+   ([`audience-and-voice.md`](references/audience-and-voice.md)): owner chat phrases
+   first, **Bot notes** for tools/scripts. **Write to the checklist-first bar
+   (check 11):** master triage + per-intent sub-checklists + completeness loops.
 4. De-personalize against check 4 (and keep what remains **generic/derived**, not tuned
    to one body); quarantine for check 8; keep it **upgrade-safe** (check 12) — no
    per-tenant state in delivered files, stable slug, customization → delta-only override.
@@ -311,10 +334,13 @@ The exact output format is in
 
 ## Related
 
+- [`references/audience-and-voice.md`](references/audience-and-voice.md) — owner vs bot
+  vs author; type-this writing style.
 - [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →
   package → publish.
 - [`oteny-talent-dev-loop`](../oteny-talent-dev-loop/SKILL.md) — clone → reload →
   test → traces → green → tag.
+- [`../odoo-website/`](../odoo-website/) — worked example of type-this + Bot notes.
 - [`../oteny-flatbelly-talent/`](../oteny-flatbelly-talent/),
   [`../oteny-stock-talent/`](../oteny-stock-talent/) — shipped worked examples to
   validate against.

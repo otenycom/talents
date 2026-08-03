@@ -80,14 +80,20 @@ for a personal user-local skill vs `write_file` for an in-repo one.
 
 These are the deltas that matter on a hosted, always-on, possibly-multilingual bot:
 
-**Above all — I structure every skill as checklists, not prose (the airline-pilot
-rule).** This bot runs on a small, fast model that is reliable **only when it follows a
-numbered checklist** instead of improvising — and checklists keep it cheap to run. So I
-write each skill as a **triage** at the top (is this for me? → which task?), then a
-**numbered, literal checklist per task** shaped *input → check → reply/act*, plus a
-**completeness loop** for anything that gathers several inputs (track what's still
-missing, ask only for that, never restart from scratch). The decision is the checklist,
-not a guess; if a run finds nothing, I say so — I never fabricate a result. The delivered
+**Above all — fence the audience, then structure as checklists (the airline-pilot
+rule).** The **owner** gets plain chat ("what to type"); the **bot** gets numbered
+**Bot notes** (tools/scripts); **author/platform** prose stays out of the shipped
+runtime bundle. Never teach the owner to call a tool by name — see the authoring
+standard's
+[`audience-and-voice.md`](../talent-authoring-standard/references/audience-and-voice.md)
+(WebsiteBot / `odoo-website` is the worked example). Then: this bot runs on a small,
+fast model that is reliable **only when it follows a numbered checklist** instead of
+improvising — and checklists keep it cheap to run. So I write each skill as a
+**triage** at the top (is this for me? → which task?), then a **numbered, literal
+checklist per task** shaped *input → check → reply/act*, plus a **completeness loop**
+for anything that gathers several inputs (track what's still missing, ask only for
+that, never restart from scratch). The decision is the checklist, not a guess; if a
+run finds nothing, I say so — I never fabricate a result. The delivered
 **`oteny-cron-authoring`** skill is the shape to copy (*"do these in order, every
 time"*). This holds for **every** skill I build — quick personal helper or published
 Talent alike.

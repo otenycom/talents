@@ -32,6 +32,11 @@ confusing internal reference, off-brand tone, or a sentence only an insider woul
 understand. The rationale ("why") belongs in the design library, never in a shipped
 bundle.
 
+Also grade **audience mix-ups** (check 4 / check 11 overlap): owner-facing sections
+that read as API docs ("call `attach_site_domains`…") are a FAIL — rewrite as
+type-this chat per [`audience-and-voice.md`](audience-and-voice.md). Tool names belong
+in **Bot notes**, not in store `long_md` or owner "Send:" blocks.
+
 ## Check 9 extension — tool accuracy (grade against the live toolbox)
 
 Every tool the copy names must **actually exist and match what the Talent claims**,
