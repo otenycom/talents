@@ -324,9 +324,11 @@ class LiveDriver:
         dispatch path (the hand-off write fires the inline token-fenced dispatch, D181/D177),
         not a driver-posted flagged message that would bypass the claim fence.
 
-        ``spec`` = ``{model, domain, to_state}``: exactly ONE record must match ``domain``;
-        ``to_state`` names the bot-queue ``riverflow.state`` (resolved by name within the
-        record's workflow — names are portable across tiers, ids are not)."""
+        ``spec`` = ``{model, domain, to_state, vals?}``: exactly ONE record must match
+        ``domain``; ``to_state`` names the bot-queue ``riverflow.state`` (resolved by name
+        within the record's workflow — names are portable across tiers, ids are not).
+        Optional ``vals`` are merged into the write (e.g. ``mfnl_dispatch_mode``) so the
+        hand-off mirrors Ask Barney to Draft/File, not a bare state flip."""
         if not (self._uplink_call and self._post_message is not None
                 and hasattr(self._post_message, "wait_for_reply")):
             raise RuntimeError(
@@ -335,6 +337,7 @@ class LiveDriver:
         model = spec["model"]
         domain = spec.get("domain", [])
         to_state = spec["to_state"]
+        extra_vals = dict(spec.get("vals") or {})
 
         async def _run() -> str:
             recs = await self._uplink_call(
@@ -353,8 +356,9 @@ class LiveDriver:
                     f"hand_off resolved {len(states)} states named {to_state!r}")
             # marker BEFORE the trigger, so we only read what the triggered run posts.
             after = await self._post_message.latest_message_id()
+            write_vals = {"state_id": states[0]["id"], **extra_vals}
             await self._uplink_call(
-                model, "write", ids=[recs[0]["id"]], vals={"state_id": states[0]["id"]})
+                model, "write", ids=[recs[0]["id"]], vals=write_vals)
             wait = timeout or self._dm_timeout
             done_when = spec.get("done_when")
             if done_when:

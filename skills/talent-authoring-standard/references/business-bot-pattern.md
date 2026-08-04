@@ -275,6 +275,13 @@ under pressure will improvise exactly this. Two rules, both mandatory:
   a STOP — never a method-name-guessing loop. Give the skill the **exact escalate call** (the
   same advance method through the escalate transition) — a model told to "escalate" without
   the mechanics will invent method names hunting for one.
+- **ERP-sourced identity keys are blockers, not prompts.** Keys the bot must type into an
+  external system that already live on the owner's ERP record (a chamber-of-commerce number,
+  a vestiging id, a VAT keyed to that entity) belong on the DTO with **`severity: error`**
+  when empty. The Talent **halts and escalates** — it does **not** invent them, open-web
+  look them up, or `search_read` sibling records to “find” a substitute. A portal register
+  lookup that *confirms* a DTO number is fine; discovering a missing number outside the DTO
+  is not.
 - **The server refuses an unproven "done" (the claim guard).** Don't only trust the
   Talent's discipline: the workflow's single advance choke point exposes a guard hook, and
   the domain layer refuses the success transition unless the **proof record actually
