@@ -15,13 +15,25 @@ def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
 
     Values: ``auth_failed`` | ``unreachable`` | ``ok`` | ``unknown``. Mute Discuss with
     empty sessions + ``auth_failed`` means remint/re-provision — not website login.
+
+    Newest-first; events older than the latest ``converge`` are ignored so a remint does
+    not stay ``auth_failed`` on harvested pre-fix 401s.
     """
+    diags = sorted(diagnostics or [], key=lambda d: int(d.get("id") or 0), reverse=True)
+    newest_converge_id = 0
+    for d in diags:
+        if d.get("kind") == "converge":
+            newest_converge_id = int(d.get("id") or 0)
+            break
+    window = ([d for d in diags if int(d.get("id") or 0) >= newest_converge_id]
+              if newest_converge_id else diags)
+
     auth = unreachable = None
-    for d in diagnostics or []:
+    for d in window:
         s = str(d.get("summary") or "")
         low = s.lower()
         first = s.split("\n", 1)[0][:240]
-        is_discuss = ("[discuss]" in low or "discuss" in str(d.get("subsystem") or "").lower()
+        is_discuss = ("[discuss]" in low or "discuss" in str(d.get("severity") or "").lower()
                       or "mail.message" in low)
         if "401" in s or "unauthorized" in low:
             if is_discuss or "http" in low:
@@ -31,13 +43,13 @@ def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
             "could not reach" in low or "poll error" in low or "urlerror" in low
             or "timed out" in low or "connection" in low
         ):
-            if unreachable is None:
+            if unreachable is None and "warning" not in low:
                 unreachable = first
     if auth:
         return {"uplink_status": "auth_failed", "last_uplink_error": auth}
     if unreachable:
         return {"uplink_status": "unreachable", "last_uplink_error": unreachable}
-    if diagnostics:
+    if window:
         return {"uplink_status": "ok", "last_uplink_error": None}
     return {"uplink_status": "unknown", "last_uplink_error": None}
 
@@ -70,7 +82,8 @@ def build_traces_dto(client, ref: str, session: str | None = None,
         })
 
     diagnostics = client.search_read(
-        "hh.hermes.event", [["tenant_ref", "=", ref]], ["kind", "severity", "summary"], limit=25)
+        "hh.hermes.event", [["tenant_ref", "=", ref]],
+        ["id", "kind", "severity", "summary"], limit=25, order="id desc")
 
     bt_domain: list[Any] = [["tenant_ref", "=", ref]]
     if session:
