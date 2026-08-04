@@ -148,7 +148,7 @@ DM is Phase 2** (not in this package yet).
 | --- | --- | --- |
 | Lint | `oteny lint <bundle>` / `oteny-talent-lint` | The static authoring-standard gate, **offline**. Run before you ever clone. |
 | Clone | `oteny clone --source <ref> …` | Account-key clone **gate** (`request_clone`). Platform worker drains infra. |
-| Reload | `oteny reload --ref <clone>` | Request Talent re-delivery from the **pushed** source ref (seam when present; else staging-run / belt). Unpushed local commits are invisible to the box — push first, then reload. Confirm with `inspect` (box `agent-profile.yaml` / channel prompts). |
+| Reload | `oteny reload --ref <clone>` | Request Talent re-delivery from the **pushed** source ref (seam when present; else staging-run / belt). Unpushed local commits are invisible to the box — push first, then reload. Confirm with `inspect` (box `agent-profile.yaml` / channel prompts). **Do not reload mid-turn** while a graded `test` or a live Hand-to-Barney / Discuss filing is running — the platform refuses a gateway bounce (`deferred_busy`) until the turn is idle; wait, then reload. |
 | Test | `oteny test --ref <clone> --bundle <slug> --bundle-dir <path> [--scenario <glob>]…` | Run `tests/scenarios/*.yaml` LIVE; **`--bundle-dir` required** (local checkout — no deploy key). |
 | Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
 | Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
