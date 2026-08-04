@@ -226,13 +226,15 @@ proposed fixes — pattern + manifest format:
 session ids it used onto its **Bot Activity** row in the business Odoo, which turns them into
 two buttons: **Watch live** (a read-only view while the run is still going — the fastest way to
 see *why* a form step is stalling; the ids land as soon as the first `browser_*` tool opens a
-session, not only when the turn ends) and **Replay** (the recorded session, playable for 48 hours
-after it closes — the eye on a run that already failed). Nothing to add to your bundle: you get
-both by using the brokered `browser_*` tools instead of your own automation. If a button reports
-that the browser view is not configured, that business Odoo is missing its Watch/Replay
-credentials — ask Oteny to wire them. If the row still says **No browser used** while Discuss
-shows an active filing, the bot's discuss plugin is stale (needs a redeliver/converge) or that
-tier never claimed `live-watch` / `replay-view` tokens.
+session — refresh the form if the button is still hidden) and **Replay** (the recorded session,
+playable for 48 hours after the turn ends — the eye on a run that already failed; if the chip
+says Replay available a moment early, click anyway — the platform closes the short linger and
+opens the player, or asks you to wait while the recording finalizes). Nothing to add to your
+bundle: you get both by using the brokered `browser_*` tools instead of your own automation.
+That business Odoo needs **both** Watch and Replay credentials (not only the login-gate token)
+— ask Oteny if the chip says replay is not configured. If the row still says **No browser used**
+while Discuss shows an active filing, the bot's discuss plugin is stale (redeliver/converge) or
+those purpose tokens were never claimed.
 
 ## When your live bot fails (post-incident repair)
 
