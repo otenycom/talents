@@ -425,6 +425,70 @@ def _profile_skills(data: dict) -> set[str]:
     return skills
 
 
+_ROLE_SLUG = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def _channel_role_findings(bundle: Path) -> list[str]:
+    """(19) Shape-check the declared role lanes in ``routing.channels``.
+
+    A business bot serves two lanes: the CASUAL desk (``routing.channel_prompt`` + the
+    top-level ``preload_skills``, used in every room an operator adds the bot to) and any
+    number of DECLARED role lanes — a room the client bound to a named job. A role is a
+    NAME, never a channel id: the client's own Odoo binds it to a room and the adapter pairs
+    them at runtime, so a role that is misspelled here simply never matches and the lane
+    silently degrades to the casual desk. That is the failure this check exists to prevent.
+
+    Each entry needs a snake_case ``role``, unique in the profile, a non-empty
+    ``channel_prompt`` (a lane with no persona of its own is just the casual desk), and
+    ``preload_skills`` naming only skills THIS bundle ships. Needs PyYAML (CI installs it);
+    a bundle with no ``channels:`` is unaffected."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return []
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    routing = data.get("routing")
+    if not isinstance(routing, dict):
+        return []
+    channels = routing.get("channels")
+    if channels is None:
+        return []
+    if not isinstance(channels, list):
+        return ["agent-profile.yaml: `routing.channels` must be a list of "
+                "{role, channel_prompt, preload_skills} entries"]
+    bundle_skills = _profile_skills(data)
+    out: list[str] = []
+    seen: set[str] = set()
+    for i, entry in enumerate(channels):
+        if not isinstance(entry, dict):
+            out.append(f"routing.channels[{i}] must be a mapping")
+            continue
+        role = entry.get("role")
+        label = role if isinstance(role, str) and role else f"[{i}]"
+        if not isinstance(role, str) or not _ROLE_SLUG.match(role):
+            out.append(
+                f"routing.channels[{i}]: role {role!r} must be a snake_case name "
+                "(the client binds this exact string to a channel — not an id, not a title)")
+        elif role in seen:
+            out.append(f"routing.channels: duplicate role '{role}'")
+        else:
+            seen.add(role)
+        if not str(entry.get("channel_prompt") or "").strip():
+            out.append(f"routing.channels '{label}': needs its own channel_prompt "
+                       "(a declared lane with no persona is just the casual desk)")
+        skills = entry.get("preload_skills") or []
+        if not isinstance(skills, list):
+            out.append(f"routing.channels '{label}': preload_skills must be a list")
+            continue
+        unknown = [s for s in skills if s not in bundle_skills]
+        if unknown:
+            out.append(f"routing.channels '{label}': preload_skills names "
+                       f"{unknown} which this bundle does not ship")
+    return out
+
+
 def _task_escalation_findings(bundle: Path) -> list[str]:
     """(16) Shape-check an optional `task_escalations:` list in agent-profile.yaml.
 
@@ -940,6 +1004,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _cron_policy_findings(bundle)  # (14) scheduled-cron cost policy
         findings += _requires_findings(bundle)     # (15) requires: substrate↔min_tier consistency
         findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
+        findings += _channel_role_findings(bundle)     # (19) declared Discuss role lanes
         findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
 
     # (17) selector-manifest ↔ human-doc twin equality — self-gates on a manifest with a

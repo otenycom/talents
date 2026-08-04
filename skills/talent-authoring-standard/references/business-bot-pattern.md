@@ -31,17 +31,63 @@ routing:
   signature: "<bot>"
 ```
 
-- The team posts to a dedicated channel (e.g. "<Team> and <bot>"); the bot replies there.
 - **No public inbound, no separate app** — the chat is inside the business's Odoo.
 - The `channel_prompt` is the standing instruction injected every turn — same discipline
   as a B2C bot (who it is, which skill to load first, the hard rules), tuned for a team
-  channel rather than a 1:1 DM. The platform renders it into the box keyed by the bot's
-  home channel on **every delivery** — delivery = activation, so pushing a Talent change
-  changes who the bot *is* with no extra step.
+  channel rather than a 1:1 DM. The platform renders it into the box on **every
+  delivery** — delivery = activation, so pushing a Talent change changes who the bot *is*
+  with no extra step.
 - Add **`preload_skills:`** (top-level, beside `skills:`) naming the persona/umbrella
   skill + the main working skill: the platform injects their full text at the top of
   every fresh session — including each dispatched isolated run — so the job starts with
   its procedure in the cached prefix instead of spending calls on `skill_view`.
+
+### 1a. Two lanes: the casual desk and the declared role channel
+
+One bot serves **many** Discuss channels, and the pair above is the **casual lane** — the
+persona and preload the bot uses in *any* room a staff operator adds it to. That is the
+whole configuration a simple business bot needs.
+
+A bot with a real, auditable job wants a **second lane**: a room that is only that job, so
+the run lands with the job's persona and its procedure already in context, and the room's
+own history is the record of the work. Declare it as a **role** — a name, not a channel id.
+The Talent never learns the client's channel ids; the client's own Odoo binds the role to a
+room (`oteny.bot.channel`), and the adapter pairs them at runtime:
+
+```yaml
+routing:
+  channel: discuss
+  home_connection: crewradar
+  channel_prompt: |                # LANE 1 — the casual desk, used in every other room
+    You are <bot>, the team's <job> desk. Say what you can and cannot do, …
+  channels:                        # LANE 2 — the declared job rooms
+    - role: mfnl_filing            # must match the client-side oteny.bot.channel role
+      channel_prompt: |
+        This channel is <job> only. …
+      preload_skills:
+        - <bot>
+        - <the-working-skill>
+  signature: "<bot>"
+preload_skills:                    # the casual lane's preload — keep it LIGHT
+  - <bot>
+```
+
+Rules that make the split worth having:
+
+- **Keep the casual preload light.** Preloaded text is paid for on every fresh session in
+  every room; the heavy working skill belongs on the role lane, where the work happens. A
+  casual turn that genuinely needs it can still `skill_view` it.
+- **Every hard rule that is about safety, not about the job, stays in BOTH prompts** —
+  never ask for a password or a one-time code, never scan `mail.message`, never invent
+  data. A prompt-injected turn in a casual room must hit the same wall as one in the job
+  room. Only the *job* half is lane-specific.
+- **A role is attention, not authority.** The toolset lock, the connections, and the
+  client-side ACLs are identical in both lanes — the role picks which persona and which
+  skills load, and nothing else. Do not write a prompt that implies a casual room is
+  "read-only": it is not, and a rule the platform does not enforce is not a rule.
+- **Fallback is safe by construction.** A client that binds no role at all keeps today's
+  single-room behaviour: the bot's home channel plays the first declared role. Omit
+  `channels:` entirely and every room is the casual desk.
 
 **Telegram + odoo data plane** (when the team lives in Telegram):
 
