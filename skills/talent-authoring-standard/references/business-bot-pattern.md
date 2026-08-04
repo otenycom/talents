@@ -564,14 +564,15 @@ pages:
 
 While a dispatched run is still open, the business Odoo's **Bot Activity** row gets
 **Watch live** as soon as the first brokered `browser_*` tool opens a session (session
-ids publish mid-run, not only at turn end). Use it when a portal step stalls and the
-tool trace is opaque. After the agent turn ends, **Replay** covers the same run for 48 h
-(the chip may say Replay available a few minutes before the cloud browser fully
-releases — clicking Replay closes that linger and opens the recording; if it says the
-recording is still finalizing, wait a minute and retry). Both need that uplink tier
-claimed with `live-watch` + `replay-view` credentials; a login-gate token alone cannot
-mint a viewer. If the row says **No browser used** while Discuss shows an active filing,
-redeliver/converge the bot (stale discuss plugin) or ask Oteny to wire the purpose tokens.
+ids publish mid-run via `attach_browser_sessions`, not only at turn end). Use it when a
+portal step stalls and the tool trace is opaque. After the agent turn ends, **Replay**
+covers the same run for 48 h (the chip says *Replay available* only when a replay-view
+bearer is wired — otherwise *Recording kept · replay not configured*). Clicking Replay
+closes a lingering open session and opens the recording; if it says the recording is still
+finalizing, wait a minute and retry. Both need that uplink tier claimed with `live-watch` +
+`replay-view` credentials; a login-gate token alone cannot mint a viewer. If the row says
+**No browser used** while Discuss shows an active filing, redeliver/converge the bot (stale
+discuss plugin) or ask Oteny to wire the purpose tokens.
 
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
@@ -897,8 +898,10 @@ not the team's running conversation.
   its claim transition); enable it to watch a filing run, disable it once the workflow's
   run-health is trusted.
 - **Final replies: write `Service #N` / `record #N`, not URLs.** The Discuss adapter turns those
-  mentions into clickable backend form links from the dispatch's work-claim model + uplink base
-  URL. Keep Talent prose free of hardcoded `/web#…` links (they break across DBs / tunnels).
+  mentions into clickable **same-origin** `/web#…` form links from the dispatch's work-claim
+  model (never the bot's uplink tunnel host). Keep Talent prose free of hardcoded `/web#…`
+  links (they break across DBs / tunnels). Approval summaries may use markdown pipe tables —
+  Discuss renders them as HTML `<table>`.
 
 An **inbound webhook + a manual per-record dispatch command** remain as an operator
 **escape hatch** for backfill and recovery, but the two triggers must not both run
@@ -1355,7 +1358,11 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   by its uplink reference, race-safe via a unique constraint). The log then appears the
   moment the bot first acts. Re-provisioning a **new** tenant ref must **bind** the Discuss
   channel to that ref (`oteny.bot.bind_discuss_channel`) — bare ensure alone can leave the
-  channel on an orphan sibling while Hand-to-Barney stays mute.
+  channel on an orphan sibling while Hand-to-Barney stays mute. On a **fresh** box (new
+  `uplink_ref` while the seeded xmlid row still carries the old ref), `ensure_bot` /
+  `bind_discuss_channel` **rehome** that same-user seed onto the live ref and collapse any
+  channel-holding fork — domain dispatch resolves the xmlid, so a mute seed + live fork is a
+  hard fail mode, not a recoverable split.
 - **Mute Discuss → `oteny traces`.** If the channel is silent, read
   `oteny traces --ref <ref>` for `uplink_status` (`auth_failed` = remint/re-provision). Mint
   rotates the ERP key; website login is not the Talent debug path.
