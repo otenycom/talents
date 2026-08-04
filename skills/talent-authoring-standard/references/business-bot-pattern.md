@@ -391,11 +391,12 @@ identifier your double returns should match the **real format** (so the server-s
 validates it), but that exact shape must **not** be disclosed to the model anywhere in the Talent — an
 undisclosed invariant a confabulation can't dress to pass.
 
-*Worked example (Barney, the Dutch posted-worker filer):* the meldloket double is a stdlib
-`http.server` in the client repo (`cuneus_barney/stubportal/`, minting a bare 9-digit number — the
-real portal's shape); the Talent declares `portal.real_url` + `portal.fence_hosts`; the server-side
-claim guard refuses a "filed" whose number isn't the right shape; and one dev command (below) starts
-the double + tunnel and points the bot at both its Odoo and the tunnelled double.
+*Worked example (Barney, the Dutch posted-worker filer):* the meldloket double is the CrewRadar
+**`/mfnl-stub`** controller on neutralized tiers (minting a bare 9-digit number — the real portal's
+shape); the Talent declares `portal.real_url` + `portal.fence_hosts`; the server-side claim guard
+refuses a "filed" whose number isn't the right shape; and **`provision_barney.py --tier local`**
+(or launch **`barney-provision-local`**) commissions the bot, wires uplink + stub + broker tokens,
+and holds the local uplink tunnel.
 
 ## 4d. Make the double faithful — harvest the operator's walkthrough (page graph, not flat form)
 
@@ -803,11 +804,11 @@ honest:
   quick tunnel is deliberately **not** restartable. Bound the restarts (a few, then stop), and when
   you do detach, name the component, its exit code, and its log tail.
 
-*Worked example (Barney):* `point_barney_at_local.py` is the launcher — bare = uplink only,
-`--stub-only` = just the meldloket double + tunnel, `--with-stub` = the one-shot e2e (double + tunnel +
-uplink + point the bot), `--seed-fixtures` = run the bundle's fixture seeder (`seed_mfnl_fixtures.py`:
-one synthetic worker per hand_off scenario, reset-on-rerun, verified against the scenarios' exact
-domains); each is a VS Code launch config. Then the Oteny author CLI
+*Worked example (Barney):* **`provision_barney.py --tier {local,test1,test2,prod}`** is the tier
+provisioner — one command per CrewRadar tier (local holds the uplink tunnel; remote tiers exit after
+wire-up). Launch configs: **`barney-provision-local`**, **`-test1`**, **`-test2`**, **`-prod`**, plus
+**`barney-teardown`**. Stub portal = **`<tier base>/mfnl-stub`** on neutralized tiers; prod binds the
+real meldloket. Then the Oteny author CLI
 `test --ref <bot> --bundle <bundle> [--scenario <glob>]…` (see [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md))
 runs the graded scenarios against the live, side-effect-safe bot — account key only, not a
 private platform checkout.

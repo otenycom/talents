@@ -91,9 +91,11 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 
-*Business-bot canary:* a client repo (e.g. CrewRadar/Barney) commissions with
-`request_dev_bot` + the account key; graded runs use **`oteny test --bundle-dir …`** from
-this recipe — not hermeshost staff secrets.
+*Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
+**`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
+graded runs use **`oteny test --bundle-dir …`** from this recipe — not hermeshost staff secrets.
+The platform returns **`claim_dev_bot_client_ingress`** as a three-token bundle (login-gate,
+live-watch, replay-view); the provisioner writes those into the tier's broker seam every run.
 
 ## When to use
 
