@@ -220,6 +220,15 @@ below).
 proposed fixes — pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
 
+**See the browser, not just the trace.** A dispatched run records the opaque cloud-browser
+session ids it used onto its **Bot Activity** row in the business Odoo, which turns them into
+two buttons: **Watch live** (a read-only view while the run is still going — the fastest way to
+see *why* a form step is stalling) and **Replay** (the recorded session, playable for 48 hours
+after it closes — the eye on a run that already failed). Nothing to add to your bundle: you get
+both by using the brokered `browser_*` tools instead of your own automation. If a button reports
+that the browser view is not configured, that business Odoo is missing its Watch/Replay
+credentials — ask Oteny to wire them.
+
 ## When your live bot fails (post-incident repair)
 
 The loop above is **pre-ship** iteration. Once a bot is **live in prod** the same loop runs in
