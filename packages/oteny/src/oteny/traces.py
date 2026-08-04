@@ -10,6 +10,38 @@ def _msg_preview(m: dict) -> dict:
     return {"role": m.get("role"), "tool": m.get("tool_name") or None, "preview": text[:160]}
 
 
+def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
+    """Map recent ``hh.hermes.event`` rows → author-visible uplink health.
+
+    Values: ``auth_failed`` | ``unreachable`` | ``ok`` | ``unknown``. Mute Discuss with
+    empty sessions + ``auth_failed`` means remint/re-provision — not website login.
+    """
+    auth = unreachable = None
+    for d in diagnostics or []:
+        s = str(d.get("summary") or "")
+        low = s.lower()
+        first = s.split("\n", 1)[0][:240]
+        is_discuss = ("[discuss]" in low or "discuss" in str(d.get("subsystem") or "").lower()
+                      or "mail.message" in low)
+        if "401" in s or "unauthorized" in low:
+            if is_discuss or "http" in low:
+                auth = first
+                break
+        if is_discuss and (
+            "could not reach" in low or "poll error" in low or "urlerror" in low
+            or "timed out" in low or "connection" in low
+        ):
+            if unreachable is None:
+                unreachable = first
+    if auth:
+        return {"uplink_status": "auth_failed", "last_uplink_error": auth}
+    if unreachable:
+        return {"uplink_status": "unreachable", "last_uplink_error": unreachable}
+    if diagnostics:
+        return {"uplink_status": "ok", "last_uplink_error": None}
+    return {"uplink_status": "unknown", "last_uplink_error": None}
+
+
 def build_traces_dto(client, ref: str, session: str | None = None,
                      since: str | None = None, limit: int = 5) -> dict:
     """Shape harvested Odoo log models into the structured debug trace."""
@@ -60,8 +92,11 @@ def build_traces_dto(client, ref: str, session: str | None = None,
         "value_mismatches": sum(1 for t in steps if t.get("value_matched") == 0),
         "failed": sum(1 for t in steps if not t.get("ok")),
     }
+    uplink = derive_uplink_status(diagnostics)
     return {
         "ref": ref, "sessions": out_sessions, "diagnostics": diagnostics,
+        "uplink_status": uplink["uplink_status"],
+        "last_uplink_error": uplink["last_uplink_error"],
         "browser_summary": browser_summary, "browser_traces": browser_traces,
     }
 
@@ -76,6 +111,10 @@ def harvest_trace_text(dto: dict, *, after_session_id: int = 0) -> str:
     sessions = dto.get("sessions") or []
     fresh = [s for s in sessions if int(s.get("id") or 0) > after_session_id]
     lines: list[str] = []
+    status = dto.get("uplink_status")
+    if status:
+        err = dto.get("last_uplink_error")
+        lines.append(f"# uplink_status={status}" + (f" last_error={err}" if err else ""))
     for s in (fresh or sessions):
         lines.append(
             f"# session {s.get('session')} label={s.get('label')} "

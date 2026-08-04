@@ -1335,7 +1335,12 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
 - **Idempotent bot identity.** The bot lives *outside* the owner's Odoo, so nothing
   pre-seeds its record there — the bot **upserts its own identity** on first activity (keyed
   by its uplink reference, race-safe via a unique constraint). The log then appears the
-  moment the bot first acts.
+  moment the bot first acts. Re-provisioning a **new** tenant ref must **bind** the Discuss
+  channel to that ref (`oteny.bot.bind_discuss_channel`) — bare ensure alone can leave the
+  channel on an orphan sibling while Hand-to-Barney stays mute.
+- **Mute Discuss → `oteny traces`.** If the channel is silent, read
+  `oteny traces --ref <ref>` for `uplink_status` (`auth_failed` = remint/re-provision). Mint
+  rotates the ERP key; website login is not the Talent debug path.
 - **Best-effort, never fatal.** Recording the activity is best-effort — a logging failure
   **must not fail the transition** the bot just did. The write-back wraps the real work; if
   the log write throws, the work still stands.

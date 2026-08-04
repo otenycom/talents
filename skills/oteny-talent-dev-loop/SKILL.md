@@ -464,6 +464,11 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   gateway error stream — a dropped uplink/tunnel, a restart loop) and its token/model-call counters,
   recorded independently of the transcript. Fix the cause (restore the uplink/tunnel, clear the stuck
   process), don't re-run blind.
+- **Discuss mute / Hand-to-Barney gets no reply; `traces` → `uplink_status: auth_failed`** — the
+  box's ERP uplink key was revoked (mint always rotates). Re-run the business-bot provisioner for
+  that tier (it probes `/json/2/` with the fresh mint and binds the Discuss channel to the current
+  ref). Author Logs shows the same status. **Website login** (`/get-started/web` / `/app`) is
+  **not** the debug path for this class — that lane is consumer onboarding.
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
 - **A `hand_off` claims the record, the bot never runs, and it sits in the working state forever
