@@ -565,11 +565,13 @@ pages:
 While a dispatched run is still open, the business Odoo's **Bot Activity** row gets
 **Watch live** as soon as the first brokered `browser_*` tool opens a session (session
 ids publish mid-run, not only at turn end). Use it when a portal step stalls and the
-tool trace is opaque. After the session closes, **Replay** covers the same run for 48 h.
-Both need that uplink tier claimed with `live-watch` + `replay-view` credentials; a
-login-gate token alone cannot mint a viewer. If the row says **No browser used** while
-Discuss shows an active filing, redeliver/converge the bot (stale discuss plugin) or ask
-Oteny to wire the purpose tokens.
+tool trace is opaque. After the agent turn ends, **Replay** covers the same run for 48 h
+(the chip may say Replay available a few minutes before the cloud browser fully
+releases — clicking Replay closes that linger and opens the recording; if it says the
+recording is still finalizing, wait a minute and retry). Both need that uplink tier
+claimed with `live-watch` + `replay-view` credentials; a login-gate token alone cannot
+mint a viewer. If the row says **No browser used** while Discuss shows an active filing,
+redeliver/converge the bot (stale discuss plugin) or ask Oteny to wire the purpose tokens.
 
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
