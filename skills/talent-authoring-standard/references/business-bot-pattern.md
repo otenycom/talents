@@ -249,6 +249,11 @@ Which one mounts is bound by the **uplink tier below the Talent, not by the bund
 - This is the stub-and-degrade contract of **check 9**, extended to side effects: declare
   the real adapter as the dependency, ship the stub as the non-prod double; the persona
   reads identically against either.
+- **Interactive stub login walls stay ON for human dog-food.** If your double has a
+  login gate (portal credentials, MFA hand-off), non-prod provision should leave that
+  gate **enabled** so Hand-to-Barney / Bot Activity exercise the same login path as
+  prod. Automated `test` scenarios that need a pre-authed session disable the wall
+  only for that class of run — never as the default for an interactive staging tier.
 
 ## 4b. Fail closed — never fabricate a side effect (checks 7 + 14)
 
@@ -554,6 +559,17 @@ pages:
   never ship silently. (Fallback ladders and radio option *values* stay yaml-only by design — the doc
   documents the primary anchor + the ellipsis pattern, not every rung; the check normalizes both out.)
   Omit it and you get only a soft warning that the pair is unguarded.
+
+### Watch the live browser from Bot Activity
+
+While a dispatched run is still open, the business Odoo's **Bot Activity** row gets
+**Watch live** as soon as the first brokered `browser_*` tool opens a session (session
+ids publish mid-run, not only at turn end). Use it when a portal step stalls and the
+tool trace is opaque. After the session closes, **Replay** covers the same run for 48 h.
+Both need that uplink tier claimed with `live-watch` + `replay-view` credentials; a
+login-gate token alone cannot mint a viewer. If the row says **No browser used** while
+Discuss shows an active filing, redeliver/converge the bot (stale discuss plugin) or ask
+Oteny to wire the purpose tokens.
 
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
