@@ -209,7 +209,7 @@ get a live tool-by-tool picture — `✅`/`⚠️` per `/json/2/` call, with the
 the HTTP class **and the offending model** (e.g. `⚠️ … riverflow.service.search_read — 403
 access-denied (crewradar.site.type)`). An **operator** sees this narrated straight into the Discuss
 channel (a verbose-flagged dispatch); **you, the author, read the identical picture** — you do not
-need the operator's channel or any SSH — three ways, all record-rule-scoped to your own bots:
+need the operator's Discuss channel — three ways, all record-rule-scoped to your own bots:
 `traces --ref <clone>` (per-turn, tool-by-tool), the **Author Logs portal**, and, for a business
 bot, the **Bot Activity log in the business Odoo itself** (hand the job, read the run — no CLI).
 Each failing call carries Odoo's **native** error text, which names the **denied** model, not the
@@ -217,10 +217,15 @@ one you called — so you map a `403` straight to the missing grant (see the sil
 below).
 
 **Browser-driven bot?** `traces --ref <clone>` also returns a PII-free `browser_traces` list +
-`browser_summary` of every `browser_fill_form` action; run `selector-audit` before a run and
-`browser-diff` after to score/diff your selectors against an expected-selector manifest and get
-proposed fixes — pattern + manifest format:
+`browser_summary` — per-step rows from `browser_fill_form` **and** `page_snapshot` form-control
+inventories from observe walks (`browser_snapshot` / `browser_navigate`, no fill required).
+`browser_summary.pages_captured` / `controls_captured` tell you whether the walk left usable
+inventory. Run `selector-audit` before a run and `browser-diff` after to score/diff your selectors
+against an expected-selector manifest — pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
+That loop is **`traces` → `browser-diff`**, not shell → `state.db`: conversation/tool blobs are the
+wrong store for selector inventories. You already have box `shell` / `inspect` for Talent DBs,
+logs, and forensics (below) — a different job.
 
 **See the browser, not just the trace.** A dispatched run records the opaque cloud-browser
 session ids it used onto its **Bot Activity** row in the business Odoo, which turns them into
@@ -344,6 +349,10 @@ version of both commands.)
 
 The bot's state DB is `~/.hermes/state.db` (and per-Talent dbs under `~/.hermes/data/<slug>/`);
 the image ships **no `sqlite3` binary**, so use the stdlib: `python3 -m sqlite3 ~/.hermes/state.db`.
+Use shell for Talent DBs, config, logs, and forensics. **Do not** scrape `state.db` for form
+selectors after an observe walk — that is conversation/tool history, not structured
+`browser-diff` input. Selector tuning reads account-key `oteny traces` (`browser_traces` /
+`page_snapshot` / `form_inventory`) instead.
 
 **The contract you must honor:**
 - The window is **TTL-bounded and auto-reaped**. On expiry or when you `close_box_access(request_id=<id>)`,

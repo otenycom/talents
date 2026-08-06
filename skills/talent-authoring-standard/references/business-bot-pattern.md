@@ -268,6 +268,16 @@ routing:
 > sets `home_connection: crewradar`, and adds a portal connection `meldloket` for
 > postedworkers.nl filing (§4c). Copy the *shape*, not the model names, for your vertical.
 
+**Discuss pull + gateway startup-restore (platform footgun authors see as “dual browser”).**
+Discuss is a **pull** adapter: its poll loop can start while Hermes is still in
+`_startup_restore_in_progress`. If the adapter advances the per-channel marker (or claims
+dispatch) and hands the event to the runner **inside** that window, the runner *queues*
+the turn; when the gate opens, drain re-delivers the same `mail.message` → two agent turns
+on one plain-channel post → two cloud-browser sessions. Platform fix (hh-discuss overlay
+89): **skip the whole poll body** while startup-restore is set, and persist a once-only
+**`dispatched` claim ledger** beside the marker. If you ever see two Steel sessions for one
+Discuss message after a bot upgrade/restart, check that overlay before blaming the Talent.
+
 The platform binds each connection on the box at commission (keys delivered as secrets, never
 baked). Declaring **`connections:`** (odoo or portal) is also what makes `neutralize.yaml`
 mandatory — a clone of a bot with real binds must be defanged before it serves.
@@ -629,19 +639,30 @@ discuss plugin) or ask Oteny to wire the purpose tokens.
 
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
-The platform captures, server-side and **PII-free**, a per-action trace of every `browser_fill_form`
-step your bot runs — the selector it tried, how many elements matched (0 / 1 / N), and the **actual**
-element the page rendered (id / name / role / aria-label / text / tag / type) — plus a per-page
-inventory of the page's form controls. These are your own bot's real browser interactions on your
-**account-key dog-food surface** — no operator access needed.
+The platform captures, server-side and **PII-free**:
+
+- a per-action trace of every `browser_fill_form` step your bot runs — the selector it tried, how
+  many elements matched (0 / 1 / N), and the **actual** element the page rendered (id / name /
+  role / aria-label / text / tag / type);
+- a per-page **form-control inventory** (`page_snapshot`) after each successful
+  `browser_snapshot` / `browser_navigate` (and after `browser_fill_form`) — so an **observe walk
+  that only snapshots and clicks** still leaves structured inventory for `browser-diff` without
+  needing `browser_fill_form`. Scraping `~/.hermes/state.db` (conversation/tool blobs) is the
+  **wrong** store for selector tuning — use account-key `traces` (`browser_traces` /
+  `form_inventory`).
+
+These are your own bot's real browser interactions on your **account-key dog-food surface** —
+`traces --ref <bot>` is the selector-tuning eye. Box `shell` / `inspect` (you already have them)
+  stay for Talent DBs, logs, and forensics — not a substitute for `browser-diff` input.
 
 1. **`selector-audit --manifest <file>` (Oteny author CLI) — static, before a live run.** Scores each
    selector against the rules above and **exits non-zero if any is brittle** — the "is my runbook
    flexible enough for the real website?" check. Harden what it flags (add ladder rungs down to a
    semantic anchor, add `expect_unique`, add `option_fallbacks`) until it passes. No bot needed —
    run it in CI.
-2. **Run the bot** — a scenario or a handed-off job — against the real (or stub) site so it emits
-   `browser_fill_form` traces.
+2. **Run the bot** — a scenario, a handed-off job, or an **observe walk** (snapshot/navigate/click,
+   optionally `browser_fill_form`) against the real (or stub) site so it emits `browser_traces`
+   (step rows and/or `page_snapshot` inventories).
 3. **`browser-diff --manifest <file> [--observed <traces.json> | --ref <ref>]` (Oteny author CLI) —
    dynamic, after the run.** Diffs the observed `hh.browser.trace` rows against the manifest and
    **proposes** a verdict + fix per field:
@@ -699,17 +720,21 @@ confirms it.
 *your double* — but none of that has yet touched the **real** site. Before the bot's **first real
 side-effect**, close that last gap with an **observe pass**: arm the submit-deny belt (§4f), hand the
 bot a real record, and let it **walk the real portal all the way to — but never through — the
-submit**, emitting `browser_fill_form` traces the whole way. Then reconcile, iterating four steps
-until the diff is clean:
+submit**. Prefer `browser_fill_form` when you can (richer per-step rows); a snapshot/navigate/click
+walk is enough for inventory — every successful snapshot/navigate lands a PII-free `page_snapshot`
+in `traces` (structured broker capture — not something you scrape from `state.db` over shell).
+Then reconcile, iterating four steps until the diff is clean:
 
-1. **Observe** — the belt-armed bot walks the real site; the platform captures the per-action traces
-   (as above).
-2. **Diff** — `browser-diff --manifest <file> --observed <traces.json>` (author CLI) scores the observed
-   reality against your manifest (RENAMED / AMBIGUOUS / MISSED / …).
+1. **Observe** — the belt-armed bot walks the real site; pull `traces --ref <bot>` (account key).
+   Look at `browser_summary.pages_captured` / `controls_captured` and each `page_snapshot`'s
+   `form_inventory` — that is your selector ground truth. **If a control has empty `id`/`name`,
+   lock with `role=<role>[name=/…/i]` from `role` + `aria`/`label`/`text` — do not invent `#ids`.**
+2. **Diff** — `browser-diff --manifest <file> --ref <bot>` (or `--observed <traces.json>`) scores
+   the observed reality against your manifest (RENAMED / AMBIGUOUS / MISSED / …).
 3. **Harden** — apply each proposed fix to **your own** selector map + manifest, **and back-port the
-   observed reality into your stub** (the real ids, the real option strings, any page the original
-   walkthrough missed) so the **offline suite stays the authoritative regression net** — the stub, not
-   a live run, is what every future deploy checks against.
+   observed reality into your stub** (the real ids *or* role+name anchors, the real option strings,
+   any page the original walkthrough missed) so the **offline suite stays the authoritative
+   regression net** — the stub, not a live run, is what every future deploy checks against.
 4. **Fill-verify** — re-run against the now-faithful stub until the offline suite is green.
 
 Iterate **observe → diff → harden → fill-verify until the diff is clean**, and only *then* disarm the
