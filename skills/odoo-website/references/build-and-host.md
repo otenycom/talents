@@ -90,6 +90,7 @@ Read `build_backend` + `odoo_locus` from `~/.hermes/data/odoo-website/profile.ya
 | `ensure_site.sh` before local edits | Browser drag-and-drop as the primary editor |
 | `setup_admin.py` for admin/password / API-key | `odoo shell` / SQL password resets |
 | Confirm before first publish | Fall back to drop.oteny.bot |
+| Keep the app on the hosted `local_port` (8069) unless Oteny’s edge recipe says otherwise | `apt install` nginx, edit `/etc/nginx`, or move `http_port` freestyle to “fix” Cloudflare 502s — edge maintenance during restarts is a platform/recipe concern, not a one-off shell fix |
 
 ### Admin credentials (bot-only file, local)
 
