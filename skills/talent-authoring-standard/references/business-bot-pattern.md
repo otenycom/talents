@@ -918,6 +918,26 @@ business's Odoo owns a state machine, and specific states/transitions belong to 
 each bot-owned record is driven through them by a **fresh isolated turn** — its own session,
 not the team's running conversation.
 
+**Scope it against the ERP's own assistant, not on top of it.** Most business customers
+already run their ERP's built-in AI (in Odoo, an `ai.agent`, often on a cron). That
+assistant answers questions and enriches records **inside** the system, and it should keep
+doing so — do **not** rebuild it as a Talent to show off capability. Your bot earns its
+place on the other side of a line the customer can feel: it **owns a transition** and the
+responsibility for its outcome, usually with work **outside** the ERP (a portal, a mailbox,
+a third-party system) under a named human's authorization. Two practical tests when you are
+deciding whether something belongs in your Talent at all:
+
+| The ERP's own assistant | Your business bot |
+| --- | --- |
+| Answers a question about a record | **Advances** a record through a state it owns |
+| Runs inside the ERP's session and rights | Runs isolated, with its **own** login, mailbox, and machine |
+| Nobody is accountable for a wrong answer beyond re-asking | A **named** human delegated the job and can be shown proof of what was done |
+
+Getting this wrong is expensive in both directions: a Talent that duplicates the ERP
+assistant competes with the customer's existing investment and is judged as a worse
+chatbot, while a bot that owns a transition but leaves no proof trail cannot be delegated
+to at all (see §4b fail-closed and §7 owner visibility).
+
 - **The dispatch trigger — the owner's Odoo asks over the bot's own channel.** The primary
   trigger needs **no external poller and no inbound webhook**: the owner's Odoo iterates its
   own queue of bot-owned records (the ones in a state whose workflow declares it the bot's to
