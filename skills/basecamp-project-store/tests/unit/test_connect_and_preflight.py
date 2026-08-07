@@ -215,3 +215,16 @@ def test_status_reports_the_phase(tmp_path, monkeypatch, capsys):
     connect.cmd_status()
     assert "FLOW: waiting for the pasted address" in capsys.readouterr().out
     connect.cmd_cancel()
+
+
+def test_preflight_reports_the_resolved_tool_path(tmp_path, monkeypatch, capsys):
+    """The tool installs into ~/.local/bin, which is on a LOGIN shell's PATH but not on the
+    plain shell a tool call usually gets — so a bare `basecamp …` fails on exactly the box
+    where it is installed. The skill calls it by path, and preflight is where that path comes
+    from, so it has to be in the output rather than a bare "installed"."""
+    _sandbox(tmp_path, monkeypatch, authed=True)
+    preflight.main()
+    out = capsys.readouterr().out
+    cli_line = next(line for line in out.splitlines() if line.startswith("CLI:"))
+    assert " at " in cli_line, "preflight must print WHERE the tool is, not just that it is"
+    assert str(tmp_path / "basecamp") in cli_line

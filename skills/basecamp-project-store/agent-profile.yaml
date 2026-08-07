@@ -15,7 +15,10 @@ bot: basecamp-project-store
 display_name: Project store
 tagline: "Run a project from its Basecamp board — read the brief, work the list, report back."
 
-version: 1.0.0   # bundle semver — a label over the delivered commit; bump on every change.
+version: 1.0.1   # bundle semver — a label over the delivered commit; bump on every change.
+                 # 1.0.1: call the tool by its full path (~/.local/bin is on a LOGIN shell's
+                 # PATH only, so a bare `basecamp …` fails on the box it is installed on);
+                 # preflight reports the resolved path.
                  # 1.0.0: first release — connect a board, read the brief, work one list,
                  # post safely (tables → bullets, HTML fenced), optional daily digest.
 

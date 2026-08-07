@@ -88,8 +88,8 @@ they say so and you add it to the profile.
 ## Bot notes — WORK
 
 1. Take the top open todo from `queue`. Do that one piece of work.
-2. Comment what you did: `basecamp comments create <todo-id> "<what you did>" --account <acc> --in <proj>`
-3. Tick it: `basecamp todos complete <todo-id> --account <acc> --in <proj>`
+2. Comment what you did: `~/.local/bin/basecamp comments create <todo-id> "<what you did>" --account <acc> --in <proj>`
+3. Tick it: `~/.local/bin/basecamp todos complete <todo-id> --account <acc> --in <proj>`
 4. Re-run `queue` and continue. Never tick a todo you did not finish, and never tick one on
    a list you do not own.
 5. When the queue is empty, tell the owner in one line and stop.

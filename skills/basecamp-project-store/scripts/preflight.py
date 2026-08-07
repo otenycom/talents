@@ -56,7 +56,10 @@ def main() -> int:
         missing.append("profile:" + ",".join(unset))
 
     print(f"READY: {'no' if missing else 'yes'}")
-    print("CLI: " + (f"installed {version}" if version else "missing"))
+    # Print the RESOLVED path, not just "installed": the tool lands in ~/.local/bin, which is on
+    # a login shell's PATH but not on a plain one — so a bare `basecamp …` fails on exactly the
+    # box where it is installed. The skill calls it by this path.
+    print("CLI: " + (f"installed {version} at {cli_path()}" if version else "missing"))
     print("AUTH: " + {True: "yes", False: "no", None: "unknown"}[auth])
     print("BOARD: "
           f"account={profile.get('account_id') or '-'} "
