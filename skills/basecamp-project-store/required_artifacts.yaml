@@ -16,11 +16,14 @@ artifacts:
     stubbed: []
 
   - kind: tools
-    # INSTALLED BY THE AGENT when the owner connects a board (a single downloaded binary).
+    # INSTALLED BY THE AGENT when the owner connects a board: a single downloaded binary, plus
+    # the manual that binary writes for itself (version-matched, so it cannot drift from the
+    # verbs it documents — which is why this bundle no longer carries one).
     # Never a delivery gate: a box whose owner has no board must still converge clean.
     blocking: false
     present_if_file:
       basecamp_cli: ~/.local/bin/basecamp
+      basecamp_manual: ~/.agents/skills/basecamp/SKILL.md
     stubbed: []
 
   - kind: profile

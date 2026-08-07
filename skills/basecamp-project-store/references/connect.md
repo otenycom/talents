@@ -40,10 +40,12 @@ choose.
 bash ~/.hermes/skills/talents/basecamp-project-store/scripts/install_cli.sh
 ```
 
-Expect `BASECAMP_CLI_INSTALLED <version>`. It downloads the official release for this
-machine, checks it against the published checksum, and puts it in `~/.local/bin`. It is
-idempotent — a re-run on an already-installed box just prints the version. If it fails,
-report the error and stop; do not improvise another install.
+Expect `BASECAMP_CLI_INSTALLED <version>` and `BASECAMP_MANUAL <path>`. It downloads the
+pinned official release for this machine, checks it against the published checksum, puts it
+in `~/.local/bin`, and has the tool write its own version-matched manual to
+`~/.agents/skills/basecamp/SKILL.md` — that is where you look up any verb this skill does not
+spell out. It is idempotent — a re-run on an already-installed box just prints the version. If
+it fails, report the error and stop; do not improvise another install.
 
 ### 2. Start the sign-in and relay the link
 
@@ -74,14 +76,17 @@ without telling the owner what went wrong.
 
 ### 4. Learn the board
 
+Reading the board's shape is the command-line tool's own job — ask it directly:
+
 ```
-python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/project_store.py boards --account <account-id>
-python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/project_store.py lists --account <account-id> --project <project-id>
+~/.local/bin/basecamp projects list --account <acc> --json --jq '.data[] | "\(.id)\t\(.name)"'
+~/.local/bin/basecamp todolists list --account <acc> --in <proj> --json --jq '.data[] | "\(.id)\t\(.name)\t\(.completed_ratio)"'
+~/.local/bin/basecamp messages list --account <acc> --in <proj> --json --jq '.data[] | "\(.id)\t\(.subject)"'
 ```
 
-`lists` prints every to-do list and message on the board with its id and name. Read the names
-back to the owner and let them say which is the work queue, which are read-only, and which
-messages are the brief.
+That gives every to-do list and message on the board with its id and name. Read the names back
+to the owner and let them say which is the work queue, which are read-only, and which messages
+are the brief.
 
 ### 5. Save the profile
 

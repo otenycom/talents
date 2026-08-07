@@ -1,20 +1,28 @@
 #!/bin/sh
-# install_cli.sh — put the official Basecamp command-line tool on this box.
+# install_cli.sh — put the official Basecamp command-line tool, and its own manual, on this box.
 #
-# Downloads the published release for this machine's architecture, verifies it against the
-# release's own checksum file, and installs a single binary into ~/.local/bin. Idempotent: on
-# a box that already has it, this prints the version and exits 0 without downloading.
+# Downloads the PINNED release for this machine's architecture, verifies it against the
+# release's own checksum file, installs a single binary into ~/.local/bin, and then has the
+# tool install its version-matched agent manual into ~/.agents/skills/basecamp/SKILL.md.
 #
-# The tool is a statically linked Go binary with no shared-library dependencies, which is why
-# it runs the same on a packed sandbox as on a dedicated machine.
+# Idempotent: on a box that already has the pinned version this prints the version and exits 0
+# without downloading.
 #
-#   sh install_cli.sh            # install if absent
-#   sh install_cli.sh --force    # reinstall / upgrade to the latest release
+#   sh install_cli.sh            # install if absent or at the wrong version
+#   sh install_cli.sh --force    # reinstall
+#
+# WHY A PIN, NOT "latest". The tool's behaviour moves between releases, and it moves silently:
+# on 0.7.x `todos list --status completed` returned the OPEN todos, so a digest built on it
+# would have reported every unfinished todo as done. references/cli-reference.md records what
+# was verified, and it is only true of one version — so the version is chosen here, not by
+# whatever happens to be newest on the day a box is built. Bump this pin only after
+# check_upstream.py has been run against the new release and the reference page corrected.
 #
 # Prints BASECAMP_CLI_INSTALLED <version> on success; a single INSTALL_FAILED line otherwise.
 set -eu
 
 REPO="basecamp/basecamp-cli"
+PINNED="${BASECAMP_CLI_VERSION:-0.9.0}"
 BIN_DIR="${BASECAMP_CLI_BIN_DIR:-$HOME/.local/bin}"
 BIN="$BIN_DIR/basecamp"
 FORCE=0
@@ -22,10 +30,26 @@ FORCE=0
 
 fail() { echo "INSTALL_FAILED $1" >&2; exit 1; }
 
+# The tool ships its own agent manual inside the binary and installs it on request, so the
+# manual can never drift from the verbs it documents. BASECAMP_SETUP_AGENT=none keeps it to
+# just the manual — this is a Hermes box, there is no coding agent here to wire up.
+install_manual() {
+    BASECAMP_SETUP_AGENT=none "$BIN" setup agents >/dev/null 2>&1 || true
+    if [ -f "$HOME/.agents/skills/basecamp/SKILL.md" ]; then
+        echo "BASECAMP_MANUAL $HOME/.agents/skills/basecamp/SKILL.md"
+    else
+        echo "NOTE the tool did not install its own manual; use --help instead"
+    fi
+}
+
 if [ "$FORCE" -eq 0 ] && [ -x "$BIN" ]; then
-    ver=$("$BIN" --version 2>/dev/null | head -1 || echo "unknown")
-    echo "BASECAMP_CLI_INSTALLED $ver (already present)"
-    exit 0
+    ver=$("$BIN" --version 2>/dev/null | awk '{print $NF}' || echo "")
+    if [ "$ver" = "$PINNED" ]; then
+        echo "BASECAMP_CLI_INSTALLED $ver (already present)"
+        install_manual
+        exit 0
+    fi
+    echo "NOTE replacing basecamp ${ver:-unknown} with the pinned $PINNED"
 fi
 
 case "$(uname -s)" in
@@ -45,16 +69,8 @@ command -v tar  >/dev/null 2>&1 || fail "tar is not available"
 tmp=$(mktemp -d) || fail "cannot create a temporary directory"
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-# Resolve the latest release tag from the API (no third-party JSON tool on a cold box, so a
-# narrow grep on the tag field is deliberate — it is the only "tag_name" key in the payload).
-api="https://api.github.com/repos/$REPO/releases/latest"
-tag=$(curl -fsSL --max-time 60 "$api" 2>/dev/null \
-      | grep -m1 '"tag_name"' | sed 's/.*"tag_name"[^"]*"\([^"]*\)".*/\1/') \
-      || fail "cannot reach the release index"
-[ -n "${tag:-}" ] || fail "cannot read the latest release tag"
-version=${tag#v}
-
-asset="basecamp_${version}_${os}_${arch}.tar.gz"
+tag="v$PINNED"
+asset="basecamp_${PINNED}_${os}_${arch}.tar.gz"
 base="https://github.com/$REPO/releases/download/$tag"
 
 curl -fsSL --max-time 300 -o "$tmp/$asset" "$base/$asset" || fail "cannot download $asset"
@@ -80,8 +96,9 @@ mv "$tmp/basecamp" "$BIN.new"
 chmod 0755 "$BIN.new"
 mv "$BIN.new" "$BIN"
 
-ver=$("$BIN" --version 2>/dev/null | head -1 || echo "$tag")
+ver=$("$BIN" --version 2>/dev/null | awk '{print $NF}' || echo "$PINNED")
 echo "BASECAMP_CLI_INSTALLED $ver"
+install_manual
 case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
     *) echo "NOTE $BIN_DIR is not on PATH — call the tool as $BIN" ;;

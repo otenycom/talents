@@ -30,49 +30,57 @@ common = _load("_common")
 # --------------------------------------------------------------------------- #
 # Bodies that survive the board's editor                                        #
 # --------------------------------------------------------------------------- #
-def test_pipe_table_becomes_bullets():
+def test_a_pipe_table_is_left_alone():
+    """The board renders markdown tables. Flattening one to bullets would be a downgrade —
+    verified against the live tool by scripts/check_upstream.py (§4)."""
     body = "\n".join([
         "Rates:",
         "",
         "| Service | Duration | Price |",
         "|---|---|---|",
         "| Wash & cut | 30 min | EUR 40 |",
-        "| Beard trim | 30 min | EUR 35 |",
         "",
         "Ends here.",
     ])
-    out, tables, fenced = ps.prepare_body(body)
-    assert tables == 1
+    out, fenced = ps.prepare_body(body)
     assert fenced == 0
-    assert "|" not in out, "a surviving pipe renders as literal bars on the board"
-    assert "- **Wash & cut** — Duration: 30 min; Price: EUR 40" in out
-    assert "- **Beard trim** — Duration: 30 min; Price: EUR 35" in out
-    assert out.startswith("Rates:")
-    assert out.rstrip().endswith("Ends here.")
+    assert out == body
 
 
-def test_raw_html_is_fenced_so_the_editor_cannot_eat_it():
+def test_raw_html_is_fenced_so_the_body_stays_markdown():
     body = 'Embed this:\n<iframe src="https://example.test/widget/" style="width:100%"></iframe>\ndone'
-    out, _tables, fenced = ps.prepare_body(body)
+    out, fenced = ps.prepare_body(body)
     assert fenced == 1
     lines = out.split("\n")
     idx = next(i for i, line in enumerate(lines) if "<iframe" in line)
     assert lines[idx - 1] == "```" and lines[idx + 1] == "```"
 
 
+def test_a_tag_beside_a_table_is_fenced_so_the_table_still_renders():
+    """The failure this whole step exists for: one raw tag flips the WHOLE body literal, so
+    the table beside it posts as a paragraph of bars. Fencing the tag rescues both."""
+    body = "| A | B |\n|---|---|\n| 1 | 2 |\n\n<b>bold</b>"
+    out, fenced = ps.prepare_body(body)
+    assert fenced == 1
+    assert "| A | B |" in out, "the table must survive untouched"
+    lines = out.split("\n")
+    idx = next(i for i, line in enumerate(lines) if "<b>bold</b>" in line)
+    assert lines[idx - 1] == "```" and lines[idx + 1] == "```"
+
+
 def test_already_fenced_html_is_left_alone():
     body = "```\n<iframe src=\"https://example.test/\"></iframe>\n```"
-    out, _tables, fenced = ps.prepare_body(body)
+    out, fenced = ps.prepare_body(body)
     assert fenced == 0
     assert out == body
 
 
 def test_prepare_body_is_idempotent():
     body = "| A | B |\n|---|---|\n| 1 | 2 |\n\n<b>bold</b>"
-    once, _, _ = ps.prepare_body(body)
-    twice, tables, fenced = ps.prepare_body(once)
+    once, _ = ps.prepare_body(body)
+    twice, fenced = ps.prepare_body(once)
     assert twice == once
-    assert (tables, fenced) == (0, 0)
+    assert fenced == 0
 
 
 # --------------------------------------------------------------------------- #

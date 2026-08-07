@@ -1,7 +1,7 @@
 ---
 name: basecamp-project-store
 description: "Work a project from its Basecamp board — brief and todos"
-version: 1.0.0
+version: 1.1.0
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -75,6 +75,30 @@ they say so and you add it to the profile.
 
 **If two things on the board contradict each other, ask the owner — never pick.**
 
+## The board says what is true now — not what changed
+
+Everything you write on the board is **current state, in the present tense**. When something
+changes, **edit the thing itself** — the brief, the todo, the notes. Do not add a comment saying
+what it changed from.
+
+This is not a house style. A change log on a board that gets read as instructions goes wrong in
+three specific ways:
+
+- It **goes stale with nothing marking it stale.** A note describing a placeholder that no longer
+  exists reads exactly like a note describing one that does.
+- It **points at things that have moved.** Todos get renumbered and re-titled; a note naming
+  "todo 1" goes on naming it long after it became todo 4.
+- It **argues against a decision the reader never saw.** "This is *not* a draft" means nothing to
+  someone who never read the version that said it was — it just contradicts the document it is
+  attached to.
+
+So revise the body. If the owner wants the history kept, say plainly that you are leaving it off
+the board, and ask where it should go instead — their own plan, or a summary written **for a
+person**.
+
+**Comments about your own work are different, and they are welcome.** *"Built the page, live at
+/stoel-huren"* is a fact about the job in front of you, not a diff of the instructions.
+
 ## Bot notes — READ
 
 1. `project_store.py brief` — prints every message named in `brief_message_ids`, in order.
@@ -99,10 +123,11 @@ Bodies with `$`, backticks or quotes go in via a file, never typed inline — se
 
 ## Bot notes — POST
 
-1. Write the body to a file, then convert it:
+1. Write the body to a file, then prepare it:
    `python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/project_store.py body --file <path>`
-   That turns pipe tables into bullet lists and fences raw HTML — both are silently eaten
-   otherwise (see [`references/cli-reference.md`](references/cli-reference.md)).
+   Markdown renders on the board — headings, bullets and tables alike — but **one raw HTML tag
+   anywhere turns the whole body literal**, and the tag itself becomes invisible. This fences
+   any raw HTML so both problems go away (see [`references/cli-reference.md`](references/cli-reference.md)).
 2. Create it as a **draft** first, read it back, then publish. A draft notifies nobody.
 3. Give the owner the link the command returned.
 
@@ -124,5 +149,11 @@ Bodies with `$`, backticks or quotes go in via a file, never typed inline — se
 ## References (load on demand)
 
 - [`references/connect.md`](references/connect.md) — connect a board: install, sign in, learn the lists.
-- [`references/cli-reference.md`](references/cli-reference.md) — the verbs, the flags, and the traps that cost real work.
+- [`references/cli-reference.md`](references/cli-reference.md) — **only** the handful of
+  command-line behaviours that are silent, surprising, or wrong in the tool's own manual.
 - [`references/digest.md`](references/digest.md) — the daily digest job, and why an unchanged day posts nothing.
+
+For any verb or flag not covered above, the tool ships **its own manual**, installed beside it
+and matched to its exact version: `~/.agents/skills/basecamp/SKILL.md`. It is long (~70 KB), so
+reach for `~/.local/bin/basecamp <topic> <action> --help` first and read the manual only when
+you need the wider picture.

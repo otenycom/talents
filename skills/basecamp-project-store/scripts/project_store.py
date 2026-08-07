@@ -5,13 +5,16 @@ The skill's checklist calls this instead of stringing raw commands together, so 
 must not vary — which list is the bot's own, what "changed since last time" means, and what
 survives the board's editor — are decided in code rather than by the model.
 
-    project_store.py boards                    # projects on the account
-    project_store.py lists                     # the board's to-do lists + messages, with ids
     project_store.py brief                     # the messages that hold the rules, as text
     project_store.py queue                     # the bot's OWN list: open todos + their notes
     project_store.py open-facts                # the read-only lists, for the pre-publish check
     project_store.py digest                    # what changed since last run, or NO-CHANGES
-    project_store.py body --file <path>        # make a markdown body survive the editor
+    project_store.py body --file <path>        # fence raw HTML so the body stays markdown
+
+Reading the board's *shape* — which projects exist, which lists and messages are on one — is
+the command-line tool's own job (`projects list`, `todolists list`, `messages list`), so it is
+not wrapped here. What IS wrapped is everything where a wrong answer is silent: which list is
+this bot's own, what "changed since last time" means, and what survives the board's editor.
 
 Standard library only. Account and project come from the profile; --account / --project
 override them. Exit code is 0 whenever the command ran; a real failure prints one ERROR line.
@@ -62,8 +65,12 @@ def _call(args_list: list[str], *, timeout: int = 60) -> tuple[bool, object, str
 
 
 def _todos(account: str, project: str, list_id: str, *, completed: bool = False) -> list[dict]:
-    """Todos on ONE list. --list is the only thing that filters: a list id passed as a bare
-    argument is accepted and ignored, and you silently get the whole project instead."""
+    """Todos on ONE list. --list is the only thing that scopes: a list id passed as a bare
+    argument is accepted and ignored, and you silently get the whole project instead.
+
+    `--status completed` really does filter, but only from CLI 0.8 on — 0.7.x accepted it and
+    returned the OPEN todos, so a digest run there would have called every open todo 'done'.
+    install_cli.sh pins the version this bundle was verified against; do not unpin it."""
     argv = ["todos", "list", "--list", list_id, "--account", account, "--in", project]
     if completed:
         argv += ["--status", "completed"]
@@ -118,46 +125,21 @@ def to_text(markup: str | None) -> str:
 # --------------------------------------------------------------------------- #
 # Making a body survive the editor                                              #
 # --------------------------------------------------------------------------- #
-_TABLE_SEP = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 _HTML_TAG = re.compile(r"<[a-zA-Z/][^>\n]*>")
 
 
-def tables_to_bullets(lines: list[str]) -> tuple[list[str], int]:
-    """Rewrite every pipe table as a bullet list. The editor has no tables: a table posted as
-    pipes collapses into one paragraph of literal bars, which is unreadable and looks broken."""
-    out: list[str] = []
-    converted = 0
-    i, n = 0, len(lines)
-    while i < n:
-        line = lines[i]
-        if line.lstrip().startswith("|") and i + 1 < n and _TABLE_SEP.match(lines[i + 1]):
-            header = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-            i += 2
-            rows = []
-            while i < n and lines[i].lstrip().startswith("|"):
-                rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
-                i += 1
-            for row in rows:
-                if not row or not any(row):
-                    continue
-                lead = row[0] or (header[0] if header else "")
-                rest = [
-                    f"{header[j]}: {row[j]}" if j < len(header) and header[j] else row[j]
-                    for j in range(1, len(row)) if row[j]
-                ]
-                out.append(f"- **{lead}**" + (f" — {'; '.join(rest)}" if rest else ""))
-            converted += 1
-            continue
-        out.append(line)
-        i += 1
-    return out, converted
-
-
 def fence_raw_html(lines: list[str]) -> tuple[list[str], int]:
-    """Put any bare HTML line inside a fenced block. Unfenced, the editor swallows the tag
-    without a word — in a todo's notes as well as a message body — and the loss only surfaces
-    later, when whatever the tag described was never built. Fenced, it survives as readable,
-    copy-pasteable text. Lines already inside a fence are left alone."""
+    """Put any bare HTML line inside a fenced block.
+
+    The board converts a markdown body to rich text — headings, bullets and TABLES all render
+    — but only while the body is markdown. One raw tag anywhere flips the whole body into
+    pass-through HTML, and then every other construct in it stays literal: the table posts as
+    a paragraph of bars, the bullets as hyphens, the heading as a hash. Meanwhile the tag
+    itself renders as markup, so it is invisible to whoever reads the board.
+
+    Fencing fixes both halves at once: the rest of the body renders as markdown, and the tag
+    survives inside <pre><code> as readable, copy-pasteable escaped text. Lines already inside
+    a fence are left alone."""
     out: list[str] = []
     fenced = 0
     in_fence = False
@@ -174,11 +156,9 @@ def fence_raw_html(lines: list[str]) -> tuple[list[str], int]:
     return out, fenced
 
 
-def prepare_body(text: str) -> tuple[str, int, int]:
-    lines = text.split("\n")
-    lines, tables = tables_to_bullets(lines)
-    lines, fenced = fence_raw_html(lines)
-    return "\n".join(lines), tables, fenced
+def prepare_body(text: str) -> tuple[str, int]:
+    lines, fenced = fence_raw_html(text.split("\n"))
+    return "\n".join(lines), fenced
 
 
 # --------------------------------------------------------------------------- #
@@ -253,42 +233,6 @@ def save_state(state: dict) -> None:
 # --------------------------------------------------------------------------- #
 # Commands                                                                      #
 # --------------------------------------------------------------------------- #
-def cmd_boards(args) -> int:
-    account, _ = _scope(args)
-    if not account:
-        print("ERROR no account — ask the owner for the board link")
-        return 0
-    ok, data, err = _call(["projects", "list", "--account", account])
-    if not ok:
-        print(f"ERROR {err}")
-        return 0
-    for project in data or []:
-        print(f"{project.get('id')}\t{project.get('name')}")
-    return 0
-
-
-def cmd_lists(args) -> int:
-    account, project = _scope(args)
-    if not (account and project):
-        print("ERROR no board — ask the owner for the board link")
-        return 0
-    try:
-        ok, data, err = _call(["todolists", "list", "--account", account, "--in", project])
-        if not ok:
-            print(f"ERROR {err}")
-            return 0
-        print("TODOLISTS")
-        for todolist in data or []:
-            ratio = todolist.get("completed_ratio") or ""
-            print(f"  {todolist.get('id')}\t{todolist.get('name')}\t{ratio}")
-        print("MESSAGES")
-        for message in _messages(account, project):
-            print(f"  {message.get('id')}\t{message.get('subject')}")
-    except RuntimeError as exc:
-        print(f"ERROR {exc}")
-    return 0
-
-
 def cmd_brief(args) -> int:
     account, project = _scope(args)
     profile = read_profile()
@@ -415,12 +359,12 @@ def cmd_body(args) -> int:
     except OSError as exc:
         print(f"ERROR cannot read {path} ({exc})")
         return 0
-    prepared, tables, fenced = prepare_body(text)
+    prepared, fenced = prepare_body(text)
     if args.stdout:
         print(prepared)
     else:
         path.write_text(prepared, encoding="utf-8")
-    print(f"BODY-READY tables_converted={tables} html_fenced={fenced} file={path}")
+    print(f"BODY-READY html_fenced={fenced} file={path}")
     return 0
 
 
@@ -430,8 +374,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--project", help="override the project from the profile")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("boards")
-    sub.add_parser("lists")
     brief = sub.add_parser("brief")
     brief.add_argument("--message", help="comma-separated message ids (default: the profile's)")
     queue = sub.add_parser("queue")
@@ -447,8 +389,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args = ap.parse_args(argv)
     return {
-        "boards": cmd_boards, "lists": cmd_lists, "brief": cmd_brief, "queue": cmd_queue,
-        "open-facts": cmd_open_facts, "digest": cmd_digest, "body": cmd_body,
+        "brief": cmd_brief, "queue": cmd_queue, "open-facts": cmd_open_facts,
+        "digest": cmd_digest, "body": cmd_body,
     }[args.cmd](args)
 
 

@@ -15,7 +15,15 @@ bot: basecamp-project-store
 display_name: Project store
 tagline: "Run a project from its Basecamp board — read the brief, work the list, report back."
 
-version: 1.0.1   # bundle semver — a label over the delivered commit; bump on every change.
+version: 1.2.0   # bundle semver — a label over the delivered commit; bump on every change.
+                 # 1.2.0: stop carrying a command-line manual the tool ships itself. The
+                 # install now PINS the CLI version (it was tracking `latest`, which silently
+                 # moved behaviour under fixed prose) and has the tool write its own
+                 # version-matched manual to ~/.agents/skills/basecamp/SKILL.md; our reference
+                 # page shrank to the six behaviours that manual gets wrong or omits, each one
+                 # re-provable by scripts/check_upstream.py. Markdown TABLES render on the
+                 # board, so they are no longer flattened to bullets — the real trap is that
+                 # one raw HTML tag turns the whole body literal, which fencing fixes.
                  # 1.0.1: call the tool by its full path (~/.local/bin is on a LOGIN shell's
                  # PATH only, so a bare `basecamp …` fails on the box it is installed on);
                  # preflight reports the resolved path.
