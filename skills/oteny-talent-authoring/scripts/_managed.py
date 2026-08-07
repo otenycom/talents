@@ -29,9 +29,10 @@ from pathlib import Path
 # copies use).
 DEFAULT_SKILLS = (
     "index-reconciler", "oteny-cron-authoring", "oteny-set-timezone", "oteny-drop",
-    "oteny-investigate", "oteny-web-operator", "oteny-remember-login", "oteny-web-search",
-    "oteny-travel", "oteny-read-document", "oteny-analyze-video", "oteny-youtube-transcript",
-    "oteny-connect-credential", "oteny-file-search", "oteny-sites",
+    "oteny-investigate", "oteny-web-operator", "oteny-browser-cdp", "oteny-remember-login",
+    "oteny-web-search", "oteny-travel", "oteny-read-document", "oteny-analyze-video",
+    "oteny-youtube-transcript", "oteny-connect-credential", "oteny-file-search",
+    "oteny-sites",
 )
 
 # The author-on-ramp dirs are managed infra, never owner-authored (D154). They may or

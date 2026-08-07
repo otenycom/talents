@@ -162,49 +162,22 @@ add **context-aware reads** (not keyword matches) — see
   correctly." If you can't write a one-line check for it, it's underspecified.
 
 ### 3. First-run is mechanical, idempotent, in `references/`, and approval-clean
-Six graded rules; the failure chains and worked examples are in
+Six graded rules — drill in **`references/first-run.md`** (not the body, D57);
+declared scripts only (no improvised exec); cron pins `model`+`provider` as a
+persona alias; one `sqlite3` per terminal call; readiness scripts are pure-stdlib
+and never hard-fail (D237); third-party feature scripts ship a uv lock +
+`talent-run`; collapse the per-turn preamble to one preflight (D38). Failure
+chains + worked examples:
 [`references/first-run-authoring.md`](references/first-run-authoring.md).
-- The first-run drill lives in **`references/first-run.md`** (pulled only when the guard
-  says NOT-READY), **not** the `SKILL.md` body (D57); it is **copy-paste-exact**, opens
-  with a **one-line guard** (READY ⇒ skip & act), covers **every** manifest class, and
-  **loops to a re-check** → READY.
-- **Declared scripts only — never improvised exec** (D57): schema lives **once** in
-  `scripts/*.sql`; no inline `CREATE TABLE`/`python3 -c`/heredoc (the approval gate
-  stalls the bot). Remediation is **idempotent**.
-- **Cron jobs MUST pin `model` + `provider`** (D40) as a **persona alias** (D55,
-  fallback `assistant`), never the raw OpenRouter slug — an un-pinned job silent-fails.
-- Honors the runtime hard rules (live `food-tracker`): **one `sqlite3` invocation per
-  terminal call; never chain INSERT+SELECT; keep non-ASCII out of SQL output.**
-- **Readiness scripts are pure-stdlib and NEVER hard-fail on a missing system/apt dep**
-  (D237) — degrade to a clean NOT-READY, never a traceback; the first-run/critical path
-  never depends on a third-party import (feature deps → uv lock + `talent-run`, next bullet).
-- **Feature scripts that import third-party libs ship a uv lock** — `pyproject.toml` +
-  `uv.lock` + `.python-version` at the Talent root; invoke via `talent-run <slug>
-  <rel-script>` (or `uv run --project …`). The shim takes a **relative script path**
-  under the Talent root — not `python -c`. The platform syncs the env at converge into
-  `~/.hermes/runtimes/<slug>/` (one env per slug). System python on the bot does **not**
-  provide those libs — never teach bare `python3` for feature scripts. Lint enforces
-  the lock when third-party imports are present. Worked examples:
-  `oteny-flatbelly-talent`, `oteny-travel-talent`. See glossary **Talent uv runtime**.
-- **Collapse the per-turn preamble** (D38): the triage's first action is a **single**
-  `preflight`-style call with hot intents inlined in `SKILL.md` — not 4–5 probe calls +
-  a reference load.
 
 ### 4. PII / secrets clean (method, not person) — and generic, not baked for one body
-- No personal data, no real tokens/keys, no hardcoded chat/user ids. Tenant
-  specifics come from the profile/intake, never baked.
-- Method facts stay (rules, ratios, formats); body/account specifics go.
-- **Owner settings live in the profile/override (D34/D53), not the bundle.** Delivered
-  files carry only generic **defaults**; an owner-specific setting with **no safe
-  default** (which project/account/location) gets **no baked value** — the bot asks the
-  owner and `selfcheck` flags it unset. Never bake one tenant's value (project, timezone,
-  name) as a default. (Worked fix: `backup-odoo-sh-database`.)
-- **Generic & derived, not tuned to the source user.** Numbers that remain must fit any
-  tenant: rates as **%/relative** (not one user's absolute kg), targets **per-unit or
-  derived from the profile**, the path **derived from the tenant's own data** (obese →
-  lean athlete) — never a curve calibrated to one body. Scan for tell-tale source-user
-  magnitudes (a specific start weight, a personal lab value).
-- Gate: ``grep -riE 'name-of-source-user|real_token|DEFAULT_TOKEN|[0-9]{8,}|api[_-]?key' <bundle>`` returns nothing meaningful.
+No personal data, tokens, or hardcoded chat/user ids. Method facts stay; body/
+account specifics go. Owner settings live in the profile/override (D34/D53), not
+the bundle — delivered files carry only generic defaults. Numbers that remain
+must fit any tenant (%/relative, per-unit, derived from the profile) — never
+tuned to one source user. Gate:
+``grep -riE 'name-of-source-user|real_token|DEFAULT_TOKEN|[0-9]{8,}|api[_-]?key' <bundle>``
+returns nothing meaningful.
 
 ### 5. Routing declared (not hand-edited into SOUL)
 - A `routing` declaration: a per-group `channel_prompt` (persona **and** a "load
