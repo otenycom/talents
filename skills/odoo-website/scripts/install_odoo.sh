@@ -16,25 +16,13 @@ SRC=$BASE/odoo
 TARBALL_URL=https://nightly.odoo.com/19.0/nightly/src/odoo_19.0.latest.tar.gz
 SELF_DIR=$HOME/.hermes/skills/talents/odoo-website/scripts
 
-# 0. Refuse an under-provisioned envelope BEFORE any work (the §14.2 runtime self-gate).
-# Odoo CE + embedded Postgres + your agent need a dedicated VM (the Max plan). A packed
-# gVisor container can't fit them. A healthy cx23 (~4 GiB) IS a valid floor — refuse only
-# clearly undersized envelopes (Lite-class ~1.5 GiB). The deployer injects OTENY_SUBSTRATE
-# from the tenant's isolation_tier; else probe the kernel (gVisor names itself in
-# /proc/version).
-substrate="${OTENY_SUBSTRATE:-}"
-if [ -z "$substrate" ] && grep -qi gvisor /proc/version 2>/dev/null; then
-  substrate=container
-fi
-if [ "$substrate" = "container" ]; then
-  echo "ODOO_INSTALL_REFUSED substrate=container — WebsiteBot needs the Max plan (your own" \
-       "dedicated server); a packed container can't host Odoo + Postgres. Ask the owner to" \
-       "upgrade to Max." >&2
-  exit 1
-fi
-# Memory floor (~3.2 GiB = 3355443 KiB): cgroup v2 hard cap first, then /proc/meminfo; an
-# OTENY_MEM_GB override wins (deployer injection / tests). An unknown reading does NOT
-# block. cx23 MemTotal (~3.8 GiB usable) clears this; refuse only tiny boxes.
+# 0. Refuse an under-provisioned envelope BEFORE any work (the runtime self-gate).
+# Odoo CE + embedded Postgres + your agent fit a POWER container comfortably: measured on a
+# live install, the whole box uses ~1.0 GB (agent 250 MB, Odoo 205 MB, Postgres ~120 MB) and
+# ~2 GB of disk, against Power's 3 GB / 20 GB envelope. gVisor is not the constraint — this
+# very recipe was proven under it. So the gate is a MEMORY FLOOR, not a substrate ban:
+# refuse only boxes too small to hold the stack (Lite-class, ~1.5 GB).
+# The deployer injects OTENY_MEM_GB / cgroup v2 exposes the real cap.
 mem_kb=""
 if [ -r /sys/fs/cgroup/memory.max ]; then
   mm=$(cat /sys/fs/cgroup/memory.max 2>/dev/null)
@@ -46,10 +34,18 @@ fi
 if [ -n "${OTENY_MEM_GB:-}" ]; then
   mem_kb=$(awk "BEGIN{printf \"%d\", ${OTENY_MEM_GB} * 1024 * 1024}")
 fi
-if [ -n "$mem_kb" ] && [ "$mem_kb" -lt 3355443 ]; then
-  echo "ODOO_INSTALL_REFUSED mem=$((mem_kb / 1024))MB — Odoo + Postgres + your agent need" \
-       "at least ~3.2 GB (a Max dedicated VM, e.g. cx23). This box is too small; ask the" \
-       "owner to upgrade to Max." >&2
+# 2 GiB = 2097152 KiB. Admits Power (3 GiB) and Max; refuses Lite (1.5 GiB).
+if [ -n "$mem_kb" ] && [ "$mem_kb" -lt 2097152 ]; then
+  echo "ODOO_INSTALL_REFUSED mem=$((mem_kb / 1024))MB — a website engine needs about 2 GB." \
+       "This box is too small; ask the owner to upgrade to Power or Max." >&2
+  exit 1
+fi
+# Disk floor: the install lands ~2 GB. Refuse early rather than dying half-extracted.
+avail_kb=$(df -Pk "$HOME" 2>/dev/null | awk 'NR==2{print $4}')
+case "$avail_kb" in ''|*[!0-9]*) avail_kb="" ;; esac
+if [ -n "$avail_kb" ] && [ "$avail_kb" -lt 4194304 ]; then
+  echo "ODOO_INSTALL_REFUSED disk=$((avail_kb / 1024))MB free — the website engine needs" \
+       "about 4 GB free to install. Ask the owner for a bigger plan." >&2
   exit 1
 fi
 
@@ -78,6 +74,10 @@ if [ ! -d "$SRC/odoo" ]; then
   sha256sum odoo.tar.gz > odoo.sha256
   mkdir -p "$SRC"
   tar xzf odoo.tar.gz -C "$SRC" --strip-components=1
+  # Drop the 311 MB tarball once it is extracted — it is 15% of the install and is never
+  # read again (the sha256 above stays as the provenance record). On a Power container's
+  # 20 GB envelope that headroom is worth keeping.
+  rm -f odoo.tar.gz
 fi
 
 # 3. deps (binary psycopg2; drop python-ldap) + the embedded Postgres

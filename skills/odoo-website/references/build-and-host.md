@@ -81,7 +81,7 @@ Read `build_backend` + `odoo_locus` from `~/.hermes/data/odoo-website/profile.ya
 | **`json2`** | Odoo Online / remote, or local opt-in | `site_rpc.py` |
 
 - **Online/remote:** custom module **impossible** — always `json2`.
-- **Not on Max but wants module:** tell them to send `/oteny_subscribe upgrade max`.
+- **Box too small for a module:** tell them to send `/oteny_subscribe upgrade power`.
 - Never invent a third stack. Never `python -m http.server` / `oteny-drop`.
 
 | Do | Don't |
@@ -168,6 +168,7 @@ on local, or Apps on Online.
 
 ### Limits (honest)
 
-- First local install on Max: usually **~3–5 minutes**. Later starts are seconds.
+- First local install: usually **~3–5 minutes** on Max, longer on Power (one core).
+  Later starts are seconds.
 - Module backend needs **Max**. Online/remote: any plan, JSON-2 only.
 - The site is only live while the bot is **active**.

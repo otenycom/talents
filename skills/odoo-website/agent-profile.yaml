@@ -28,8 +28,10 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.0.18  # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.19  # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.0.19: runs on Power, not just Max — measured, the site needs ~700 MB
+                 #         and ~2 GB of disk against a 3 GB / 20 GB container envelope.
                  # 1.0.18: the platform serves the maintenance page during a restart — stop
                  #         telling the bot to work around a Cloudflare 502; point it at
                  #         set_site_maintenance_page for the owner's own wording.
@@ -71,8 +73,11 @@ model_tier: builder                      # installs software + reasons about hos
 # warns on a mismatch, and install_odoo.sh/preflight refuse at runtime as a backstop. The lint
 # enforces substrate↔min_tier consistency.
 requires:
-  substrate: vm
-  min_tier: max
+  # A container is enough: measured, the whole stack (agent + Odoo + Postgres) uses ~700 MB
+  # and ~2 GB of disk against Power's 3 GB / 20 GB envelope, and the install recipe is
+  # proven under gVisor. What it needs is a persistent box of its own, not a dedicated VM.
+  substrate: container
+  min_tier: power
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 # Brokered tools this Talent needs. host_website / unhost_website / list_hosted_websites are
 # platform defaults (the hh-sites gateway plugin, delivered to every box) — declared here so

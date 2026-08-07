@@ -95,9 +95,11 @@ def test_set_homepage_rewrites_xml(mod, tmp_path, monkeypatch):
     assert "Bring snacks" in xml
 
 
-def test_docs_mention_upgrade_max_command():
+def test_docs_give_the_exact_upgrade_command():
+    """An owner cannot act on "get a bigger plan" — the docs must carry the literal command
+    the bot tells them to send. Power, not Max: the site runs on a container now."""
     root = Path(__file__).resolve().parents[2]
     first = (root / "references/first-run.md").read_text(encoding="utf-8")
     skill = (root / "SKILL.md").read_text(encoding="utf-8")
-    assert "/oteny_subscribe upgrade max" in first
-    assert "/oteny_subscribe upgrade max" in skill
+    assert "/oteny_subscribe upgrade power" in first
+    assert "/oteny_subscribe upgrade power" in skill

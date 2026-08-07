@@ -121,8 +121,9 @@ def main() -> int:
           f"site_name={profile.get('site_name') or '-'} "
           f"site_slug={profile.get('site_slug') or '-'} "
           f"language={profile.get('language') or '-'}")
-    # The effective envelope — so the persona (and install_odoo.sh) can refuse an
-    # under-provisioned box and tell the owner to upgrade to the Max plan (§14.2).
+    # The effective envelope — so the persona (and install_odoo.sh) can refuse a box that
+    # is genuinely too small. The bar is MEMORY (~2 GB), not the substrate: a Power
+    # container holds the whole stack with room to spare.
     mem = _mem_gb()
     print(f"SUBSTRATE: {_substrate()}")
     print(f"TIER: {os.environ.get('OTENY_TIER') or '-'}")

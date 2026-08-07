@@ -22,13 +22,13 @@ address, then ask — in one or two short messages — until you have answers:
    - **Odoo Online / their own Odoo URL** → remote; say clearly: **a custom Odoo module
      is impossible** there (config via API only)
 6. **How to build** (local only) — if unsure, default to a **custom module**. If they want
-   a module but this bot is **not on Max**, stop and tell them to send exactly:
+   a module but this bot's box is **too small**, stop and tell them to send exactly:
 
    ```
-   /oteny_subscribe upgrade max
+   /oteny_subscribe upgrade power
    ```
 
-   Then come back. Do not install until they are on Max.
+   Then come back. Do not install until the box is big enough.
 
 **Hard stop until they answer.** First reply = intake only — no install, no publish, no
 HTML, no browser, no `oteny-drop` / `drop.oteny.bot`.
@@ -67,7 +67,8 @@ Render:
 
 ### Install Odoo (local Max only)
 
-Tell them: "Setting up your website engine — usually a few minutes on Max (~3–5); I'll
+Tell them: "Setting up your website engine — usually a few minutes (~3–5, longer on a
+smaller box); I'll
 ping you when it's ready." Do **not** say 30 minutes. Then:
 
 ```
