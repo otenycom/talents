@@ -17,32 +17,31 @@ running on bots before the shop shows it — the two update independently.
 
 ## Publishing
 
-Publishing is how your bundle enters the **catalog** (`hh.talent`) — the single index that
-every surface reads from. There are two ways in, depending on where you authored it:
+Publishing is how your bundle enters the **catalog** — the single index every surface
+reads from. There are two ways in, depending on where you authored it:
 
 - **You authored it in a git repo** (the developer path). Open a PR to the catalog repo;
   the same lint + behavioral tests that gate delivery run in CI (`oteny-talent-lint` — the
-  authoring standard). On merge it becomes available, and a delivery belt re-delivers it
-  to any bot that has it within a few minutes — no operator step. Cut a release tag to
-  move it to production owners; roll back by re-tagging.
+  authoring standard). On merge it becomes available, and it is re-delivered to every bot
+  that already has it within a few minutes — nobody at Oteny has to do anything. Cut a
+  release tag to move it to production owners; roll back by re-tagging.
 - **Your bot built it for you on the box** (the owner path). Ask your bot to *publish my
   Talent*. It runs a **self-check** against the same standard and grades it green / yellow
-  / red; on a clean pass it queues a **publish request** that Oteny drains into a review
-  queue. An operator reviews the rendered bundle and promotes it into the catalog. (Ask
-  for a *health report* any time to see which of your Talents are share-ready and what to
-  fix.)
+  / red; on a clean pass it files a **publish request** that lands in Oteny's review queue.
+  Someone at Oteny reads the rendered bundle and promotes it into the catalog. (Ask for a
+  *health report* any time to see which of your Talents are share-ready and what to fix.)
 
 Either way the **lint is the gate** — a Talent that already follows the standard sails
 through, and a deeper **safety validation** (next) runs before it can affect a customer.
 Once in the catalog a Talent lists as **Community** (merged, works, not yet hand-reviewed)
 and can earn the **Verified** mark after Oteny curation. Reputation rises on clean automated
-test runs and is dinged by community flags; enough flags auto-quarantine a listing until an
-operator clears it.
+test runs and is dinged by community flags; enough flags pull a listing off the shelf until
+someone at Oteny clears it.
 
 **What you control:** the bundle itself and its presentation. **What the platform does:**
-sanitizes per-tenant state out, lint-gates, records the catalog row, and keeps every owner's
-copy fresh. You never edit the catalog row by hand — it is seeded from your bundle, so the
-bundle is the source of truth.
+strips out anything specific to the bot your bundle came from, runs the lint, lists it in
+the catalog, and keeps every owner's copy fresh. You never edit the catalog entry by hand —
+it is built from your bundle, so the bundle is the source of truth.
 
 ## Validation
 
@@ -82,9 +81,9 @@ scope-safety and red-team checks are Oteny's to run.)
 **What passing buys you.** A Talent that clears both checks lists as **Community** and is
 eligible for the **Verified** mark after Oteny curation — the signal a customer trusts when they
 pick a bot off the shelf. And because every attack is generated from *your own declared scope*,
-there is no secret exam and nothing to game: a tighter, more honest bundle — minimal toolset, a
-fenced portal, least-privilege access, a fail-closed playbook — is simply what makes the attacks
-bounce off.
+there is no secret exam and nothing to game: a tighter, more honest bundle — the smallest set of
+tools that does the job, a fenced portal, access limited to exactly what the work needs, and a
+playbook that stops rather than guesses — is simply what makes the attacks bounce off.
 
 ## Discovery
 
@@ -118,36 +117,36 @@ keep it stable.
 
 ## Installation
 
-"Install" means your bundle reaches a bot's box and starts running. Under the hood every
-Talent is delivered the same way — an **overlay of the bundle files into the bot's private
-box** — so "install" is really just *the moment your bundle enters that bot's delivered
-set*. There are two moments that happens:
+"Install" means your bundle reaches a bot's box and starts running. Every Talent gets there
+the same way — **your bundle's files are copied into the bot's private box** — so "install"
+is really just *the moment your bundle joins what that bot has been given*. There are two
+moments that happens:
 
 - **On launch (the bot arrives in-role).** When someone starts a bot through your Talent's
-  deep link, the new bot is **provisioned already being your Talent** — your bundle is
-  delivered and focused at commission, so it is your Talent from the first message. This is
-  the *preferred-Talent* path: the deep link carries your slug, and the front door hands the
-  new owner a bot that opens in-role.
+  deep link, the new bot is **built already being your Talent** — your bundle is delivered
+  and focused while the bot is being set up, so it is your Talent from the first message.
+  This is the *preferred-Talent* path: the deep link carries your slug, and the front door
+  hands the new owner a bot that opens in-role.
 - **On request (added to an existing bot later).** An owner opens their **per-owner store**
   (their private shelf of what they have and can add) and taps **Add to my bot**. That
-  records the intent; the next delivery pass overlays your bundle onto their box within a few
-  minutes and the bot introduces the new capability in chat. Adding is **entitlement-gated**
-  (a private Talent only for its owning business) and **plan-gated** (a Talent that needs a
-  heavier machine only on a plan that provides it — the store shows an upgrade prompt instead
-  of a broken install).
+  records the request; the next delivery round copies your bundle onto their box within a few
+  minutes and the bot introduces the new capability in chat. Adding checks two things: that
+  they are allowed it (a private Talent only for its owning business) and that their plan
+  covers it (a Talent that needs a heavier machine shows an upgrade prompt rather than a
+  broken install).
 
 After that first install, your bundle rides the bot like any other: it is preserved across
 updates, backed up, and — for a git-published Talent — **re-delivered automatically within
 ~5 minutes** whenever you push a change to its source. You ship an improvement; every owner
-gets it, no operator step.
+gets it, with nobody at Oteny in the loop.
 
 ## What you declare vs what the platform binds
 
 You bring the content; the platform renders and runs it — you never hand-build a page or
 wire a delivery:
 
-- **The persona + skills** (`agent-profile.yaml`) → the scope-lock harness, delivery, and
-  metering.
+- **The persona + skills** (`agent-profile.yaml`) → the locked scope the bot runs inside,
+  the delivery, and what its usage costs.
 - **`display_name`, `tagline`, `long_md`, `category`, `price`** → the Bot Market card and
   landing page.
 - **`icon.png`, `teaser.yaml`** → the card mark and the sample-chat demo.
@@ -169,7 +168,7 @@ only thing that is yours.
   [`export-import.md`](./export-import.md).
 - **Store presentation** — the icon + teaser assets your landing page renders from:
   [`store-presentation.md`](../../talent-authoring-standard/references/store-presentation.md).
-- **The safety gate up close** — the scope-lock and red-team checks a business bot is graded
+- **The safety gate up close** — the scope and red-team checks a business bot is graded
   on, and how to keep your contract clean:
   [`business-bot-pattern.md`](../../talent-authoring-standard/references/business-bot-pattern.md)
   (§2b).
