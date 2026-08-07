@@ -1,0 +1,25 @@
+# Which board this bot works, and which part of it is the bot's own.
+# Rendered to ~/.hermes/data/basecamp-project-store/profile.yaml during the connect drill.
+# Per-owner state — it lives here, never in the delivered bundle, and a re-delivery of the
+# skill never touches it.
+
+# The board (both come straight out of an app.basecamp.com link).
+account_id: ""
+project_id: ""
+project_name: ""          # for readable replies; cosmetic
+
+# The ONE to-do list the bot owns: it reads, ticks and comments here and nowhere else.
+work_todolist_id: ""
+
+# Lists the bot may READ before it finishes a piece of work (open questions, blockers).
+# Comma-separated ids; empty is fine. Read-only — never tick or comment on these.
+read_todolist_ids: ""
+
+# The message(s) that hold the rules and the literal copy for the job.
+# Comma-separated ids; empty is fine.
+brief_message_ids: ""
+
+# The recurring digest, if the owner asked for one. Empty means no digest exists.
+digest_chat: ""           # where the summary goes
+digest_time: ""           # local time, e.g. "09:00"
+timezone: ""              # the timezone digest_time is written in

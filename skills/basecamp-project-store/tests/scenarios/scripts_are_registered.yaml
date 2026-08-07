@@ -1,0 +1,16 @@
+# Scenario: the deterministic layer runs on a cold, unconnected box.
+#
+# The only scenario that runs OFFLINE — it needs no board, no sign-in and no model. It proves
+# the two things a broken delivery would break first: the readiness call works on a box that
+# has never seen Basecamp, and the body-preparation script is really in the bundle and really
+# runs. (What the preparation script PRODUCES is asserted in tests/unit, where a file-based
+# Talent can be checked properly; the mock backend only grounds truth in a database.)
+bot: basecamp-project-store
+
+turns:
+  - user: "(no owner message — a cold-box check)"
+    expect:
+      tool_calls:
+        - script: scripts/preflight.py
+        - script: scripts/project_store.py
+          args: ["body", "--file", "tests/fixtures/rates.md", "--stdout"]

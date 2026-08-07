@@ -1,0 +1,49 @@
+# basecamp-project-store — the declared setup goal.
+#
+# selfcheck.py walks this; references/connect.md is the drill that drives toward it. Until an
+# owner connects a board this bot is legitimately NOT-READY, and that is the honest verdict:
+# nothing here is a delivery gate except the bundle's own files.
+bot: basecamp-project-store
+base_language: en
+
+artifacts:
+  - kind: tools
+    # Shipped WITH the bundle. Missing ⇒ the delivery itself is broken, so this one blocks.
+    present_if_file:
+      project_store: ~/.hermes/skills/talents/basecamp-project-store/scripts/project_store.py
+      connect_auth: ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py
+      install_cli: ~/.hermes/skills/talents/basecamp-project-store/scripts/install_cli.sh
+    stubbed: []
+
+  - kind: tools
+    # INSTALLED BY THE AGENT when the owner connects a board (a single downloaded binary).
+    # Never a delivery gate: a box whose owner has no board must still converge clean.
+    blocking: false
+    present_if_file:
+      basecamp_cli: ~/.local/bin/basecamp
+    stubbed: []
+
+  - kind: profile
+    path: ~/.hermes/data/basecamp-project-store/profile.yaml
+    # account_id + project_id say WHICH board; work_todolist_id says which list is the bot's
+    # own — without it the bot has no way to tell its work queue from somebody's private plan.
+    required_fields: [account_id, project_id, work_todolist_id]
+
+  - kind: memory
+    path: ~/.hermes/data/basecamp-project-store/memory.md
+    label: project memory
+    blocking: false          # accrues while the job runs; never a hard gate
+    remediation: "connect drill §profile: render memory.md from profile/memory.md.template"
+
+  - kind: cron
+    jobs_path: ~/.hermes/cron/jobs.json
+    jobs: []                 # nothing is scheduled by default — the digest is opt-in
+    gated_jobs:
+      - name: "Basecamp project digest"
+        enabled_when: "the owner asks for a recurring summary of the board"
+
+  - kind: routing
+    config_path: ~/.hermes/config.yaml
+    platform: telegram
+    signature: "basecamp-project-store"   # DM-first: the native skill index routes, so this
+                                          # auto-satisfies (no group binding required)

@@ -1,0 +1,52 @@
+# basecamp-project-store — the project-store skill every Oteny bot ships with.
+#
+# NOT a storefront Talent: it is a standard capability delivered to every box, so it is
+# deliberately INERT until an owner points it at a board. Two consequences for this file,
+# and both are load-bearing — do not "complete" them:
+#
+#   * NO `model_tier:` and NO `toolset_contribution:`. A profile that ships on every box is
+#     read fleet-wide when the agent config is rendered, and the FIRST bundle that declares
+#     either one sets it for the WHOLE bot. Declaring a persona or a toolset lock here would
+#     silently re-tier or fence every customer's bot. This skill needs neither: it drives a
+#     command-line tool through the terminal the agent already has.
+#   * NO `connections:` and no group binding. Nothing outbound happens until the owner
+#     connects a board of their own.
+bot: basecamp-project-store
+display_name: Project store
+tagline: "Run a project from its Basecamp board — read the brief, work the list, report back."
+
+version: 1.0.0   # bundle semver — a label over the delivered commit; bump on every change.
+                 # 1.0.0: first release — connect a board, read the brief, work one list,
+                 # post safely (tables → bullets, HTML fenced), optional daily digest.
+
+# The skills delivered together (one skill, one concern).
+skills:
+  - basecamp-project-store
+
+base_language: en   # the BUNDLE's authoring language. The bot replies in the owner's own
+                    # language on the fly; never hardcode an owner language here.
+
+# Hardware need: none beyond an ordinary box. The command-line tool is a single statically
+# linked binary plus a config dir, so this runs on the cheapest plan — unlike a skill that
+# installs a server. `container` is the packed substrate; `lite` the cheapest plan providing it.
+requires:
+  substrate: container
+  min_tier: lite
+
+delivery: baked   # shipped with every bot, never sold or purchased
+price: free
+
+# Routing: DM-first. The native skill index nominates this skill from the description above;
+# there is no group to bind and no channel prompt to install, so nothing is written to the
+# agent's config until the owner connects a board.
+routing:
+  signature: "basecamp-project-store"
+
+# NO `crons:` cost policy here, and that is correct: the digest is OPT-IN (declared as a
+# gated job, never a required one), so there is no always-on schedule to price. The literal
+# cost budget the digest job must be created with — the cheap model, a bounded turn count —
+# is in references/digest.md, where the job is actually created.
+
+# This bot's own project memory (per-skill, never the shared identity file — that belongs to
+# whichever Talent owns the bot's persona, and this skill must not overwrite it).
+seed_domain_memory: profile/memory.md.template

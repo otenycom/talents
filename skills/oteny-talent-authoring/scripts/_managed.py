@@ -32,7 +32,7 @@ DEFAULT_SKILLS = (
     "oteny-investigate", "oteny-web-operator", "oteny-browser-cdp", "oteny-remember-login",
     "oteny-web-search", "oteny-travel", "oteny-read-document", "oteny-analyze-video",
     "oteny-youtube-transcript", "oteny-connect-credential", "oteny-file-search",
-    "oteny-sites",
+    "oteny-sites", "basecamp-project-store",
 )
 
 # The author-on-ramp dirs are managed infra, never owner-authored (D154). They may or

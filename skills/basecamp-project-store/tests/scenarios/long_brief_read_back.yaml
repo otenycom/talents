@@ -1,0 +1,33 @@
+# Scenario: a specification too long for a chat message.
+#
+# The whole reason the store exists: the owner posts a brief that would not fit in one message,
+# then says "read it and start". The bot must go and READ it from the board rather than asking
+# the owner to paste it, and it must work from the literal content — the prices as written,
+# not rounded or "corrected".
+#
+# LIVE-ONLY (no database to ground an offline assertion in).
+bot: basecamp-project-store
+live_only: true
+
+seed:
+  # A connected box. The live harness renders this profile; the offline backend skips.
+  profile:
+    account_id: "12345"
+    project_id: "67890"
+    project_name: "Demo board"
+    work_todolist_id: "111"
+    brief_message_ids: "222"
+
+turns:
+  - user: "read the brief on the board and tell me what the job is"
+    expect:
+      reply:
+        # summarises what it read from the board rather than asking for a paste
+        contains_any: ["brief", "board", "read"]
+      trace:
+        loads_skill: basecamp-project-store
+  - user: "what does it say the price of a beard trim is?"
+    expect:
+      reply:
+        # quotes the board this turn — never a remembered or rounded number
+        contains_any: ["35", "beard"]

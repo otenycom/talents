@@ -1,0 +1,29 @@
+# basecamp-project-store — clone neutralize.
+#
+# The outbound vector is the board itself: a disposable clone of a real owner's box inherits
+# that owner's signed-in command-line tool and their project ids, so an inherited digest job
+# would post into the REAL customer's project — visible to their team and, if the project has
+# clients, to the client company. The digest is opt-in, so a clone only inherits it when the
+# real owner had turned it on; that is exactly the case this file exists for.
+#
+# Run at clone time with the gateway stopped; check_neutralize.py then refuses to start the
+# gateway until every step below has been applied.
+bot: basecamp-project-store
+
+steps:
+  - id: 0001_disable_digest_cron
+    kind: crons
+    summary: >-
+      Disable the recurring board digest so a clone never posts into, or reports on, the real
+      owner's project. A clone inherits the source box's job list, so it is disarmed here.
+    crons:
+      disable:
+        - "Basecamp project digest"
+
+  - id: 0002_confirm_board_is_not_live
+    kind: checklist
+    summary: >-
+      A clone keeps the source's signed-in credentials and project ids until an operator
+      repoints or clears them. Before the clone serves a turn, confirm it points at a test
+      board or at nothing at all.
+    ref: references/neutralize.md

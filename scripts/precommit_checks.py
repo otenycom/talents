@@ -33,9 +33,14 @@ def _run(label: str, argv: list[str], env: dict | None = None) -> bool:
 def main() -> int:
     steps: list[tuple[str, list[str], dict | None]] = []
 
-    # bundle-tests.yml step 1 — the marketable-Talent unit tests (incl. PII-clean + teasers).
+    # bundle-tests.yml step 1 — the marketable-Talent unit tests (incl. PII-clean + teasers),
+    # plus any unit tests a bundle keeps beside its own scripts (`skills/*/tests/unit/`). The
+    # standard tells authors to put them there, so the gate has to collect them — otherwise a
+    # bundle's own tests are written, pass once on the author's machine, and never run again.
+    unit_dirs = sorted({str(Path(p).parent)
+                        for p in glob.glob("skills/*/tests/unit/test_*.py", root_dir=REPO)})
     steps.append(("Bundle unit tests (pytest)",
-                  [sys.executable, "-m", "pytest", "tests/", "-q"],
+                  [sys.executable, "-m", "pytest", "tests/", *unit_dirs, "-q"],
                   {"PYTHONPATH": "tests"}))
 
     # bundle-tests.yml step 2 — behavioral scenarios on the offline mock backend (if any).

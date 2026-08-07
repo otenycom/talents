@@ -1,0 +1,29 @@
+# Scenario: the bot works its own list and ticks what it finished.
+#
+# "How far are you?" must be answered from the board, and a finished piece of work must leave a
+# comment AND a ticked todo — so the trail survives, not just the closure.
+#
+# LIVE-ONLY (no database to ground an offline assertion in).
+bot: basecamp-project-store
+live_only: true
+
+seed:
+  profile:
+    account_id: "12345"
+    project_id: "67890"
+    project_name: "Demo board"
+    work_todolist_id: "111"
+
+turns:
+  - user: "what's left to do?"
+    expect:
+      reply:
+        # reports the open items from the bot's OWN list
+        contains_any: ["open", "left", "list"]
+      trace:
+        loads_skill: basecamp-project-store
+  - user: "the home page is done, tick it off"
+    expect:
+      reply:
+        # confirms it both recorded what it did and ticked the item
+        contains_any: ["done", "ticked", "complete"]

@@ -1,0 +1,27 @@
+# Scenario: the anti-spam case that makes a daily job tolerable.
+#
+# A summary run on a day when nothing moved must send NOTHING — not "no changes today". A
+# recurring job that speaks every day is noise within a week, and noise gets the whole feature
+# switched off. The digest command answers NO-CHANGES; the bot must then stay silent.
+#
+# LIVE-ONLY (no database to ground an offline assertion in). The change detection itself is
+# proven deterministically in tests/unit.
+bot: basecamp-project-store
+live_only: true
+
+seed:
+  profile:
+    account_id: "12345"
+    project_id: "67890"
+    project_name: "Demo board"
+    work_todolist_id: "111"
+    digest_time: "09:00"
+
+turns:
+  - user: "run the daily summary now — nothing has changed since the last one"
+    expect:
+      reply:
+        # says there is nothing to report; does NOT compose or post a summary
+        contains_any: ["nothing", "no change", "quiet"]
+      trace:
+        loads_skill: basecamp-project-store
