@@ -1270,6 +1270,58 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
+### `set_site_maintenance_page` — Brand the maintenance page
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Set the branded page visitors see while your site is briefly down — during a deploy, a restart, or an outage. Without this they get Oteny's default 'we'll be right back' page; with it they get yours. Pass `html` (a COMPLETE self-contained HTML document, max 8000 characters, INLINE CSS only — no images, fonts, scripts or links to your own site, because your site is exactly what is unreachable at that moment). Pass an empty `html` to go back to the Oteny default. Optional `site_slug` (defaults to your only site). The page is served by our edge, not by your box, so it still appears when the box itself is down. Served at HTTP 503 so search engines never index it.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "html": {
+      "type": "string",
+      "description": "Complete self-contained HTML (≤8000 chars, inline CSS only). Empty string restores the Oteny default page."
+    },
+    "site_slug": {
+      "type": "string",
+      "description": "Optional site slug."
+    }
+  },
+  "required": [
+    "html"
+  ]
+}
+```
+
+**Result** — {ok, site_slug, using_default} — the page is live at the edge within a minute. `using_default: true` means the Oteny default is in use (you sent an empty `html`).
+
+**Errors / edges** — {error: 'that page is N characters — the limit is 8192 …'} when the HTML is too long · {error: 'no site of yours matched …'} for an unknown slug.
+
+**Example**
+
+```json
+{
+  "html": "<!DOCTYPE html><html><body><h1>Back in a moment</h1></body></html>",
+  "site_slug": "my-shop"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "site_slug": "my-shop",
+  "using_default": false
+}
+```
+
+**Authoring notes** — Served by Cloudflare, not by the box — so it still appears when the box itself is down. Must be ONE self-contained document with inline CSS: no images, fonts or scripts, because the site hosting them is what is unreachable. Served at HTTP 503 so it is never indexed.
+
 ### `attach_site_domains` — Attach a custom domain
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*

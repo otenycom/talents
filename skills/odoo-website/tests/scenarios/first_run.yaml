@@ -17,4 +17,5 @@ turns:
         # start installing or publishing before the owner has answered.
         contains_any: ["name", "address", "email"]
       trace:
-        loads_skill: odoo-website
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["odoo-website"]

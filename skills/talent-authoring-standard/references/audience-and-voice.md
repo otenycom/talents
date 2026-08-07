@@ -62,3 +62,22 @@ sections stay numbered and verifiable.
 No internal vocabulary in any shipped file (check 4 / [`copy-and-tools.md`](copy-and-tools.md)).
 `HermesHost`, `Dnn`, lifecycle milestone names, etc. belong in the platform design
 library, not in a Talent the owner (or a public catalog reader) sees.
+
+**The author-facing references are published too — hold them to the same bar.**
+[`publish-discover-install.md`](../../oteny-talent-authoring/references/publish-discover-install.md)
+is rendered verbatim as **oteny.com/bots/how-it-works**, so the third audience above is
+not a private one: an author is an outsider, and a word only Oteny can resolve is just as
+broken there as in owner chat. The words that slip in, and what to write instead: the
+catalog named by its Odoo model id → just **the catalog**; "a delivery belt" → **it is
+re-delivered**; "sanitizes per-tenant state out" → **strips out anything specific to the
+bot it came from**; a bundle "overlaid" onto a "provisioned" bot "at commission" → files
+are **copied into the bot's private box**, the bot is **built already being your Talent**;
+"the scope-lock harness … and metering" → **the locked scope, the delivery, and what its
+usage costs**; "no operator step" → **nobody at Oteny is in the loop**.
+
+**What stays:** the names you actually type — `agent-profile.yaml`, `long_md`,
+`teaser.yaml`, a tool name in Bot notes. Those are your interface, not jargon. The test is
+whether the reader can resolve the word from where they sit.
+
+Fix a failure **here**, then regenerate the page on Oteny's side (`scripts/bots_docs_to_website.py`);
+Oteny's test suite scans the rendered page, so a regression in this repo breaks their build.

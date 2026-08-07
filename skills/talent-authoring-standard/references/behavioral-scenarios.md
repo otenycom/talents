@@ -104,6 +104,29 @@ turns:
 | `nonempty: true` | the query returns ≥1 row (`false` = returns none) |
 | `table_exists: <name>` | a table `<name>` exists in the db |
 
+### Reply and trace matchers (live-only)
+
+`reply:` and `trace:` take **only** these keys. Both also accept a shorthand: a plain string
+under `reply:` is advisory (recorded, never failed), and a bare list under `trace:` is read as
+`markers:`.
+
+| block | key | passes when |
+|---|---|---|
+| `reply` | `contains: [...]` | **every** substring appears (case-insensitive) |
+| `reply` | `contains_any: [...]` | **at least one** substring appears |
+| `reply` | `not_contains: [...]` | none of the substrings appear |
+| `reply` | `regex: "..."` | the pattern matches |
+| `trace` | `markers: [...]` | every marker appears in the gateway-log text |
+| `trace` | `absent: [...]` | none of the markers appear |
+
+**Any other key is a hard failure, not a silent pass.** This is the rule, and it exists because
+the alternative was tried: eight scenarios across two bundles sat green for weeks behind
+`trace: loads_skill: <bundle>`, which is not a key the runner reads — so those turns asserted
+nothing while reading like coverage. To assert that a skill engaged, use the marker that is
+actually in the log: the bundle name, which reaches it through the `preflight.py` call every
+turn opens with.
+
+
 ## Adversarial red scenarios (business bots — the fail-closed proof)
 
 A happy-path scenario proves the bot *can* do the job; a **red scenario** proves it

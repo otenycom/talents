@@ -90,7 +90,29 @@ Read `build_backend` + `odoo_locus` from `~/.hermes/data/odoo-website/profile.ya
 | `ensure_site.sh` before local edits | Browser drag-and-drop as the primary editor |
 | `setup_admin.py` for admin/password / API-key | `odoo shell` / SQL password resets |
 | Confirm before first publish | Fall back to drop.oteny.bot |
-| Keep the app on the hosted `local_port` (8069) unless Oteny’s edge recipe says otherwise | `apt install` nginx, edit `/etc/nginx`, or move `http_port` freestyle to “fix” Cloudflare 502s — edge maintenance during restarts is a platform/recipe concern, not a one-off shell fix |
+| Keep the app on the hosted `local_port` (8069) | `apt install` nginx, edit `/etc/nginx`, or move `http_port` freestyle to "fix" a Cloudflare 502 — **the platform already serves a maintenance page** (below); a second one on the box only fights it |
+| `set_site_maintenance_page` when the owner wants their own wording | Hand-roll a maintenance page, or leave a restart looking like an outage |
+
+### While the site restarts — the platform handles it
+
+A deploy or a restart takes the site down for a few seconds. **You do not need to do
+anything about that.** Oteny serves a branded "we'll be right back" page at HTTP 503 for
+any request that arrives while the app (or the whole box) is unreachable — on
+`<slug>.oteny.bot` and on the owner's custom domain — and the platform restarts the app by
+itself within about a minute.
+
+If the owner wants their own wording or colours, call
+`set_site_maintenance_page(html, site_slug?)`. Rules that matter:
+
+- **One self-contained HTML document, max 8000 characters, inline CSS only.** No images,
+  fonts, scripts or links to their own site — their site is exactly what is unreachable
+  when this page shows.
+- Send an empty `html` to go back to the Oteny default.
+- Don't promise a return time you can't keep; "back in a few minutes" ages badly on a page
+  that might show during a longer outage.
+
+Never assert to the owner that their site is down "because of Cloudflare" — a Cloudflare
+error page means the app stopped answering, and the fix is the app.
 
 ### Admin credentials (bot-only file, local)
 

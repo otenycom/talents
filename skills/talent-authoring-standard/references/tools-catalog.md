@@ -74,6 +74,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `host_website` | `tools.required` | oteny-sites | live | Included | 🌐 Puts a web app your bot builds — a landing page, a shop, a booking page, a full site — online at your own address, served securely with no server to manage. |
 | `unhost_website` | `tools.required` | oteny-sites | live | Included | 🚫 Takes a hosted website offline. |
 | `list_hosted_websites` | `tools.required` | oteny-sites | live | Included | 📋 Lists the websites you have online. |
+| `set_site_maintenance_page` | `tools.required` | oteny-sites | live | Included | 🚧 Sets the page visitors see while your site is briefly down for an update. |
 | `attach_site_domains` | `tools.required` | oteny-sites | live | Included | 🔗 Points your own domain at a hosted website (CNAME to customers.oteny.bot; SSL automatic). |
 | `detach_site_domain` | `tools.required` | oteny-sites | live | Included | 🔓 Removes a custom domain from a hosted website. |
 | `list_site_domains` | `tools.required` | oteny-sites | live | Included | 📎 Lists custom domains on your hosted websites and their DNS status. |

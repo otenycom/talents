@@ -200,6 +200,15 @@
       "cost": "free"
     },
     {
+      "name": "set_site_maintenance_page",
+      "requestable_name": "set_site_maintenance_page",
+      "request_via": "tools.required",
+      "kind": "sites",
+      "group": "Host a website",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "attach_site_domains",
       "requestable_name": "attach_site_domains",
       "request_via": "tools.required",

@@ -40,8 +40,8 @@ turns:
           - "http.server"
           - "is live"
       trace:
-        loads_skill: odoo-website
-
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["odoo-website"]
   # 2) Answers + local module backend + install → exact READY phrase + site_module init.
   - user: >
       Call it Moon Skydive Club — jump from Starship, land on the Moon, bring snacks.
