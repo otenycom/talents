@@ -184,8 +184,14 @@ That's the whole gap between "a handy skill I made" and "a Talent worth publishi
 
 > For the whole picture — how a Talent is **published, discovered** on the Bot Market, and
 > **installed** onto a bot (on launch vs on request), and what you declare vs what the
-> platform renders — see [publish-discover-install.md](references/publish-discover-install.md)
-> (also published at [oteny.com/bots/how-it-works](https://oteny.com/bots/how-it-works)).
+> platform renders — see [publish-discover-install.md](references/publish-discover-install.md).
+>
+> **That file is the source of a public web page** — Oteny renders it verbatim as
+> [oteny.com/bots/how-it-works](https://oteny.com/bots/how-it-works). So edit it **here**
+> and let the page regenerate; never edit the page. And hold it to published-copy hygiene
+> ([`audience-and-voice.md`](../talent-authoring-standard/references/audience-and-voice.md)):
+> an author is an outsider too, so an Odoo model id or a platform-internal word in this
+> file ships straight onto oteny.com — where a test on Oteny's side now fails the build.
 
 When a Talent is solid, I can submit it. **Author it share-ready from the start so it
 promotes clean the first try** — the promote step sanitizes per-tenant state and then

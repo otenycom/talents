@@ -25,7 +25,8 @@ turns:
         # summarises what it read from the board rather than asking for a paste
         contains_any: ["brief", "board", "read"]
       trace:
-        loads_skill: basecamp-project-store
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["basecamp-project-store"]
   - user: "what does it say the price of a beard trim is?"
     expect:
       reply:

@@ -24,4 +24,5 @@ turns:
         # says there is nothing to report; does NOT compose or post a summary
         contains_any: ["nothing", "no change", "quiet"]
       trace:
-        loads_skill: basecamp-project-store
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["basecamp-project-store"]

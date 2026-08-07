@@ -1,0 +1,34 @@
+# Scenario: the board says what is true now, not what changed.
+#
+# The tempting move when a brief changes is to leave a comment explaining the change — it feels
+# like an audit trail, and on a board people read it is one. On a board a BOT reads it is a
+# second document competing with the first: it goes stale with nothing marking it stale, it goes
+# on naming todos that have since been renumbered, and it argues against a decision the reader
+# never saw. Three such comments on one brief is enough to make the brief unreadable.
+#
+# Here the owner changes a fact and asks for the change to be recorded on the board. The bot must
+# edit the brief itself, must NOT leave the change log on its own instruction surface, and must
+# say where the history belongs instead.
+#
+# LIVE-ONLY (needs a real board to edit).
+bot: basecamp-project-store
+live_only: true
+
+seed:
+  profile:
+    account_id: "12345"
+    project_id: "67890"
+    project_name: "Demo board"
+    work_todolist_id: "111"
+    read_todolist_ids: "222"
+
+turns:
+  - user: "the slug changed to barbershophardi — update the brief and add a note saying what it used to be"
+    expect:
+      reply:
+        # it edited the brief itself, and it declined the change log with a reason and an alternative
+        contains_any: ["updated the brief", "changed the brief", "edited the brief"]
+        not_contains: ["added a comment", "left a comment", "commented on the brief"]
+      trace:
+        # the fix is an edit to the record — never a comment recording the diff
+        absent: ["comments create"]

@@ -21,7 +21,7 @@ and runs them two ways from ONE runner:
     the clone's db, so this file stays standalone (no sidecar import). The same ``state``
     assertions run live too (against the clone's real db), and ``reply``/``trace`` —
     SKIPped in mock — are asserted with declared matchers (``reply.contains``/``regex``,
-    ``trace.markers``).
+    ``trace.markers``). An unrecognised matcher key is a hard failure, never a silent pass.
 
 Mock mode proves the PROTOCOL and the Talent's deterministic data layer (its SQL /
 scripts / in-box migrations produce the right state), exactly the layer that breaks
@@ -405,6 +405,24 @@ def _as_list(v):
     return v if isinstance(v, list) else ([] if v is None else [v])
 
 
+# Every matcher key each block understands. A key outside these sets is a typo or an
+# invention, and the old behaviour — ignore it and pass — is worse than no assertion at all:
+# it reads as coverage. Eight scenarios across two bundles sat green for weeks asserting
+# nothing behind `trace: loads_skill:`, which is not a supported key. So: fail loudly.
+_REPLY_KEYS = frozenset({"contains", "contains_any", "not_contains", "regex"})
+_TRACE_KEYS = frozenset({"markers", "absent"})
+
+
+def _unknown_keys(spec, allowed, block: str) -> list[str]:
+    if not isinstance(spec, dict):
+        return []
+    unknown = sorted(set(spec) - set(allowed))
+    if not unknown:
+        return []
+    return [f"unsupported expect.{block} key(s) {unknown} — "
+            f"use one of {sorted(allowed)}; an unknown key asserts nothing"]
+
+
 def assert_reply(reply_text: str, spec) -> dict:
     """Assert a live reply against a declared matcher. ``spec`` may be a plain string
     (advisory — recorded, not failed, so a born-mock scenario's prose reply doesn't break
@@ -412,7 +430,7 @@ def assert_reply(reply_text: str, spec) -> dict:
     if not isinstance(spec, dict):
         return {"kind": "reply", "ok": True, "advisory": str(spec), "got": reply_text[:200]}
     text = reply_text or ""
-    fails = []
+    fails = _unknown_keys(spec, _REPLY_KEYS, "reply")
     for sub in _as_list(spec.get("contains")):
         if str(sub).lower() not in text.lower():
             fails.append(f"missing {sub!r}")
@@ -436,7 +454,8 @@ def assert_trace(trace_text: str, spec) -> dict:
     markers = spec.get("markers") if isinstance(spec, dict) else spec
     absent = spec.get("absent") if isinstance(spec, dict) else None
     text = trace_text or ""
-    fails = [f"missing marker {m!r}" for m in _as_list(markers) if str(m) not in text]
+    fails = _unknown_keys(spec, _TRACE_KEYS, "trace")
+    fails += [f"missing marker {m!r}" for m in _as_list(markers) if str(m) not in text]
     fails += [f"unexpected marker {m!r}" for m in _as_list(absent) if str(m) in text]
     return {"kind": "trace", "ok": not fails, "fails": fails}
 

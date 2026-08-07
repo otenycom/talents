@@ -17,4 +17,5 @@ turns:
         # explains the sign-in, and warns that access is account-wide rather than per-project
         contains_any: ["account", "whole", "sign in", "link"]
       trace:
-        loads_skill: basecamp-project-store
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["basecamp-project-store"]

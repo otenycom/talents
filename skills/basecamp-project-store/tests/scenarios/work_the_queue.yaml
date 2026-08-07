@@ -21,7 +21,8 @@ turns:
         # reports the open items from the bot's OWN list
         contains_any: ["open", "left", "list"]
       trace:
-        loads_skill: basecamp-project-store
+        # the bundle name reaches the log through the preflight call that opens every turn
+        markers: ["basecamp-project-store"]
   - user: "the home page is done, tick it off"
     expect:
       reply:
