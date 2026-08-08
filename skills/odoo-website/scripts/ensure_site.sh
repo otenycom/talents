@@ -40,7 +40,19 @@ fi
 # 1. embedded Postgres — start persistent (cleanup_mode=None keeps it running after this
 #    Python process exits, so the separate Odoo process can connect over the unix socket),
 #    and ensure the non-superuser `odoo` role exists.
-"$VENV/bin/python" - <<'PY'
+#
+#    LC_ALL/LANG=C.UTF-8 makes a FIRST-TIME initdb bake a PORTABLE collation into the
+#    cluster. pgserver runs `initdb --auth=trust --encoding=utf8` with NO --locale, so it
+#    inherits this environment; on an Ubuntu VM that used to mean LC_COLLATE=en_US.UTF-8,
+#    which is stored in pg_database and CANNOT be edited afterwards. Carried onto a
+#    container that lacks the locale, every database then fails with "database locale is
+#    incompatible with operating system" — a failure the postgresql.conf rewrite below
+#    cannot reach, because that setting does not live in the file. C.UTF-8 exists on the
+#    VM and in the container image alike, so the cluster survives a plan change in either
+#    direction by construction. (Trade-off: code-point sort order rather than en_US
+#    linguistic ordering — the default of most container Postgres images.)
+#    Only affects clusters created from here on; one initialized earlier keeps its own.
+LC_ALL=C.UTF-8 LANG=C.UTF-8 "$VENV/bin/python" - <<'PY'
 import pgserver, os
 srv = pgserver.get_server(os.path.expanduser("~/odoo-site/pgdata"), cleanup_mode=None)
 srv.psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='odoo') "
