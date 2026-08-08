@@ -28,7 +28,7 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.0.20  # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.0.21  # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.0.20: carried Postgres clusters (Max→Power) rewrite missing lc_* locales
                  #         to C.UTF-8 in ensure_site.sh so pgserver starts on the container.

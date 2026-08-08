@@ -25,14 +25,15 @@ DB_ARGS="--db_host=$PGDATA --db_port=5432 --db_user=odoo --addons-path=$ADDONS_P
 
 # 0. carried clusters pin lc_* to en_US.UTF-8 (Ubuntu VM); the container image often
 #    lacks that locale and Postgres refuses to start. Rewrite missing lc_* → C.UTF-8
-#    BEFORE pgserver boots. Single owner of this rewrite (not site_carry).
+#    BEFORE pgserver boots. Single owner of this rewrite (not site_carry). Fail loud —
+#    swallowing the rewrite used to hide the real error behind a later Postgres FATAL.
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 if [ -f "$PGDATA/postgresql.conf" ]; then
   # Prefer the site venv's python once it exists; fall back to PATH for a half-install.
   if [ -x "$VENV/bin/python" ]; then
-    "$VENV/bin/python" "$HERE/normalize_pg_locales.py" "$PGDATA" || true
+    "$VENV/bin/python" "$HERE/normalize_pg_locales.py" "$PGDATA"
   else
-    python3 "$HERE/normalize_pg_locales.py" "$PGDATA" || true
+    python3 "$HERE/normalize_pg_locales.py" "$PGDATA"
   fi
 fi
 
