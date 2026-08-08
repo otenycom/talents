@@ -37,6 +37,45 @@ if [ -f "$PGDATA/postgresql.conf" ]; then
   fi
 fi
 
+# 0b. A postmaster.pid that outlived its cluster. THIS is what broke Power→Max.
+#
+#     A tier move kills the sandbox outright (runsc delete --force), so Postgres never gets
+#     to remove its lock file, and the whole pgdata — lock file included — is carried to the
+#     other substrate. Postgres and pgserver both decide "is a server already running?" by
+#     reading the PID out of that file and asking whether it is alive.
+#
+#     Going DOWN that is harmless: a VM postmaster's PID (measured: 3168) does not exist in
+#     a fresh gVisor PID namespace, so the lock is recognised as stale and cleaned up.
+#     Going UP it is fatal: a CONTAINER postmaster's PID is a small number (measured: 79),
+#     and on the destination VM PID 79 was a live kernel thread (kworker/R-scsi_). The
+#     lock therefore read as a running server, pgserver returned a handle for a server that
+#     does not exist, and the very next query died on a missing socket — under `set -eu`
+#     that ends this script, so Odoo never started and the site stayed behind its own
+#     maintenance page through every subsequent belt tick. (hh00415, 2026-08-08.)
+#
+#     A live postmaster for THIS cluster always has both "postgres" and this data directory
+#     in its /proc cmdline. Anything else holding that PID — a kernel thread with no cmdline
+#     at all, a recycled PID, nothing — means the lock is stale. Requiring both is what makes
+#     removing the file safe: two postmasters on one data directory would corrupt it.
+if [ -f "$PGDATA/postmaster.pid" ]; then
+  PGPID=$(head -1 "$PGDATA/postmaster.pid" 2>/dev/null || true)
+  STALE=1
+  case "$PGPID" in
+    ''|*[!0-9]*) ;;                                    # unreadable ⇒ stale
+    *)
+      if kill -0 "$PGPID" 2>/dev/null \
+         && tr -d '\000' < "/proc/$PGPID/cmdline" 2>/dev/null | grep -q "postgres" \
+         && tr -d '\000' < "/proc/$PGPID/cmdline" 2>/dev/null | grep -q -- "$PGDATA"; then
+        STALE=0                                        # a real postmaster for this cluster
+      fi ;;
+  esac
+  if [ "$STALE" = 1 ]; then
+    echo "ensure_site: postmaster.pid names pid '$PGPID', which is not a postgres for" \
+         "$PGDATA — removing the stale lock left by a substrate move." >&2
+    rm -f "$PGDATA/postmaster.pid" "$PGDATA/.s.PGSQL.5432" "$PGDATA/.s.PGSQL.5432.lock"
+  fi
+fi
+
 # 1. embedded Postgres — start persistent (cleanup_mode=None keeps it running after this
 #    Python process exits, so the separate Odoo process can connect over the unix socket),
 #    and ensure the non-superuser `odoo` role exists.
@@ -82,4 +121,20 @@ if ! curl -sf -o /dev/null -m 3 "http://127.0.0.1:$PORT/web/login" 2>/dev/null; 
     i=$((i+1)); sleep 1
   done
 fi
-echo "SITE_UP"
+
+# 4. SAY WHETHER IT WORKED. `SITE_UP` used to be echoed unconditionally, right after a wait
+#    loop that is allowed to time out — so the platform's self-heal log, and the round-trip
+#    installer's `"SITE_UP" not in out` check, both read green while Odoo had never bound
+#    the port. The whole reason ~/oteny-ensure.log exists is to say why the last ensure did
+#    or did not work; a marker that prints either way cannot do that. Report the real state,
+#    and put the two logs that hold the answer in front of whoever is reading.
+if curl -sf -o /dev/null -m 5 "http://127.0.0.1:$PORT/web/login" 2>/dev/null; then
+  echo "SITE_UP"
+  exit 0
+fi
+echo "SITE_DOWN: nothing is answering on 127.0.0.1:$PORT after the start attempt." >&2
+echo "--- last 30 lines of $BASE/odoo.log ---" >&2
+tail -30 "$BASE/odoo.log" 2>/dev/null >&2 || echo "(no odoo.log)" >&2
+echo "--- last 30 lines of the Postgres log ---" >&2
+tail -30 "$PGDATA"/log/*.log 2>/dev/null >&2 || echo "(no postgres log)" >&2
+exit 1

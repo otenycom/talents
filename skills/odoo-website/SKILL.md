@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.1.2
+version: 1.1.3
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -100,7 +100,9 @@ the page.
 
 - Module → edit under `~/odoo-site/addons/oteny_site_<slug>/` then `site_module.py upgrade`.
 - JSON-2 → `ensure_site.sh` + `site_rpc.py`.
-- Down → `list_hosted_websites`; if down, `ensure_site.sh`.
+- Down → `list_hosted_websites`; if down, `ensure_site.sh` (it clears a stale
+  `postmaster.pid` left by a crash or a plan change, and exits non-zero — saying why — when
+  the site still is not answering).
 - Take down → `unhost_website(site_slug="<slug>")` after confirm.
 - Back-office → handoff in `build-and-host.md` only.
 
