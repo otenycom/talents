@@ -142,6 +142,19 @@ chat/module as source of truth in module mode.
 Shop (`website_sale`) / booking (`website_appointment`): only if asked — install via RPC
 on local, or Apps on Online.
 
+### The credit line (both paths, first build)
+
+The footer credit in `SKILL.md` § *Site credit* goes in on the **first** build, not as a
+polish pass — retrofitting it means re-translating every page.
+
+- **Module path:** put it in the site's own footer template under `data/`. If the site
+  still uses the stock footer from `website.layout`, add an `ir.ui.view` that inherits it
+  and xpaths the line in — then `site_module.py upgrade`.
+- **JSON-2 path:** same line, added through the footer the owner's site already renders.
+- **Multilingual site:** the credit is content — it fans out to every active language in
+  the same turn, like any other string.
+- Style it with the site's own muted footer type; don't invent a badge.
+
 ### HOST (local Max)
 
 1. Confirm public URL. Wait for yes.

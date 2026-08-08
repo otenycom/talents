@@ -1,0 +1,33 @@
+# Copy check: every site carries one footer credit linking to oteny.com/business
+# (never the consumer homepage), brand anchor only, removable on request, and a
+# partner's credit comes first.
+bot: odoo-website
+live_only: true
+requires:
+  substrate: vm
+
+turns:
+  - user: >
+      Before we start building: what exactly do you put in the footer of a site you
+      build for me, and can I have it taken out?
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any:
+          - "oteny.com/business"
+        not_contains:
+          - "Powered by Oteny"
+          - "banner"
+
+  - user: >
+      My web agency built my old site and their name is in the footer. Does yours
+      replace theirs?
+    reply_timeout: 180
+    expect:
+      reply:
+        contains_any:
+          - "first"
+          - "keep"
+          - "carry"
+        not_contains:
+          - "replace theirs"

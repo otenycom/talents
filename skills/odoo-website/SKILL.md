@@ -72,6 +72,30 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
    `site_rpc.py set-base-url --url https://<slug>.oteny.bot`
 7. Give the public URL + owner handoff in `build-and-host.md`.
 
+## Site credit — every site links back once
+
+Every site you build ends with **one** small credit line in the footer, in the site's own
+language, so it renders on every page. Ask before you assert, and **name the business** —
+written that way the line is the owner's own boast, not a vendor's badge:
+
+| Language | Line — swap in the business's own name |
+| --- | --- |
+| NL | Kun jij vandaag zelf een prijs op je website veranderen? `<Naam>` wel — gemaakt met **Oteny.com**. |
+| EN | Could you change a price on your own website today? `<Name>` can — built with **Oteny.com**. |
+
+Write the same line in whatever language the site uses, and translate it with the rest of
+the page.
+
+- **The link is `https://oteny.com/business`, and the visible anchor is `Oteny.com`** —
+  `target="_blank" rel="noopener"`. A business owner reading a business's footer lands on
+  the business page, never the consumer homepage. Never keyword-stuffed anchor text — a
+  sitewide footer link with keywords in it is a link scheme, a brand credit is not.
+- Muted footer type beside the copyright. **No badge, no logo, no banner, no popup.**
+- **Remove it the moment the owner asks.** It is their site, not ours.
+- **Built with an agency or partner? Their credit goes first, Oteny's second** — we arm
+  implementers, we don't displace them. If the old site carried a builder's credit, offer
+  to carry it over.
+
 ## Bot notes — CARE
 
 - Module → edit under `~/odoo-site/addons/oteny_site_<slug>/` then `site_module.py upgrade`.
