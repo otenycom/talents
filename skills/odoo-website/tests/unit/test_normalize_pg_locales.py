@@ -1,10 +1,76 @@
-"""Carried Postgres clusters pin en_US.UTF-8; containers often lack that locale."""
+"""Carried Postgres clusters pin en_US.UTF-8; containers often lack that locale.
+
+Read `REAL_CONF` below before touching anything here. Every fixture in the first version
+of this file wrote `lc_messages = 'en_US.UTF-8'` and stopped at the quote — a line shape
+Postgres never produces. The real file always carries a trailing tab + comment, the regex
+anchored `$` straight after the closing quote, so it matched nothing, reported `noop`, and
+the whole rewrite was dead on every real cluster. The tests were green the entire time.
+A fixture that cannot reproduce the real input is not a test.
+"""
 import sys
 from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(_SCRIPTS))
-from normalize_pg_locales import normalize_conf, normalize_pgdata  # noqa: E402
+from normalize_pg_locales import (  # noqa: E402
+    normalize_conf, normalize_pgdata, unavailable_lc_values,
+)
+
+# Copied VERBATIM off a real carried cluster (hh00412 on node00077, 2026-08-08),
+# tabs and comments included. Fixtures for this file come from here, not from memory.
+REAL_CONF = (
+    "# - Locale and Formatting -\n"
+    "datestyle = 'iso, mdy'\n"
+    "lc_messages = 'en_US.UTF-8'\t\t# locale for system error message\n"
+    "lc_monetary = 'en_US.UTF-8'\t\t# locale for monetary formatting\n"
+    "lc_numeric = 'en_US.UTF-8'\t\t# locale for number formatting\n"
+    "lc_time = 'en_US.UTF-8'\t\t\t# locale for time formatting\n"
+    "default_text_search_config = 'pg_catalog.english'\n"
+)
+CONTAINER_LOCALES = {"C", "C.utf8", "C.UTF-8", "POSIX"}
+
+
+def test_rewrites_a_REAL_postgresql_conf_line_with_its_trailing_comment():
+    """The live bug: Postgres writes `lc_time = 'en_US.UTF-8'\\t\\t\\t# locale for …`, and the
+    rewrite skipped every one of those lines while reporting success."""
+    new, changes = normalize_conf(REAL_CONF, CONTAINER_LOCALES)
+    assert len(changes) == 4, changes
+    assert "en_US.UTF-8" not in new
+    assert "lc_messages = 'C.UTF-8'\t\t# locale for system error message" in new
+    assert "lc_time = 'C.UTF-8'\t\t\t# locale for time formatting" in new
+    # untouched neighbours survive verbatim
+    assert "datestyle = 'iso, mdy'" in new
+    assert "default_text_search_config = 'pg_catalog.english'" in new
+
+
+def test_a_conf_the_box_cannot_satisfy_is_reported_not_called_a_noop():
+    """`noop` used to mean both "nothing needed" and "I changed nothing and Postgres is
+    about to die". Those must not share an outcome."""
+    assert unavailable_lc_values(REAL_CONF, CONTAINER_LOCALES) == [
+        "lc_messages='en_US.UTF-8'", "lc_monetary='en_US.UTF-8'",
+        "lc_numeric='en_US.UTF-8'", "lc_time='en_US.UTF-8'",
+    ]
+    new, _ = normalize_conf(REAL_CONF, CONTAINER_LOCALES)
+    assert unavailable_lc_values(new, CONTAINER_LOCALES) == []
+
+
+def test_a_vm_that_really_has_en_US_is_left_alone():
+    vm_locales = {"C", "C.UTF-8", "en_US.utf8", "en_US.UTF-8"}
+    new, changes = normalize_conf(REAL_CONF, vm_locales)
+    assert changes == [] and new == REAL_CONF
+    assert unavailable_lc_values(REAL_CONF, vm_locales) == []
+
+
+def test_pgdata_rewrite_fails_loud_when_nothing_usable_exists(tmp_path: Path, monkeypatch):
+    """No usable locale at all: we cannot rewrite, so say so instead of returning quietly
+    and letting Postgres FATAL a minute later with a less obvious message."""
+    pgdata = tmp_path / "pgdata"
+    pgdata.mkdir()
+    (pgdata / "postgresql.conf").write_text(REAL_CONF)
+    monkeypatch.setattr("normalize_pg_locales.available_locales", lambda: set())
+    import normalize_pg_locales as npl
+
+    assert npl.main([str(pgdata)]) == 1
 
 
 def test_rewrites_missing_locales_to_c_utf8():
