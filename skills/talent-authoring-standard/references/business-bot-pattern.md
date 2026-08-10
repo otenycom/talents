@@ -589,11 +589,13 @@ control in the runbook is declared from **what the real page reported** — a sn
 label makes you assume.
 
 - **A control that looks like a dropdown is frequently not a `<select>`.** Angular Material, React
-  Select, OutSystems and Lightning all render a trigger plus a popup listbox; the native
-  select-an-option call fails outright against one (`Element is not a <select> element`), and it fails
-  *mid-page*, after the fields before it were already filled. Drive such a widget the way §6 says —
-  explicit `kind:'click'` steps, **trigger first, then the option by its exact visible text** — and
-  record the widget kind beside the field in the runbook, so the next author doesn't re-learn it live.
+  Select, OutSystems and Lightning all render a trigger plus a popup listbox. You do not have to know
+  which: `kind: 'select'` with the option's **exact visible text** drives both, and the platform picks
+  the widget route when the element turns out not to be native (`kind: 'pick_option'` forces it). What
+  you **must** do is record the widget kind and the exact option strings beside the field in the
+  runbook, from observation — the option text is the whole targeting key on a widget, because there
+  are no option *values* to fall back on. Never hand-drive one with `click` steps (§6): that route
+  leaves no evidence.
 - **A generated id that encodes a component tree is not an anchor.** Some frameworks build ids from
   the rendered container path (`P652-C4-C1-C0-…`); they renumber on any layout change, and a radio
   group's members share **one** generated `name`, so `input[name=…][value=…]` cannot pick a member.
@@ -1145,9 +1147,26 @@ to run into the session cap. **Batch the typing, never the thinking:**
   per-page map with an explicit submit line binds far better than prose because the model copies
   structure instead of interpreting it. **If submit was skipped after a verified fill** (all
   fields `ok`, skip reason mentions reserved time / budget), **click that button once** — do not
-  re-batch the same `steps`. For a custom widget that is not a native control, use explicit
-  `kind:'click'` steps (trigger, then option). If the tool reports *unavailable*, fall back to
+  re-batch the same `steps`. If the tool reports *unavailable*, fall back to
   per-field fills with **one** snapshot verify per group.
+- **Dropdowns: `kind: 'select'`, whatever the page is built from — never hand-drive one.** Pass
+  the option's **exact visible text** as the value. It works on a real `<select>` and equally on
+  a custom widget (Angular Material, React, a styled `div`): the tool opens the widget, clicks
+  the option and confirms the trigger now shows it. **Do not** drive a dropdown with `click`
+  steps or raw CDP, and do not "fall back" to those when one fails. That is not a slower route
+  to the same place — it skips the readback *and* the page-inventory capture, so the page you
+  filled leaves no trace for `browser-diff` and your selector map learns nothing from a run you
+  paid an attended login for. (Measured on a live government portal: the one page filled through
+  the tool captured 261 controls; the five pages hand-driven after it captured **zero**.)
+  Matching is exact — normalized whitespace, then case-insensitive, and nothing looser, because
+  a prefix rule would file `Nederland (EER)` when your data said `Nederland`. **A miss is a
+  feature:** the step fails closed, the submit is blocked, and the result hands you the option
+  texts the list really carries. That error is the cheapest way to learn a portal's real
+  vocabulary — reuse one of those strings verbatim in your map rather than guessing at it. A
+  dependent pair (picking A repopulates B) works in one call when you order A before B; a
+  cascade whose next list arrives from the **server** still belongs in its own call, per the
+  never-batch-across-a-round-trip rule below — but it belongs in a `browser_fill_form` call, not
+  in hand-driven clicks.
 - **Chain pages off `page_digest` — normally zero snapshots between pages.** A submitted call's
   result carries `page_digest` (headings + labels + buttons of the page you landed on): when it
   shows the expected page (per your shipped map), that IS your portal-change check and your next

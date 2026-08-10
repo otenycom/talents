@@ -596,13 +596,13 @@
       "group": "Browse real websites",
       "status": "live",
       "cost": "low",
-      "description": "Fill a whole form page in ONE call instead of one field per step. Pass steps=[{selector|label, value, kind?}]: text inputs are filled, native dropdowns selected (by option value or visible label), checkboxes/radios checked — all through the real browser engine with human-like waiting, so it works on dynamic pages where raw JS does not. Every field's value is read BACK and returned (ok/actual per field), so you verify the page in the same call — no extra snapshot needed for the fields themselves. Optionally pass submit_selector (the page's next/continue button): it is clicked ONLY when every field verified, in the same call — so nothing can reset a field between filling and navigating. A submitted call also returns page_digest (headings/labels/buttons of the page you landed on): with the returned title it is usually enough to pick and fill the NEXT page directly (label= steps work straight from its labels) — no snapshot round-trip first. Targeting: selector takes CSS (input#city, input[name=group][value=Yes]) or Playwright selectors; or use label='visible field label' instead. kind is auto-detected for native controls; for a custom widget (a dropdown that is not a real <select>), use explicit kind:'click' steps — click the trigger, then click the option. RULES: batch only INDEPENDENT fields whose values you already hold; never batch across a server response (a search that populates fields stays step-by-step); never use submit_selector for a final/irreversible submission — for those take a fresh snapshot and click explicitly. If this tool reports unavailable, fall back to per-field browser_type/browser_click.",
+      "description": "Fill a whole form page in ONE call instead of one field per step. Pass steps=[{selector|label, value, kind?}]: text inputs are filled, dropdowns selected, checkboxes/radios checked — all through the real browser engine with human-like waiting, so it works on dynamic pages where raw JS does not. Every field's value is read BACK and returned (ok/actual per field), so you verify the page in the same call — no extra snapshot needed for the fields themselves. Optionally pass submit_selector (the page's next/continue button): it is clicked ONLY when every field verified, in the same call — so nothing can reset a field between filling and navigating. A submitted call also returns page_digest (headings/labels/buttons of the page you landed on): with the returned title it is usually enough to pick and fill the NEXT page directly (label= steps work straight from its labels) — no snapshot round-trip first. Targeting: selector takes CSS (input#city, input[name=group][value=Yes]) or Playwright selectors; or use label='visible field label' instead. kind is auto-detected. DROPDOWNS: use kind:'select' with value= the option's exact visible text and it works whether the page uses a real <select> or a custom widget (Angular Material, React, a styled div) — the tool opens the widget, clicks the option and confirms the trigger now shows it. Do NOT hand-drive a dropdown with click steps or raw CDP; that skips the verification and the page-inventory capture. If an option is not found the call returns the option texts the list really has — reuse one of those verbatim rather than guessing. Dependent dropdowns (picking A repopulates B) work in one call: put them in order, A before B. RULES: batch only INDEPENDENT fields whose values you already hold; never batch across a server response (a search that populates fields stays step-by-step); never use submit_selector for a final/irreversible submission — for those take a fresh snapshot and click explicitly. If this tool reports unavailable, fall back to per-field browser_type/browser_click.",
       "parameters": {
         "type": "object",
         "properties": {
           "steps": {
             "type": "array",
-            "description": "The fields to set, in order. Each step: {selector: CSS/Playwright selector} OR {label: visible label}, plus value, plus optional kind (fill|select|check|uncheck|click|press; default auto).",
+            "description": "The fields to set, in order. Each step: {selector: CSS/Playwright selector} OR {label: visible label}, plus value, plus optional kind (fill|select|pick_option|check|uncheck|click|press; default auto). Order matters only for dependent dropdowns — otherwise the fields must be independent.",
             "items": {
               "type": "object",
               "properties": {
@@ -625,11 +625,13 @@
                     "auto",
                     "fill",
                     "select",
+                    "pick_option",
                     "check",
                     "uncheck",
                     "click",
                     "press"
-                  ]
+                  ],
+                  "description": "select handles BOTH a real <select> and a custom dropdown widget; pick_option forces the widget path."
                 }
               }
             }
