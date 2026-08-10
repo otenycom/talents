@@ -580,6 +580,57 @@ manifest**.
 Every rule is the same bet — **the real site's ids and triggers differ from your stub's** — so encode
 what won't change (semantics) as the floor, and flag every place a single exact string is load-bearing.
 
+### The real page is not your stub — declare each control from observation
+
+Your double renders native HTML controls because you wrote it that way (§4c). A real third-party page
+often does not, and the gap is not cosmetic — it decides whether a step *can* run at all. So every
+control in the runbook is declared from **what the real page reported** — a snapshot, a
+`form_inventory`, the operator's devtools — never from what your stub renders and never from what the
+label makes you assume.
+
+- **A control that looks like a dropdown is frequently not a `<select>`.** Angular Material, React
+  Select, OutSystems and Lightning all render a trigger plus a popup listbox; the native
+  select-an-option call fails outright against one (`Element is not a <select> element`), and it fails
+  *mid-page*, after the fields before it were already filled. Drive such a widget the way §6 says —
+  explicit `kind:'click'` steps, **trigger first, then the option by its exact visible text** — and
+  record the widget kind beside the field in the runbook, so the next author doesn't re-learn it live.
+- **A generated id that encodes a component tree is not an anchor.** Some frameworks build ids from
+  the rendered container path (`P652-C4-C1-C0-…`); they renumber on any layout change, and a radio
+  group's members share **one** generated `name`, so `input[name=…][value=…]` cannot pick a member.
+  Trust an id only where it is plainly **hand-authored** — typically the sign-in chrome and a
+  vendor-named data table. Note which class each id is in, let the hand-authored ones lead their
+  ladder, and keep every generated one as a late best-effort rung behind role + accessible name.
+- **The accessible name and the visible label are two facts — record both.** They drift most around
+  required markers: the DOM label reads `Start date *` while the accessibility tree spells the
+  requirement out as a word (`Start date Required`, in the site's own language). The automation engine
+  matches the **accessible** name, and the raw `role=…[name="…"]` form is **exact and
+  case-sensitive** — only the higher-level helper relaxes it to a substring. So write the semantic rung
+  as `role=<role>[name=/…/i]` (the observe-mode rule below), keep both strings in the runbook, and
+  never "fix" one into the other: the mismatch belongs to the page, it is not a typo in your notes.
+- **Drive a dependent cascade one step at a time.** Where one choice repopulates the next
+  (sector → subsector → code), the later options do not exist until the earlier write has landed. This
+  is the §6 "never batch across a server round-trip" rule in its most common shape: one action, one
+  settle, then read the page again before choosing.
+- **An ambiguous fallback rung is fail-closed — and it costs a live window.** A rung that matches
+  **N>1** controls (a bare `role=radio[name="Yes"]` on a page with several yes/no questions) does
+  **not** tick the wrong one: locator actions are strict, so the step raises and stops. That is the
+  right failure and an expensive one — it burns the attended run you were spending, and live etiquette
+  forbids retrying selectors against a third party's production system. Resolve ambiguity **offline**:
+  scope each semantic rung to its own question or group, set `expect_unique`, and let `selector-audit`
+  (below) fail it in CI instead of on the portal.
+- **The instrumented fill path is also the EVIDENCE path — fix it, don't route around it.** The
+  per-step trace and the per-page control inventory are emitted by the platform's own fill and
+  snapshot tools. A run that drops to a lower-level driver — raw CDP, per-element refs, a hand-rolled
+  click loop — still performs the actions but captures **nothing**: the pages the bot actually filled
+  produce no inventory, so `browser-diff` files them **NOT_EXERCISED**, i.e. silently green. The
+  workaround destroys the very evidence the live window was for. So treat a batch fill that reports
+  *unavailable*, or that cannot see the page, as a **defect on the fill path** to fix before the next
+  attended run — not a step to work around.
+
+**Rule:** *observe first, declare second.* Every line of the runbook that says what a control **is** —
+its widget kind, its id class, its accessible name — is a recorded observation of the real page;
+anything you have not observed is an open unknown (§4d), not a guess you ship.
+
 ### The expected-selector manifest (the machine-readable contract)
 
 Both verbs parse one author-supplied YAML file — the machine-checkable twin of the in-skill selector
