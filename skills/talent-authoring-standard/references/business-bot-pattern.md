@@ -345,6 +345,29 @@ under pressure will improvise exactly this. Two rules, both mandatory:
   skips the proof — on *any* model — is refused server-side, stays in-progress, and the
   timeout reaper hands it to a human. Escalation is **never** blocked by the guard: a stuck
   run must always be able to reach a person.
+- **Gate the ENTRY on the state, not on the transitions into it.** The mirror of the guard
+  above. It is natural to hang the data check on the hand-off button — a confirm wizard that
+  refuses on any `severity: error`. That check is only as complete as the list of buttons you
+  remembered. Count the transitions **into** your bot's queue state: there are usually more
+  than you think, and the one you forget is the *retry* lane — the record that came back
+  **rejected**, which is by definition the one most likely to carry bad data. Put the same
+  check in the **claim guard**, keyed on the state. A gate on a transition is bypassed the
+  day somebody adds another transition; a gate on the state holds however the record arrived,
+  and it also catches data that **degrades between the hand-off and the dispatch**, which no
+  wizard can. Keep the button wizard too — it is what gives the human an explanation at the
+  moment they act. Write the regression test against the state's **inbound edges**, not
+  against a list of transition names, or the next lane re-opens the hole silently.
+- **One external question = one DTO answer key. The bot types; it does not decide.** Emit
+  the literal answer the external system expects, under a key named for the field it fills —
+  never the underlying facts plus an instruction to infer. Two costs otherwise. The model
+  re-derives business logic per run, so the same record can answer differently twice. And a
+  wrong reading gets baked in where nobody reviews it: collapsing two *similar-sounding*
+  questions into one answer is the classic form. "Do you **hold** permit X?" and "have you
+  **applied** for permit X?" are different questions, and a form that asks both separately is
+  telling you they are. Answering the first from the second states something untrue to a
+  regulator. When the operator walks you through the real form, count the questions and emit
+  exactly that many keys — then keep the derived facts on the DTO as well, for the issue
+  banner and for the human reading it, but never as the thing the bot types.
 
 Grade both with **adversarial red scenarios** (below): induce the failure — portal down, a
 revoked grant, **or the adapter session dying mid-action** (converge the bot with a 1–2-min
@@ -495,6 +518,22 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    best-effort with an explicit *unverified* note, and your field map keeps an "open unknowns" list
    you burn down with the operator. Re-harvest whenever the real system changes (your skill's
    portal-change detection is what catches that).
+5. **Model the LANDING page, not only the forms.** The easiest screen to get wrong is the one
+   nobody calls a form: the dashboard, worklist or inbox the run starts and ends on. It decides
+   where a run **finds** work — a resume, a retry, a "did my last run leave residue?" check — so a
+   row filed under the wrong heading is a real defect, not cosmetics. Copy its **actual tab
+   structure and row semantics**: which list holds your own drafts, which holds tasks the *other
+   side* raised, and which holds finished items. Model the per-row **controls you intend the bot
+   never to press** (a delete, a copy-to-new) rather than leaving them out — a control that is
+   absent from the double cannot be pressed by mistake in a test, only in production. Then write
+   the "leave it alone" rule in the skill, where it belongs. Assert on the **section**, not on the
+   page: a whole-page `assertIn` cannot tell a corrected layout from the broken one.
+
+   *Worked example (Barney):* the double rendered the portal's "My tasks" tab as a hard-coded
+   empty state and filed drafts under "submitted for review" — exactly the opposite of the real
+   dashboard, where a draft IS a task and sits beside tasks the ministry raised. The forms had
+   been harvested carefully; the index page had been guessed. It went unnoticed for weeks because
+   the happy path never reads the dashboard — only a resume-and-correct run does.
 
 *Worked example (Barney):* Kirsten's 24-screenshot walkthrough of one real meldloket filing was
 transcribed screen-by-screen, cross-checked against CrewRadar (surfacing the VAT transposition, a
