@@ -48,10 +48,11 @@ sandbox (its own memory, its own database, its own schedule). Oteny provisions i
 running, and pays the model bills. A Talent is dropped *into* that bot — it never sees a
 server, a key, or another user.
 
-**A Talent reaches a live bot by git delivery.** When a Talent's bundle changes here, Oteny
-fetches it at the pinned version, runs the lint gate, and delivers it to every bot using it —
-*staged, swapped in, self-checked, and rolled back automatically if the self-check fails*. So
-a content push reaches the bot with no servers and no downtime.
+**A Talent reaches a live bot by git delivery.** You push a commit. Oteny pulls that
+commit with **its** key and copies the files onto the bot. Your GitHub login never
+leaves your laptop. Files you have not pushed never reach the bot. `active` means the
+box booted — wait until delivery finishes before you test. Detail:
+[`how-delivery-works.md`](skills/oteny-talent-dev-loop/references/how-delivery-works.md).
 
 **Two independent clocks.** The **store/website** (what's listed at oteny.com/bots) and the
 **per-bot delivery** (what's actually running on a tenant) update on their own schedules — a
@@ -145,7 +146,7 @@ runs it on every push. A merged Talent lists as **Community** until a reviewer m
 
 | I want to… | Read |
 | --- | --- |
-| Understand what a Talent is and how it's delivered | this page (above) |
+| Understand what a Talent is and how it's delivered | this page (above) · [`how-delivery-works.md`](skills/oteny-talent-dev-loop/references/how-delivery-works.md) |
 | Learn to write my first Talent, from scratch (newcomer's guide) | [`docs/writing-a-talent.md`](docs/writing-a-talent.md) |
 | Know the rules a Talent must satisfy | [`skills/talent-authoring-standard/`](skills/talent-authoring-standard) |
 | Write or edit a Talent step by step | [`skills/oteny-talent-authoring/`](skills/oteny-talent-authoring) |

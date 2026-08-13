@@ -185,9 +185,10 @@ language"). Keep it tight; it's injected on every turn.
 
 ## 5. The dev loop — from your git repo to a live bot
 
-You don't need server access to ship a Talent. The platform delivers it for you. The
-end-to-end loop (this is the **D124 "external git Talent source"** pattern, already
-live in production):
+You don't need server access to ship a Talent. You **push**. Oteny **pulls** with its
+own key and copies the files onto the bot. Your GitHub login stays on your laptop.
+The bot never runs `git clone`. Full picture:
+[`how-delivery-works.md`](../skills/oteny-talent-dev-loop/references/how-delivery-works.md).
 
 1. **Author in your own git repo.** The Talent lives in *your* repo, in the folder you
    own (Barney lives in the radar repo at `cuneus_barney/talents/cuneus-hr-talent/`).
@@ -195,9 +196,9 @@ live in production):
 2. **Open a PR.** A published **`oteny-talent-lint`** CI check runs the
    `talent-authoring-standard` against your changed Talent and reports pass/fail with
    the exact violations **inline in the PR**, before merge. Lint must be green to ship.
-3. **Merge to a branch → it auto-delivers to a staging bot in seconds** (this is
-   **follow mode**: a bot pointed at a branch picks up the merged commit on the next
-   poll). Now you can test it live.
+3. **Merge to a branch → follow mode delivers to a staging bot.** A bot pointed at
+   that branch picks up the merged commit on the next poll. Wait until
+   `last_status` is `delivered` before you test — `active` only means the box booted.
 4. **Cut a release tag → it delivers to production** (this is **pinned mode**: a
    production bot is pinned to a tag, so it only moves when you cut a new release —
    *you* decide when). Tag convention is a trailing semver that matches your
@@ -205,8 +206,8 @@ live in production):
 5. **Rollback = re-tag the previous version.** No SSH, no Oteny ops, no new tool.
 
 Every delivery is staged, swapped in, self-checked, and **rolled back automatically**
-if the self-check fails — so a push reaches the bot with no downtime and no way to
-brick it. The whole UX is git. The platform owns the VM; you never touch it.
+if the self-check fails. Unpushed files never reach the bot. Push first, then
+`oteny reload --ref` if you need a bot to pick up a commit now.
 
 (There's also a deeper, optional loop — `clone` a disposable neutralized copy of a
 real bot, run your behavioral `tests/scenarios/*.yaml` against it live, and read its

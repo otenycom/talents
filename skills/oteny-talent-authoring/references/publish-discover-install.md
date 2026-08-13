@@ -20,11 +20,14 @@ running on bots before the shop shows it — the two update independently.
 Publishing is how your bundle enters the **catalog** — the single index every surface
 reads from. There are two ways in, depending on where you authored it:
 
-- **You authored it in a git repo** (the developer path). Open a PR to the catalog repo;
-  the same lint + behavioral tests that gate delivery run in CI (`oteny-talent-lint` — the
-  authoring standard). On merge it becomes available, and it is re-delivered to every bot
-  that already has it within a few minutes — nobody at Oteny has to do anything. Cut a
-  release tag to move it to production owners; roll back by re-tagging.
+- **You authored it in a git repo** (the developer path). You push; Oteny pulls. Your
+  GitHub login never leaves your laptop
+  ([`how-delivery-works.md`](../../oteny-talent-dev-loop/references/how-delivery-works.md)).
+  Open a PR to the catalog repo; the same lint + behavioral tests that gate delivery run
+  in CI (`oteny-talent-lint` — the authoring standard). On merge it becomes available, and
+  it is re-delivered to every bot that already has it within a few minutes — nobody at
+  Oteny has to do anything. Cut a release tag to move it to production owners; roll back
+  by re-tagging.
 - **Your bot built it for you on the box** (the owner path). Ask your bot to *publish my
   Talent*. It runs a **self-check** against the same standard and grades it green / yellow
   / red; on a clean pass it files a **publish request** that lands in Oteny's review queue.

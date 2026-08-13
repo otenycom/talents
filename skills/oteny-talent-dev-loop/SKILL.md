@@ -27,8 +27,11 @@ the primitives are the Oteny dev CLI verbs + named **connections** (odoo binds o
 ## New here? The whole journey (write → prove → ship), plain English
 
 A Talent is **content** (a persona + skills + a tool request + tests), not a server. You never
-provision anything by hand — you edit files, push, and the platform **delivers** your commit onto
-a bot. The journey has three environments, and a git ref decides which bot each reaches:
+provision anything by hand — you edit files, **push**, and Oteny **pulls** your commit onto
+a bot with **its** key. Your GitHub login stays on your laptop. The bot never runs `git clone`.
+Full picture: [`how-delivery-works.md`](references/how-delivery-works.md).
+
+The journey has three environments, and a git ref decides which bot each reaches:
 
 | Environment | The bot | What the git ref is | How your change gets there |
 |---|---|---|---|
@@ -46,8 +49,10 @@ The one loop you actually run, and what each step *does*:
    container" step — one command, no infra. (A business bot points its uplink at a **staging**
    business Odoo; `neutralize.yaml` repoints connections + stubs any real portal/mailbox before it
    serves.)
-4. **Deliver your change** — `reload --ref <clone>` ships your pushed commit onto the clone
-   (stage → swap → gate → auto-rollback). This is a "talent upgrade": the same delivery prod uses.
+4. **Deliver your change** — push first, then `reload --ref <clone>`. Oteny pulls the
+   pushed commit onto the clone (stage → swap → gate → auto-rollback). Unpushed files
+   never reach the bot. Wait until `last_status` is `delivered` — `active` is not enough
+   ([`how-delivery-works.md`](references/how-delivery-works.md)).
 5. **Run the tests** — `test --ref <clone> --bundle <slug>` drives the bundle's
    `tests/scenarios/*.yaml` **live** and grades them green/red. (Run `reinit` first for the result
    you trust — a clean tree so a removed file can't leave a false PASS.)
@@ -90,6 +95,7 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Prod-tier real external portals, submit-deny, SMS 2FA | Stub / neutralized doubles |
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
+| A **private git repo you own** that Oteny has never seen | A repo admin adds Oteny's read-only Deploy Key once. Public repos and Oteny-owned private repos (`otenycom/radar`) already work. See [`how-delivery-works.md`](references/how-delivery-works.md). |
 
 *Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
 **`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
@@ -148,7 +154,7 @@ DM is Phase 2** (not in this package yet).
 | --- | --- | --- |
 | Lint | `oteny lint <bundle>` / `oteny-talent-lint` | The static authoring-standard gate, **offline**. Run before you ever clone. |
 | Clone | `oteny clone --source <ref> …` | Account-key clone **gate** (`request_clone`). Platform worker drains infra. |
-| Reload | `oteny reload --ref <clone>` | Request Talent re-delivery from the **pushed** source ref. Calls `hh.tenant.request_talent_reload`, which enqueues a forced talents converge for a bot your account owns. Unpushed local commits are invisible to the box — push first, then reload. A private-git HTTPS origin is rewritten to SSH so the platform deploy key can clone it. Confirm with `inspect` (box `agent-profile.yaml` / channel prompts). **Do not reload mid-turn** while a graded `test` or a live Hand-to-Barney / Discuss filing is running — the platform refuses a gateway bounce (`deferred_busy`) until the turn is idle; wait, then reload. |
+| Reload | `oteny reload --ref <clone>` | Ask Oteny to **pull** the pushed commit onto this bot. Push first. Wait for `last_status=delivered`. Do not reload mid-turn (`deferred_busy`). See [`how-delivery-works.md`](references/how-delivery-works.md). |
 | Test | `oteny test --ref <clone> --bundle <slug> --bundle-dir <path> [--scenario <glob>]…` | Run `tests/scenarios/*.yaml` LIVE; **`--bundle-dir` required** (local checkout — no deploy key). |
 | Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
 | Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
@@ -369,13 +375,12 @@ selectors after an observe walk — that is conversation/tool history, not struc
 
 When you commission a fresh dev bot (`request_dev_bot`), poll `dev_bot_request_status` and treat a
 bot as **e2e-ready only when `state == "active"` AND `talent_delivered == true`**. `active` alone
-means the box booted (on defaults) — for an **external-Talent** bot the private bundle is delivered
-*inline* just after, so `active` can briefly precede the Talent actually being on the box (the
-skill-not-found race). `talent_delivered` is the true "your Talent is on the box" signal (a
-catalog-only bot is `true` by construction). On `active` without delivery, the async belt still
-converges it within ~5 min — poll `hh.talent.source.last_status == "delivered"` (visible to your
-account key) before you start testing, or read `hh.talent.source.last_error` /
-`talent_delivery_error` for the reason.
+means the box booted (on defaults). The git pull can still be running — that is the empty-tree
+race. `talent_delivered` is the true "your Talent is on the box" signal (a catalog-only bot is
+`true` by construction). On `active` without delivery, the async belt still converges it within
+~5 min — poll `hh.talent.source.last_status == "delivered"` (visible to your account key) before
+you start testing, or read `hh.talent.source.last_error` / `talent_delivery_error` for the reason.
+Why pull-not-push: [`how-delivery-works.md`](references/how-delivery-works.md).
 
 **`last_status=gate_failed` — read the lint text.** Delivery runs the same
 `talent-authoring-standard` lint that you should run offline first. A frequent fail is a child
@@ -399,13 +404,10 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 
 ## The rules the loop enforces (don't fight them)
 
-- **Provisioned/active means delivered — for an inline-delivery Talent.** A private/business-bot
-  Talent (delivered from a private git bundle, not the public store) is delivered **inline at
-  commission**: when the dev tooling reports the bot **provisioned / active**, the Talent *and* its
-  tier-bound stub binding (§4c of the business-bot pattern) are already **on the box** — it is
-  e2e-ready, run the suite. This is **not** universal: a Talent delivered **out-of-band** (an async
-  delivery belt) is not on the box just because the container is active — wait for the source
-  `last_status` to read *delivered* before you test.
+- **`active` is not enough.** Wait for `talent_delivered` / `last_status=delivered`
+  before you test. The box can boot on defaults while the git pull is still running.
+  See [The readiness contract](#the-readiness-contract-active-is-not-enough--wait-for-talent_delivered)
+  and [`how-delivery-works.md`](references/how-delivery-works.md).
 - **What you can and can't see.** You diagnose your own bots — everything below is record-rule-scoped
   to your own (and granted/demo) bots — from three windows: **`traces`** (per-turn tool calls, the
   bot's LLM calls, and the session's **diagnostic events** — crashes/restarts, fail-close and browser
@@ -448,6 +450,15 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 
 ## Troubleshooting (read the failure, don't guess)
 
+- **Empty Talent tree after `active`, or `reload` does nothing.** You tested before
+  delivery finished, or the commit was never pushed. Wait for `last_status=delivered`.
+  Unpushed files never reach the bot. Push, then `oteny reload --ref`. An empty
+  `auth_handle` on a deploy-key source is normal — not a missing credential. See
+  [`how-delivery-works.md`](references/how-delivery-works.md).
+- **`last_error` is `fatal: could not read Username for 'https://github.com'`.** The
+  source URL is HTTPS and Oteny pulls with a deploy key (SSH only). The platform
+  rewrites HTTPS → SSH at clone time. Retry `oteny reload --ref`. If a private repo
+  **you** own has never had Oteny's Deploy Key added, that extra step is still required.
 - **`test` red, reply matcher failed** — read `traces --ref <clone>` for that turn: the reply
   is graded on `contains`/`not_contains`/`regex`; a genuine refusal or a differently-phrased
   success both show there. Loosen a brittle `contains` to a trace/`uplink` assertion (the
@@ -526,3 +537,7 @@ your Talent honest and your reputation rises in the Bot Market.
 4. A migration scenario reconciles real prior-shape state idempotently.
 5. `traces` shows the expected tool calls and no approval stall / unbounded loop.
 6. The release tag's semver equals the committed `version:`.
+
+## References
+
+- [`how-delivery-works.md`](references/how-delivery-works.md) — you push; Oteny pulls; `active` is not enough.

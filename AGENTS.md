@@ -41,6 +41,10 @@ its `tests/scenarios/*.yaml` against it, then read the bot's debug traces:
 lint-talent → clone → reload (your branch) → test → traces → fix → green → tag a release
 ```
 
+`reload` asks Oteny to **pull** the commit you already pushed. Unpushed files never
+reach the bot. `active` is not enough — wait for delivery. Picture:
+[`how-delivery-works.md`](skills/oteny-talent-dev-loop/references/how-delivery-works.md).
+
 The CLI verbs (every one returns a JSON DTO; non-zero exit on failure) — full table + rules in
 [`oteny-talent-dev-loop`](skills/oteny-talent-dev-loop/SKILL.md):
 
@@ -48,7 +52,7 @@ The CLI verbs (every one returns a JSON DTO; non-zero exit on failure) — full 
 | --- | --- |
 | offline gate (run before you ever clone) | `lint-talent --dir <bundle>` |
 | stand up a disposable, neutralized, budgeted clone of a **permitted** source | `clone --from <source> --bundle <slug> --branch <dev> --byob <token-file>` |
-| deliver your pushed branch to the clone | `reload --ref <clone>` |
+| deliver your **pushed** branch to the clone | `reload --ref <clone>` |
 | run the bundle scenarios LIVE → green/red | `test --ref <clone> --bundle <slug>` |
 | the structured per-turn debug trace (your debugging eye) | `traces --ref <clone>` |
 | `logs` · `selfcheck` · `migrate-talent` · `reinit` · `reap` | see the skill |
