@@ -153,10 +153,10 @@ def cmd_migrate_talent(args) -> int:
 
 
 def cmd_reload(args) -> int:
-    """Ask the platform to re-deliver external Talents for --ref (account-scoped note).
+    """Ask the platform to re-deliver external Talents for --ref (account-scoped).
 
-    Full deliver-external-talents still drains on the control plane; this records the
-    author intent via a tenant write / source bump when available, else documents the gap.
+    Calls ``hh.tenant.request_talent_reload``, which enqueues a forced talents
+    converge. Falls back with a hint if that seam is missing on an older Odoo.
     """
     client = _client(args)
     # Prefer an explicit Odoo method if present; otherwise surface honesty.
