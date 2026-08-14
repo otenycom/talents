@@ -1349,14 +1349,20 @@ the next run reuses:
   fresh claim epoch** and fires a *second*, fresh isolated turn that does the real side-effect against the
   now-authenticated session. A stale parked turn cannot act on the resumed record — the resume→queue claim
   bumps the epoch and fences a late writer out. The login is a **state boundary, not a shared session.**
-- **Expect the platform to settle the profile flush before the resume create.** Saving the human login
-  flushes cookies into the shared browser profile; that write is **not** instantly visible to the next
-  agent browser create. The broker holds `finalize-login` (~5s by default) and, on a later create, closes
-  same-tenant idle linger siblings before minting — so an OK that advances + dispatches inline does not
-  race a half-written profile. Authors do **not** invent client-side sleeps; if a resume still hits the
-  wall after a completed human login, that is belt-2 escalate once (§ below), not a second SMS. A
-  proactive **Refresh portal login** (finalize without advancing the workflow) remains the way to renew
-  a session before it expires — still useful, not a substitute for the settle.
+- **After Save, a dead browser player is a platform bug.** Do not tell the author
+  to clear a Steel / browser profile. The broker donates the live login session
+  and the next agent create adopts it. Authors do **not** invent client-side
+  sleeps. If a resume still hits the wall after a completed human login, that is
+  belt-2 escalate once (§ below), not a second SMS. A proactive **Refresh portal
+  login** still renews a session before it expires.
+- **Newest Open wins; two ceilings.** A second **Open login browser** closes the
+  first tab. The owner must sign in in the **latest** window — Save donates that
+  tab only. Portal OTP budgets stay a **human** rule (e.g. ≤3 SMS/day on some
+  IdPs; abort if the code does not arrive; never retry into lockout). The
+  platform separately hard-stops at **12 login-handoff mints per 24 hours**
+  (`login_mint_max_per_window`, HTTP `429` `mint_rate_exceeded`) so a stolen
+  key cannot drain Steel. Do not treat 12 as the portal OTP budget, and do not
+  encode a client-specific “3” in platform code.
 - **Fail closed — and never re-drive the login (no re-code).** If the re-dispatched run *still* finds the
   session unauthenticated (the human hasn't finished, the session expired, the flush hadn't landed), the
   work **did not happen**: write nothing, advance nothing, take the **escalate** transition (§4b), and
