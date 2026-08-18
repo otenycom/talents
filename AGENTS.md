@@ -50,12 +50,12 @@ The CLI verbs (every one returns a JSON DTO; non-zero exit on failure) — full 
 
 | Step | Verb |
 | --- | --- |
-| offline gate (run before you ever clone) | `lint-talent --dir <bundle>` |
-| stand up a disposable, neutralized, budgeted clone of a **permitted** source | `clone --from <source> --bundle <slug> --branch <dev> --byob <token-file>` |
+| offline gate (run before you ever clone) | `oteny lint <bundle>` |
+| stand up a disposable, neutralized, budgeted clone of a **permitted** source | `oteny clone --source <source>` |
 | deliver your **pushed** branch to the clone | `reload --ref <clone>` |
 | run the bundle scenarios LIVE → green/red | `test --ref <clone> --bundle <slug>` |
 | the structured per-turn debug trace (your debugging eye) | `traces --ref <clone>` |
-| `logs` · `selfcheck` · `migrate-talent` · `reinit` · `reap` | see the skill |
+| `logs` · `selfcheck` · `migrate-talent` | see the skill |
 
 CI path: `request-staging-run --source-id <id> --commit <sha>` → poll `staging-run-status`.
 

@@ -42,20 +42,20 @@ The journey has three environments, and a git ref decides which bot each reaches
 The one loop you actually run, and what each step *does*:
 
 1. **Edit** the bundle on a branch. **Bump** `agent-profile.yaml: version:` (every change).
-2. **Lint** offline (`lint-talent --dir <bundle>`) — content sanity + safety, before you ever
+2. **Lint** offline (`oteny lint <bundle>`) — content sanity + safety, before you ever
    deliver. Also runs in CI on push.
-3. **Get a container to test on** — `clone --from <a source you may touch> --bundle <slug> --branch
-   <branch> --byob <token>` mints a disposable bot (`{ref: hh0…}`). This is the "set up a dev
-   container" step — one command, no infra. (A business bot points its uplink at a **staging**
-   business Odoo; `neutralize.yaml` repoints connections + stubs any real portal/mailbox before it
-   serves.)
+3. **Get a container to test on** — `oteny clone --source <a source you may touch>` mints a
+   disposable bot (`{ref: hh0…}`). This is the "set up a dev container" step — one command, no
+   infra. (A business bot points its uplink at a **staging** business Odoo; `neutralize.yaml`
+   repoints connections + stubs any real portal/mailbox before it serves.)
 4. **Deliver your change** — push first, then `reload --ref <clone>`. Oteny pulls the
    pushed commit onto the clone (stage → swap → gate → auto-rollback). Unpushed files
    never reach the bot. Wait until `last_status` is `delivered` — `active` is not enough
    ([`how-delivery-works.md`](references/how-delivery-works.md)).
 5. **Run the tests** — `test --ref <clone> --bundle <slug>` drives the bundle's
-   `tests/scenarios/*.yaml` **live** and grades them green/red. (Run `reinit` first for the result
-   you trust — a clean tree so a removed file can't leave a false PASS.)
+   `tests/scenarios/*.yaml` **live** and grades them green/red. Every `reload` is a fresh
+   `git clone --depth 1` into a new tempdir, never an incremental pull — a removed file
+   cannot linger and leave a false PASS, so there is no separate "clean the tree" step.
 6. **Review results** — a red run tells you which turn failed and why; open `traces --ref <clone>`
    (the tool-by-tool debug eye) or `logs --ref <clone>` (live gateway markers). Fix, push, repeat.
    For a business bot you can also just hand the job in the business Odoo and read the bot's
@@ -118,7 +118,7 @@ edit bundle on a branch ──► git push
    │                          │
    │                          ▼  (CI) request a staging run over /json/2/
    │                          │   hh.talent.staging_run.request_staging_run(source_id, commit_sha)
-   │   lint-talent --dir      │      → poll staging_run_status(run_id) to GREEN / RED
+   │   oteny lint              │      → poll staging_run_status(run_id) to GREEN / RED
    │   (offline gate)         │
    ▼                          ▼
  clone ──► reload ──► test ──► traces ──► fix ──► (green) ──► tag a release
@@ -393,11 +393,11 @@ Trim → push → `reload` (or wait for the follow-mode belt). Do not start grad
 Ship the migration the normal way (append a `migrations.yaml` entry + a
 `tests/scenarios/<x>.yaml` with `requires_migration: <id>`), then:
 
-1. `clone --from <a real prior-shape bot>` — captures real old state + its
+1. `oteny clone --source <a real prior-shape bot ref>` — captures real old state + its
    `migrations.json` ledger (this is what makes the forward migration actually fire).
 2. `reload --ref <clone>` your branch — `preflight` now surfaces `MIGRATIONS: pending`.
-3. `migrate-talent --ref <clone> --bundle <slug> --apply <id>` (or let the agent
-   drive the checklist turns).
+3. `migrate-talent --ref <clone> --bundle <slug>` (drives `migrate.py` on the box; or let
+   the agent drive the checklist turns).
 4. `test --ref <clone> --bundle <slug>` — the `requires_migration` scenario flips
    from `skip` to `pass`, and prior rows are preserved. **Pass = no regression on
    real state.**
@@ -424,7 +424,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 - **Redaction is automatic.** A clone of someone else's (granted/demo) state lands
   with third-party secrets stripped and the bot token / model key replaced. You can
   never extract another tenant's credentials through a clone.
-- **You can clone only what you may.** `clone --from` is record-rule-scoped to your
+- **You can clone only what you may.** `oteny clone --source` is record-rule-scoped to your
   own bots + Oteny demo/templates + bots explicitly **granted** to you — never an
   arbitrary customer.
 - **Billing.** A clone is free infra for 7 days; metered tool use bills *your*
@@ -510,7 +510,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
 - **A long run is reaped mid-task** — the agent budget (`agent.max_turns`) is too low for the
   Talent's work; raise it per-tenant (an operator `config_overrides` knob) and re-run.
 - **`clone`/`test`/`traces` says "not permitted"** — you can only touch your own + granted +
-  Oteny demo bots; `clone --from` a source outside that scope is refused by the record rules.
+  Oteny demo bots; `oteny clone --source` naming a source outside that scope is refused by the record rules.
 - **A just-created bot isn't visible to your key for a moment** — right after you stand up a new
   bot, its bot/source records may not yet fall inside your account's record-rule scope (a brief
   staleness), so a `traces`/`test` against it can read empty or "not permitted" for a beat even
@@ -531,9 +531,9 @@ your Talent honest and your reputation rises in the Bot Market.
 
 ## Verification checklist
 
-1. `lint-talent --dir <bundle>` exits 0 (no violations).
+1. `oteny lint <bundle>` exits 0 (no violations).
 2. A clone stands up neutralized (`neutralize_status: ok`) and the source stays up.
-3. `test` is green over every `tests/scenarios/*.yaml` (run after `reinit`).
+3. `test` is green over every `tests/scenarios/*.yaml`.
 4. A migration scenario reconciles real prior-shape state idempotently.
 5. `traces` shows the expected tool calls and no approval stall / unbounded loop.
 6. The release tag's semver equals the committed `version:`.
