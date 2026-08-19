@@ -1618,6 +1618,11 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   strip and the session form. Resolve it from `oteny.bot.discuss_channel_id` or the
   client's xmlid. Do not hard-code a channel id. Reload the origin form to see a new
   session; do not add a live ticker unless the session model writes `bus.bus`.
+- **Show who owns the current workflow state on that same strip.** Encode bot vs
+  human ownership in the state (`is_owned_by_bot`), not the responsible team. The
+  header line must lead with the current state name and a bot/human owner pill.
+  A last-run **OK** pill without that pair is read as "the bot still owns this
+  job" after a hand-back (login wall, draft review, escalate).
 
 ## Grading deltas (run alongside the 14 checks)
 
