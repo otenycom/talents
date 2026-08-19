@@ -866,6 +866,23 @@ shares.
   the run, and treat a per-field click on the submit control as the one gap the belt can't close for
   you.
 
+## 4g. Unmount a fill tool that cannot see the page
+
+If `browser_fill_form` stays page-less after a redial, hide it.
+Add the name to `toolset_tool_exclusions`.
+Also drop it from `tools.required`.
+The `browser` toolset still mounts it otherwise.
+Do not leave it mounted with a "do not use it" prompt.
+Native `browser_click` is then the fill path.
+
+**Do not ship file-through without a click-deny.**
+Submit-deny covers `browser_fill_form` only.
+It does not cover `browser_click`.
+Hide or refuse the File button until a click-deny exists.
+Ship **draft-only**.
+The bot saves a draft.
+A human clicks the government submit.
+
 **Rule:** *arm the belt on the rehearsal bot; leave the Talent's real-submit path intact.* The belt is
 how you spend live runs converging selectors (§4e) and reconciling the real workflow (observe mode,
 above) without ever filing for real — the same tier-below-the-Talent discipline as the stub doubles
