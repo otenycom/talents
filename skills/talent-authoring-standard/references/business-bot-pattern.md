@@ -1589,11 +1589,13 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   view — every exchange, in their own Odoo, without touching the bot host.
 - **Surface the last isolated-turn outcome on the origin record.** A smart button that
   opens the log is not enough for day-to-day operators. Put the latest session's outcome
-  pill, short response (or an honest "still working" state), timestamp, and a link to that
-  session **on the origin form** so the team does not need the Discuss channel to know
-  what the bot just did. The CrewRadar dog-food layout (generic chrome in `oteny_bot`,
-  placement on the origin form) lives beside this catalog at
-  [`cuneus_barney/plans/bot-activity-on-service-form.md`](../../../../radar/cuneus_barney/plans/bot-activity-on-service-form.md).
+  pill, a short response (or an honest still-working sentence), the start time, the
+  duration, and a link to that session **on the origin form**. The team then does not
+  need the Discuss channel to know what the bot just did. Keep the chrome generic
+  (`oteny.bot.session` helpers such as `search_latest_for_origin`). Place the strip in
+  the consuming app, gated on that app's own workflow. Do not hard-code a client name
+  in the generic bot addon. Reload the origin form to see a new session; do not add a
+  live ticker unless the session model writes `bus.bus`.
 
 ## Grading deltas (run alongside the 14 checks)
 
@@ -1628,7 +1630,8 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   owner's Odoo backstops a dead run. (PASS/FAIL / N/A)
 - **Owner-visibility** — the bot records each exchange as a session in the owner's Odoo over
   `/json/2/` (soft-linked to the record, idempotent bot identity, best-effort so a log
-  failure can't fail the work); reviewable from a smart button on the record. (PASS/FAIL / N/A)
+  failure can't fail the work); reviewable from a smart button on the record and from a
+  last-session strip on the origin form. (PASS/FAIL / N/A)
 
 ## The author-time ledger (changelog discipline)
 
