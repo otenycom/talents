@@ -827,6 +827,9 @@ Then reconcile, iterating four steps until the diff is clean:
    observed reality into your stub** (the real ids *or* role+name anchors, the real option strings,
    any page the original walkthrough missed) so the **offline suite stays the authoritative
    regression net** — the stub, not a live run, is what every future deploy checks against.
+   When live CDP or click-order evidence differs from the map, fold that evidence into
+   the selector map in the same session. The stub then follows that map.
+   Do not keep a second fill-tool path beside the live-derived native path.
 4. **Fill-verify** — re-run against the now-faithful stub until the offline suite is green.
 
 Iterate **observe → diff → harden → fill-verify until the diff is clean**, and only *then* disarm the
@@ -1611,8 +1614,10 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   need the Discuss channel to know what the bot just did. Keep the chrome generic
   (`oteny.bot.session` helpers such as `search_latest_for_origin`). Place the strip in
   the consuming app, gated on that app's own workflow. Do not hard-code a client name
-  in the generic bot addon. Reload the origin form to see a new session; do not add a
-  live ticker unless the session model writes `bus.bus`.
+  in the generic bot addon. Also link the bot's Discuss home channel from the origin
+  strip and the session form. Resolve it from `oteny.bot.discuss_channel_id` or the
+  client's xmlid. Do not hard-code a channel id. Reload the origin form to see a new
+  session; do not add a live ticker unless the session model writes `bus.bus`.
 
 ## Grading deltas (run alongside the 14 checks)
 
