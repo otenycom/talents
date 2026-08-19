@@ -1587,6 +1587,13 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   no cross-tenant reach). The origin soft-ref is advisory and unvalidated. The owner reviews
   the sessions from a **smart button on the record** the bot worked, or a per-bot activity
   view — every exchange, in their own Odoo, without touching the bot host.
+- **Surface the last isolated-turn outcome on the origin record.** A smart button that
+  opens the log is not enough for day-to-day operators. Put the latest session's outcome
+  pill, short response (or an honest "still working" state), timestamp, and a link to that
+  session **on the origin form** so the team does not need the Discuss channel to know
+  what the bot just did. The CrewRadar dog-food layout (generic chrome in `oteny_bot`,
+  placement on the origin form) lives beside this catalog at
+  [`cuneus_barney/plans/bot-activity-on-service-form.md`](../../../../radar/cuneus_barney/plans/bot-activity-on-service-form.md).
 
 ## Grading deltas (run alongside the 14 checks)
 
