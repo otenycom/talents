@@ -42,6 +42,40 @@ log = logging.getLogger(__name__)
 
 _BOX_MODEL = "hh.box_access_request"
 
+# Worker-side ``runsc exec`` during a gateway bounce (the prior window's reap
+# rotates the model key) lands as asyncssh ProcessError rc 128. Close only
+# flags expiry — the request stays ``active`` until the 60 s drain reaps it —
+# so a second open in the same tick races that bounce. 429 is the inflight cap
+# while those unreaped windows still count. All of these are retryable here.
+_PERMANENT_SHELL_MARKERS = (
+    "not_found", "no_account", "bad_pubkey", "bad_kind", "not permitted",
+    "no_ref",
+)
+_TRANSIENT_SHELL_MARKERS = (
+    "ended before active",
+    "processerror",
+    "exit status 128",
+    "timeouterror",
+    "too_many_inflight",
+    "429",
+    "ssh bridge never came up",
+    "connection reset",
+    "kex",
+    "did not go active",
+    "nxdomain",
+    "broken pipe",
+    "container not found",
+    "runsc",
+)
+
+
+def _is_transient_shell_error(exc: BaseException) -> bool:
+    """True when a new ``request_box_access`` can recover — not a permission miss."""
+    msg = str(exc).lower()
+    if any(marker in msg for marker in _PERMANENT_SHELL_MARKERS):
+        return False
+    return any(marker in msg for marker in _TRANSIENT_SHELL_MARKERS)
+
 
 class BoxAccessError(RuntimeError):
     """A box-access lane could not be opened / completed over ``/json/2/``."""
@@ -61,7 +95,10 @@ class AuthorBoxAccess:
         keygen_bin: str = "ssh-keygen",
         poll_s: float = 5.0,
         inspect_timeout_s: float = 180.0,
-        shell_timeout_s: float = 120.0,
+        shell_timeout_s: float = 180.0,
+        shell_open_attempts: int = 6,
+        shell_retry_s: float = 8.0,
+        shell_close_timeout_s: float = 180.0,
         sleep: Callable[[float], None] | None = None,
         clock: Callable[[], float] | None = None,
         run: Callable[..., subprocess.CompletedProcess] | None = None,
@@ -76,6 +113,9 @@ class AuthorBoxAccess:
         self._poll_s = poll_s
         self._inspect_timeout_s = inspect_timeout_s
         self._shell_timeout_s = shell_timeout_s
+        self._shell_open_attempts = max(1, int(shell_open_attempts))
+        self._shell_retry_s = float(shell_retry_s)
+        self._shell_close_timeout_s = float(shell_close_timeout_s)
         self._sleep = sleep or time.sleep
         self._clock = clock or time.monotonic
         self._run = run or _default_run
@@ -101,49 +141,25 @@ class AuthorBoxAccess:
         """Open an ephemeral, account-scoped SSH lane into ``ref`` and yield
         ``exec(cmd) -> stdout``. Mints a throwaway keypair, opens a ``shell`` window
         (authorizing our pubkey), brings up the ``cloudflared access tcp`` local bridge, and
-        SSHes in with our own key. On exit: close the window + reap the local bridge + temp
-        key. The box's disclosed-key grant is rotated server-side by the reaper (D201)."""
+        SSHes in with our own key. A transient worker failure (``ProcessError`` rc 128,
+        429 inflight, tunnel not ready) retries inside this verb — callers must not wrap
+        their own loop. On exit: close the window, wait until the request is terminal
+        (the reap restarts the gateway), then reap the local bridge + temp key."""
         rid = None
         tmp = tempfile.mkdtemp(prefix="oteny-box-shell-")
         bridge: subprocess.Popen | None = None
         try:
             key_path = os.path.join(tmp, "id_ed25519")
             pub = self._keygen_ephemeral(key_path)
-            rid = self._open("shell", ref, ssh_pubkey=pub)
-            connect = self._await_shell(rid)
-            hostname = connect.get("hostname")
-            user = connect.get("user") or "hermes"
-            if not hostname:
-                raise BoxAccessError(f"shell window {rid} for {ref!r} has no hostname")
-            self._wait_dns(hostname)
-            local_port = _free_local_port()
-            bridge = self._start_bridge(hostname, local_port)
-            self._wait_ssh_ready(key_path, user, local_port)
-
-            def _exec(cmd: str) -> str:
-                res = self._run(
-                    [self._ssh, "-p", str(local_port), "-i", key_path,
-                     "-o", "StrictHostKeyChecking=accept-new",
-                     "-o", "UserKnownHostsFile=/dev/null",
-                     "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
-                     "-o", "LogLevel=ERROR",
-                     f"{user}@127.0.0.1", cmd],
-                    capture_output=True, text=True, timeout=120)
-                if res.returncode != 0:
-                    raise BoxAccessError(
-                        f"shell exec failed (rc={res.returncode}) on {ref!r}: "
-                        f"{(res.stderr or '').strip()[:300]}")
-                return res.stdout or ""
-
-            yield _exec
+            rid, bridge, exec_fn = self._establish_shell(ref, key_path, pub)
+            yield exec_fn
         finally:
             if bridge is not None:
                 with contextlib.suppress(Exception):
                     bridge.terminate()
                     bridge.wait(timeout=10)
             if rid is not None:
-                with contextlib.suppress(Exception):
-                    self._client.call(_BOX_MODEL, "close_box_access", request_id=rid)
+                self._close_window(rid)
             with contextlib.suppress(Exception):
                 _rmtree(tmp)
 
@@ -188,6 +204,104 @@ class AuthorBoxAccess:
                 raise BoxAccessError(f"shell {rid} ended before active: {st.get('error') or st}")
             self._sleep(self._poll_s)
         raise BoxAccessError(f"shell {rid} did not go active in {self._shell_timeout_s}s")
+
+    def _establish_shell(
+        self, ref: str, key_path: str, pub: str,
+    ) -> tuple[int, subprocess.Popen, Callable[[str], str]]:
+        """Open + await + bridge + SSH-ready. Retries a *terminal* transient miss
+        (worker rc 128) with a new request. A still-queued rid is never abandoned
+        for a second ``request_box_access`` — that fills ``hh.max_inflight_box_access``
+        and every later open 429s. A 429 waits a drain tick and retries ``_open`` only."""
+        last: BoxAccessError | None = None
+        for attempt in range(1, self._shell_open_attempts + 1):
+            rid: int | None = None
+            bridge: subprocess.Popen | None = None
+            try:
+                rid = self._open("shell", ref, ssh_pubkey=pub)
+                connect = self._await_shell(rid)
+                hostname = connect.get("hostname")
+                user = connect.get("user") or "hermes"
+                if not hostname:
+                    raise BoxAccessError(f"shell window {rid} for {ref!r} has no hostname")
+                self._wait_dns(hostname)
+                local_port = _free_local_port()
+                bridge = self._start_bridge(hostname, local_port)
+                self._wait_ssh_ready(key_path, user, local_port)
+                return rid, bridge, self._make_exec(ref, key_path, user, local_port)
+            except BoxAccessError as exc:
+                last = exc
+                if bridge is not None:
+                    with contextlib.suppress(Exception):
+                        bridge.terminate()
+                        bridge.wait(timeout=10)
+                if rid is not None:
+                    self._close_window(rid)
+                    if not self._window_is_terminal(rid):
+                        # Still queued/running: close cannot dequeue. Opening
+                        # another request is the inflight leak (live-hit 2026-08-20).
+                        raise BoxAccessError(
+                            f"shell {rid} for {ref!r} still in flight after close "
+                            f"({exc}); not opening a second window"
+                        ) from exc
+                if attempt >= self._shell_open_attempts or not _is_transient_shell_error(exc):
+                    raise
+                delay = self._retry_delay_s(exc, attempt)
+                log.warning(
+                    "box.shell.retry ref=%s attempt=%s/%s delay=%.0fs err=%s",
+                    ref, attempt, self._shell_open_attempts, delay, exc)
+                self._sleep(delay)
+        raise last or BoxAccessError(f"shell for {ref!r} never became ready")
+
+    def _retry_delay_s(self, exc: BoxAccessError, attempt: int) -> float:
+        """429 needs a full drain tick (~60 s). A terminal 128 can retry sooner."""
+        msg = str(exc).lower()
+        if "too_many_inflight" in msg or "429" in msg:
+            return max(60.0, self._shell_retry_s * attempt)
+        return self._shell_retry_s * attempt
+
+    def _window_is_terminal(self, rid: int) -> bool:
+        try:
+            st = self._client.call(_BOX_MODEL, "box_access_status", request_id=rid) or {}
+        except Exception:  # noqa: BLE001 — treat an unreadable row as still live
+            return False
+        return bool(st.get("terminal") or st.get("state") in ("done", "failed"))
+
+    def _make_exec(
+        self, ref: str, key_path: str, user: str, local_port: int,
+    ) -> Callable[[str], str]:
+        def _exec(cmd: str) -> str:
+            res = self._run(
+                [self._ssh, "-p", str(local_port), "-i", key_path,
+                 "-o", "StrictHostKeyChecking=accept-new",
+                 "-o", "UserKnownHostsFile=/dev/null",
+                 "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+                 "-o", "LogLevel=ERROR",
+                 f"{user}@127.0.0.1", cmd],
+                capture_output=True, text=True, timeout=120)
+            if res.returncode != 0:
+                raise BoxAccessError(
+                    f"shell exec failed (rc={res.returncode}) on {ref!r}: "
+                    f"{(res.stderr or '').strip()[:300]}")
+            return res.stdout or ""
+        return _exec
+
+    def _close_window(self, rid: int) -> None:
+        """Flag the reap, then wait until the row is terminal. Close only sets
+        ``expires_at`` — the request stays ``active`` (and counts against the
+        inflight cap) until the drain finishes teardown + key rotate."""
+        with contextlib.suppress(Exception):
+            self._client.call(_BOX_MODEL, "close_box_access", request_id=rid)
+        with contextlib.suppress(Exception):
+            self._await_closed(rid)
+
+    def _await_closed(self, rid: int) -> None:
+        deadline = self._clock() + self._shell_close_timeout_s
+        while self._clock() < deadline:
+            st = self._client.call(_BOX_MODEL, "box_access_status", request_id=rid) or {}
+            if st.get("terminal") or st.get("state") in ("done", "failed"):
+                return
+            self._sleep(self._poll_s)
+        log.warning("box.shell.close_wait_timeout rid=%s", rid)
 
     def _keygen_ephemeral(self, key_path: str) -> str:
         self._run([self._keygen, "-t", "ed25519", "-N", "", "-q", "-f", key_path],

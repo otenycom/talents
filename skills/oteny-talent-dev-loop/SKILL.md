@@ -161,7 +161,7 @@ DM is Phase 2** (not in this package yet).
 | Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
 | Selfcheck | `oteny selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the box via account-scoped shell. |
 | Migrate | `oteny migrate-talent --ref <clone> --bundle <slug>` | Drive `migrate.py` on the box. |
-| Inspect / shell | `oteny inspect\|shell --ref <clone>` | Box-access look-inside / exec (your keypair + cloudflared). |
+| Inspect / shell | `oteny inspect\|shell --ref <clone>` | Box-access look-inside / exec (your keypair + cloudflared). `shell` retries a transient open (worker `ProcessError` rc 128, 429 inflight, tunnel not ready) and waits for teardown before it returns. Do not wrap your own retry loop. |
 | Staging CI | `oteny request-staging-run` / `staging-run-status` | Commit→staging→green/red poll (full suite on staging clone — not Path B stub). |
 
 Private hermeshost `python -m hermeshost test` with staff secrets is a **footgun** for
@@ -373,6 +373,16 @@ selectors after an observe walk — that is conversation/tool history, not struc
   you genuinely need to change something.
 
 `close_box_access(request_id=<id>)` tears a shell down early (don't wait for the TTL).
+The CLI verb does that for you, then polls until the request is **terminal**. Close only
+flags expiry — the row stays `active` until the drain reaps it, and that reap **restarts
+the gateway** (the disclosed model key is rotated). A second `oteny shell --cmd` that
+starts before that reap finishes races `runsc exec` on the bouncing box and used to
+raise `ended before active: ProcessError … exit status 128`.
+
+The verb retries a *terminal* 128 inside `packages/oteny` (`AuthorBoxAccess.shell`).
+It does **not** open a second window while the first is still queued — that fills the
+account inflight cap and every later open 429s. A 429 waits one drain tick (~60 s)
+and retries `_open` only. Do not add a retry loop in a caller script.
 
 ## The readiness contract: `active` is not enough — wait for `talent_delivered`
 
