@@ -899,13 +899,25 @@ The `browser` toolset still mounts it otherwise.
 Do not leave it mounted with a "do not use it" prompt.
 Native `browser_click` is then the fill path.
 
-**Do not ship file-through without a click-deny.**
-Submit-deny covers `browser_fill_form` only.
-It does not cover `browser_click`.
-Hide or refuse the File button until a click-deny exists.
-Ship **draft-only**.
-The bot saves a draft.
-A human clicks the government submit.
+**Draft-only is a rung on the ladder, not a permanent product lock.**
+Unmounting the fill tool moves the submit onto `browser_click`.
+Submit-deny covers `browser_fill_form` only, so it stops covering that click.
+The honest response is to ship **draft-only first**: the bot saves a draft, and a
+human clicks the government submit.
+
+Ship it that way while the bot is still converging on the real site.
+Do **not** treat it as the end state, and do **not** wait for a native click-deny
+before you turn file-through back on.
+The gate is the graduation ladder below, not one more browser belt.
+A bot earns the real submit by climbing that ladder attended.
+
+What stands behind a native submit click is the rest of the stack, not the belt.
+That stack is the server-side data gate, the work-token check, a write-ahead
+intent that fences a crash, the proof guard that refuses an unproven *done*
+(§4b), and a tier-bound stub double that keeps a non-prod bot off the real site
+(§4).
+Name that residual out loud when you re-enable file-through, and rehearse it with
+an operator watching.
 
 **Rule:** *arm the belt on the rehearsal bot; leave the Talent's real-submit path intact.* The belt is
 how you spend live runs converging selectors (§4e) and reconciling the real workflow (observe mode,
