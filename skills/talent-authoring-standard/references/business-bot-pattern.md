@@ -924,6 +924,33 @@ how you spend live runs converging selectors (§4e) and reconciling the real wor
 above) without ever filing for real — the same tier-below-the-Talent discipline as the stub doubles
 (§4), but for the one bot you deliberately point at the live site.
 
+## 4h. Size the in-progress SLA to bot work, not to the worst thing you can imagine
+
+A dispatched run can die silently. The model stream hangs mid-turn, or the box's gateway
+dies, and nothing tells your workflow. So the state machine needs a reaper: a per-state SLA
+that hands an over-age in-progress record back to a human.
+
+**The SLA is not a safety margin. It is the recovery time.** Until it fires, the record stays
+claimed. If your workflow serializes bot work — a one-live-slot gate, a shared login, a single
+browser session — a claimed record blocks every other queued item for exactly that long.
+
+So size it to **bot work only**, from a measured run:
+
+- Measure a healthy end-to-end run. Take 3–4x that as the SLA.
+- Count no human wait. A wait for a person belongs in its own **human-owned** state, which
+  carries no SLA at all — a reaper must never interrupt a person.
+- Re-read the SLA whenever you add a step. An estimate ages; a measurement does not.
+
+The failure this prevents is specific, and it is easy to write by accident. Barney's filing
+state carried a 120-minute SLA, justified as "a long filing PLUS the SMS-2FA wait". But the
+2FA wait happened in a different, human-owned state — the filing state only ever held bot
+work, and a measured run was 10.5 minutes. So when a model stream hung, one dead run held the
+single live slot for two hours, for work the gateway watchdog had already abandoned. The fix
+was to size the SLA to the bot: 45 minutes.
+
+Pin it with a test. An SLA is a number in a data file, and numbers drift upward every time
+someone sees a slow run and does not measure it.
+
 ### The graduation ladder — from rehearsal to unattended prod
 
 A side-effecting bot does **not** go from green tests straight to filing on its own. It climbs a
