@@ -1356,6 +1356,9 @@ the next run reuses:
   bot-owned **work** transition into a **human-owned "needs login" state** and ends the turn — it opens
   no authenticated session and writes no secret. Register that state as an accepted **work** outcome of
   the in-progress state (§6), or the harness's timeout backstop hands the record back as a false failure.
+  Before you call `browser_needs_login`, write **one diagnosis line** that names the URL you saw and
+  the `controls` count from the last snapshot you already have. A false wall (empty first capture) and
+  a real login page look the same in the trace without that line. Do not snapshot again just to log.
 - **A human logs in, in a fresh profile session — the bot never sees the credential or the code.** The
   person completes the gated login (types the one-time code, taps the key) in a **fresh browser profile
   session** minted at click-time, not inside the bot's automation session and not by handing the bot the
