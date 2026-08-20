@@ -1489,6 +1489,10 @@ Derive the slot from the records themselves:
 A second business bot inherits the control by flagging its login-park states and calling the
 same predicate from `_bot_dispatch_gate`. Do not put client names in the engine.
 
+Prove two overlapping Hands on the live queue. A graded scenario that waits
+`done_when` serializes itself, so a green `oteny test` does not prove the
+second Hand stayed queued.
+
 #### Humans and runs collide on the RECORD too — refuse a transition out from under a live run
 
 The same "several people at once" reality has a second, sharper edge that has nothing to do with browsers.

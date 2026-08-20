@@ -49,7 +49,8 @@ your own browser devtools, and ship them in the skill:
 
 - Put a per-page map in your skill's `references/` (e.g. `form-selectors.md`): one
   section per wizard page listing each field's selector, the control type, and the
-  page's submit button.
+  page's **named** advance control. Do not assume every page uses the same Next
+  label. A later page may say *Summary* or *OK* where earlier pages said *Next*.
 - Text inputs and selects usually have stable ids (`#first_name`); radios often
   have only a name — target one option as `input[name=group][value=Yes]`; a
   checkbox without an id the same way.
