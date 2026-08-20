@@ -541,6 +541,20 @@ per-ship SBI rule, the −1-day/+1-year date convention, and an optional-BSN the
 required), and the double was rebuilt from a single form into the real 8-step wizard with two
 register-lookup interludes, date carry-over, and the consent gate.
 
+**Keep a thin page for login and queue tests.** The full wizard proves
+selectors and fill. A shared-login or one-live-slot walk only needs
+Needs Login → Open → donate → adopt → linger → drain → *Draft ready*.
+Pay that with a stub-only one-field page, not with nine screens.
+Keep the real page graph for selector proof. Do not flip a global
+flag that shortens every filing. Branch on a fixture flag the DTO
+already carries. Barney's stub does this at `/mfnl-stub/dummy-file`
+when `mfnl_json.thin_file` is true (Thinpath / Thinpeer).
+Score the broker log, not wizard completeness. Drain the next card
+in the occupant's own write (`_bot_drain_peers`). The 3-min cron is
+the belt. Mid-turn (`linger_until == 0`) is not adoptable.
+Live cookie-carry on the real portal is a go-live eval. It is not
+a pre-go-live SMS walk.
+
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
 **Two layers — keep them apart.** A browser Talent is authored in **two** layers, and conflating
@@ -1388,9 +1402,12 @@ the next run reuses:
 - **After Save, a dead browser player is a platform bug.** Do not tell the author
   to clear a Steel / browser profile. The broker donates the live login session
   and the next agent create adopts it. Authors do **not** invent client-side
-  sleeps. If a resume still hits the wall after a completed human login, that is
-  belt-2 escalate once (§ below), not a second SMS. A proactive **Refresh portal
-  login** still renews a session before it expires.
+  sleeps. A later queued create adopts the linger sibling only after the
+  first turn has posted `/linger`. Mid-turn is not adoptable. After 5
+  minutes idle, a new login is normal. If a resume still hits the wall after
+  a completed human login, that is belt-2 escalate once (§ below), not a
+  second SMS. A proactive **Refresh portal login** still renews a session
+  before it expires. Do not Refresh while linger is live.
 - **Newest Open wins; two ceilings.** A second **Open login browser** closes the
   first tab. The owner must sign in in the **latest** window — Save donates that
   tab only. Portal OTP budgets stay a **human** rule (e.g. ≤3 SMS/day on some
