@@ -1332,6 +1332,8 @@ states**, on the **same isolated-turn harness (§6) with no harness change**:
   transition that records the **real** proof (the post-side-effect advance), **not** the prep advance
   — the prep run legitimately advances the record with *no* external proof yet, so guarding it would
   fail-closed the wrong step. Guard only the advance that claims a real-world outcome.
+- **Do not silently overwrite a computed SLA deadline** after a bot-to-human handoff.
+  A write that freezes the displayed date can drop the stored rule. Review first.
 
 ### The human-login gate — park, a human logs in, re-dispatch on a fresh claim
 
@@ -1369,6 +1371,10 @@ the next run reuses:
   fresh claim epoch** and fires a *second*, fresh isolated turn that does the real side-effect against the
   now-authenticated session. A stale parked turn cannot act on the resumed record — the resume→queue claim
   bumps the epoch and fences a late writer out. The login is a **state boundary, not a shared session.**
+- **Name the post-login bot state after the job, not the login.** After the human
+  marks login done, the bot-owned in-progress state's `name` is the current job
+  (draft or file). The origin Bot Activity strip echoes that `name`. Do not leave
+  a signing-in label on the state that runs after login is finished.
 - **After Save, a dead browser player is a platform bug.** Do not tell the author
   to clear a Steel / browser profile. The broker donates the live login session
   and the next agent create adopts it. Authors do **not** invent client-side
@@ -1454,6 +1460,34 @@ Four rules make that true. **Every one of them must be bounded by wall clock** �
   still land its write *after* a takeover committed and destroy the new dance's latch. Storing "who started
   it" for the error message is **not** the same as enforcing ownership — if no code path reads the field, it
   is decoration.
+
+#### One live isolated turn per bot — derive the slot from workflow state
+
+A team will hand the bot several records in one minute. Process ("hand one at a time") is not a
+control. The engine already has a gate at dispatch and at run-start consume. Use that gate. Do
+**not** add a second occupancy record on the bot (fields, CAS, TTL). A TTL that expires while a
+slow run is still live admits a second run. A missed release strands the bot forever.
+
+Derive the slot from the records themselves:
+
+- Flag login-park and login-resume states `bot_login_hold` in the workflow XML.
+- Defer a **fresh** queue record when another record of the same workflow is claimed, or sits
+  in a login-hold state.
+- **Exclude-self:** a record in a login-hold state is never blocked by its own hold. That is the
+  whole priority system — the parked record's resume is always admitted; fresh work is not. Two
+  records both parked in a login-hold state must not deadlock each other.
+- **Strict at dispatch** for fresh work: any other claimed peer defers (the extra card stays in
+  the bot's queue state — visible, not secretly claimed).
+- **Relaxed at consume / re-post / login-hold resume:** only a consumed, in-SLA peer defers
+  (reuse the engine's live-claim predicate). A REPEATABLE READ race may post twice; the consume
+  fence plus the box serializer admit one browser Open. A second Open is what burns a login
+  code — that happens at consume, never at post.
+- **Drain** is one hook: a record left a slot-holding state (`in_progress` or `bot_login_hold`)
+  → try the oldest queued peer of the same workflow. The existing dispatch cron is the
+  correctness belt. No per-exit trigger table. No new clock.
+
+A second business bot inherits the control by flagging its login-park states and calling the
+same predicate from `_bot_dispatch_gate`. Do not put client names in the engine.
 
 #### Humans and runs collide on the RECORD too — refuse a transition out from under a live run
 
@@ -1623,6 +1657,13 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   header line must lead with the current state name and a bot/human owner pill.
   A last-run **OK** pill without that pair is read as "the bot still owns this
   job" after a hand-back (login wall, draft review, escalate).
+- **Write the operator manual as a state table, not a staff runbook.** For each
+  workflow state, list the **exact UI label**, who owns it (human team vs bot),
+  what they click, and what happens next. Mark parked bot work (for example a
+  watch state with no mailbox poll, or a hidden file-through button) as **not
+  live**, so operators do not wait for a bot that will not act. Keep staff CLI,
+  box access, and submit-deny out of that table. Put author/dev loop docs in a
+  different file from the operator manual.
 
 ## Grading deltas (run alongside the 14 checks)
 
