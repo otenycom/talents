@@ -96,6 +96,7 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 | A **private git repo you own** that Oteny has never seen | A repo admin adds Oteny's read-only Deploy Key once. Public repos and Oteny-owned private repos (`otenycom/radar`) already work. See [`how-delivery-works.md`](references/how-delivery-works.md). |
+| **`selector-audit` / `browser-diff`** (those verbs still live in hermeshost) | Harvest the accessible name from `oteny traces`. Put the observed name first. Do not copy a stub label. Promote the two verbs onto `oteny` so Path B can score a map without staff. |
 
 *Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
 **`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
@@ -226,10 +227,12 @@ below).
 `browser_summary` — per-step rows from `browser_fill_form` **and** `page_snapshot` form-control
 inventories from observe walks (`browser_snapshot` / `browser_navigate`, no fill required).
 `browser_summary.pages_captured` / `controls_captured` tell you whether the walk left usable
-inventory. Run `selector-audit` before a run and `browser-diff` after to score/diff your selectors
-against an expected-selector manifest — pattern + manifest format:
+inventory. `selector-audit` and `browser-diff` still live in hermeshost.
+An outside author cannot run them on Path B today. Until they land on
+`oteny`, harvest the accessible name from `traces` and put that name first.
+Pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
-That loop is **`traces` → `browser-diff`**, not shell → `state.db`: conversation/tool blobs are the
+The intended loop is **`traces` → `browser-diff`**, not shell → `state.db`: conversation/tool blobs are the
 wrong store for selector inventories. You already have box `shell` / `inspect` for Talent DBs,
 logs, and forensics (below) — a different job.
 

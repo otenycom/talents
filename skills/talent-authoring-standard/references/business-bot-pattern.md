@@ -553,10 +553,17 @@ them is the trap that turns a high-level work instruction into a brittle screen-
    touch it.
 2. **The page runbook** — the selector map (`references/form-selectors.md`) + its machine twin
    (the expected-selector manifest below). Treat it as a **generated, disposable artifact**, not
-   work-instruction content: **harvest** it once at authoring time from the real page's devtools
-   (or your faithful stub), **converge** it against reality by observe → `browser-diff` proposals
+   work-instruction content: **harvest** it once at authoring time from an **observed live
+   trace**, **converge** it against reality by observe → `browser-diff` proposals
    → author accepts, and **regression-net** it by back-porting each fix to the stub. When the
    portal is redesigned you **regenerate the runbook** — you never rewrite the instruction.
+   Do **not** copy a stub label as the live primary. The stub carries names a human
+   transcribed. The trace carries the accessible name the page really exposes.
+
+**A page owns its advance control.** Never name one global Next button for a
+whole wizard. A later page may say *Summary* or *OK* where earlier pages said
+*Next*. Scroll that control into view **before** the native click. A control
+below the fold reads as a naming bug and costs a whole model turn.
 
 That split is the reconciliation of "a Talent is a high-level work instruction" with the hard
 platform fact that the model **cannot read CSS selectors off a live page** (`browser_snapshot`
@@ -1491,7 +1498,10 @@ same predicate from `_bot_dispatch_gate`. Do not put client names in the engine.
 
 Prove two overlapping Hands on the live queue. A graded scenario that waits
 `done_when` serializes itself, so a green `oteny test` does not prove the
-second Hand stayed queued.
+second Hand stayed queued. Two wizard saves a few seconds apart prove
+**sequential defer** only. They do not open a REPEATABLE READ race. A true
+overlap proof drives two `/json/2/` claims from two threads at the same
+instant. Do not treat a green scenario as proof two Hands cannot race.
 
 #### Humans and runs collide on the RECORD too — refuse a transition out from under a live run
 
