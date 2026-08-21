@@ -86,7 +86,7 @@ grades it against the authoring standard:
 The definitive grade always re-runs Oteny-side (the nightly sweep + `promote-talent`), so a
 `provisional: true` result (the deep rules weren't on this box) is confirmed there.
 
-## D. Publish a Talent (submit it to the Bot Market)
+## D. Publish a Talent (submit it to the Talent Market)
 
 > Use when the owner says *"publish my &lt;X&gt; Talent"* / *"submit it to the store"*. For
 > the full picture — what happens after you submit, how it's discovered, and how it's
@@ -99,7 +99,7 @@ The definitive grade always re-runs Oteny-side (the nightly sweep + `promote-tal
    python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py \
      --slug <slug> --request-publish --viewer-url "<viewer link>"
    ```
-   This writes a publish-request marker the Oteny sweep drains into the **Bot Market review
+   This writes a publish-request marker the Oteny sweep drains into the **Talent Market review
    queue** (`hh.owner_talent`, `publish_state=submitted`). An operator vets the rendered bundle
    and, on approval, `promote-talent` lifts it into the catalog. Nothing here touches the
    network or the control plane — the box holds no control-plane key; the sweep pulls the marker.

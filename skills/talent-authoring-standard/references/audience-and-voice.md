@@ -44,7 +44,7 @@ internal lab hostnames.
 
 ## Store copy vs runtime instructions
 
-- **`long_md` / tagline / Bot Market** — only the owner. Lead with what they *say*
+- **`long_md` / tagline / Talent Market** — only the owner. Lead with what they *say*
   and what they *get*. Same type-this honesty as runtime refs.
 - **`SKILL.md` + `references/`** — dual: owner phrases first where the flow is
   conversational; bot checklists immediately after (or in a **Bot notes** section).
@@ -65,7 +65,7 @@ library, not in a Talent the owner (or a public catalog reader) sees.
 
 **The author-facing references are published too — hold them to the same bar.**
 [`publish-discover-install.md`](../../oteny-talent-authoring/references/publish-discover-install.md)
-is rendered verbatim as **oteny.com/bots/how-it-works**, so the third audience above is
+is rendered verbatim as **oteny.com/talents/how-it-works**, so the third audience above is
 not a private one: an author is an outsider, and a word only Oteny can resolve is just as
 broken there as in owner chat. The words that slip in, and what to write instead: the
 catalog named by its Odoo model id → just **the catalog**; "a delivery belt" → **it is
@@ -79,5 +79,5 @@ usage costs**; "no operator step" → **nobody at Oteny is in the loop**.
 `teaser.yaml`, a tool name in Bot notes. Those are your interface, not jargon. The test is
 whether the reader can resolve the word from where they sit.
 
-Fix a failure **here**, then regenerate the page on Oteny's side (`scripts/bots_docs_to_website.py`);
+Fix a failure **here**, then regenerate the page on Oteny's side (`scripts/talents_docs_to_website.py`);
 Oteny's test suite scans the rendered page, so a regression in this repo breaks their build.

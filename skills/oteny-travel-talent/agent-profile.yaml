@@ -6,7 +6,7 @@
 bot: oteny-travel-talent
 display_name: TravelBot
 tagline: "Your private travel concierge — plan, route, split costs, watch your flights. Never books or pays."
-# The landing-page "what it does" body (oteny.com/bots/travel) — plain paragraphs, escaped,
+# The landing-page "what it does" body (oteny.com/talents/travel) — plain paragraphs, escaped,
 # split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
 # value, plain English, honest. Re-seeded from this file on every catalog seed.
 long_md: |
@@ -75,7 +75,7 @@ version: 1.8.1   # Talent semver — a label over the delivered commit; bump on 
                  # the baseline silently (no "spoor X, not None"), and a blank --track never wipes the
                  # dedupe baseline. No imminent cron for an already-departed leg (no ~1yr stale job).
                  # PATCH (bug fixes, no new migration id).
-                 # 1.6.2: marketing copy only — a `long_md` landing body for oteny.com/bots/travel
+                 # 1.6.2: marketing copy only — a `long_md` landing body for oteny.com/talents/travel
                  # (now bundle-sourced + re-seeded, like the teaser) that explains the live NL board,
                  # flight watch, group costs + the link-out boundary. No runtime/behavior change.
                  # 1.7.0: declares `task_escalations` (the live-inventory task → builder, on the

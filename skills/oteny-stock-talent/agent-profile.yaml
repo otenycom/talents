@@ -5,7 +5,7 @@
 bot: oteny-stock-talent
 display_name: StockBot
 tagline: "Terse, numbers-first stock research grounded in live prices + All-In distillation."
-# The landing-page "what it does" body (oteny.com/bots/stock) — plain paragraphs, escaped,
+# The landing-page "what it does" body (oteny.com/talents/stock) — plain paragraphs, escaped,
 # split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
 # value, plain English, honest. Re-seeded from this file on every catalog seed.
 long_md: |

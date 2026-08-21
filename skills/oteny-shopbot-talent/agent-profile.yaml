@@ -6,7 +6,7 @@
 bot: oteny-shopbot-talent
 display_name: ShopBot
 tagline: "One shared grocery list the whole house keeps live — sorted by aisle so you never crisscross the store."
-# The landing-page "what it does" body (oteny.com/bots/shopbot) — plain paragraphs, escaped,
+# The landing-page "what it does" body (oteny.com/talents/shopbot) — plain paragraphs, escaped,
 # split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
 # value, plain English, honest. Re-seeded from this file on every catalog seed.
 long_md: |

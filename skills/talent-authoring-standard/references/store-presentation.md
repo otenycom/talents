@@ -1,12 +1,12 @@
 # Store presentation + per-Talent tools (the storefront face)
 
 Pulled out of the `SKILL.md` body to keep it lean (the native >20k split rule). These two
-optional bundle-root files give a Talent its face in the Oteny Bot Market, and the
+optional bundle-root files give a Talent its face in the Oteny Talent Market, and the
 `agent-profile.yaml` tools declaration doubles as the storefront's "what it can do" copy.
 
 ## `icon.png` + `teaser.yaml`
 
-Two optional bundle-root files give a Talent its face in the Oteny Bot Market — read by
+Two optional bundle-root files give a Talent its face in the Oteny Talent Market — read by
 the seeder, never required at runtime, so a bundle without them still works (graceful
 fallback). Author both for any Talent you want to ship to the storefront.
 

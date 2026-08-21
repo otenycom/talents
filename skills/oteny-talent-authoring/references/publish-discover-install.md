@@ -1,7 +1,7 @@
-# How the Bot Market works — publish, discover, install
+# How the Talent Market works — publish, discover, install
 
 You wrote a Talent. This explains what happens next: how it gets **published**, how
-people **discover** it on the Oteny Bot Market, and how it gets **installed** onto a bot.
+people **discover** it on the Oteny Talent Market, and how it gets **installed** onto a bot.
 
 The one idea to hold on to: **you write and declare content; the platform does the
 rest.** You never build a web page, wire a server, or push files to anyone's bot. Your
@@ -10,8 +10,8 @@ few presentation files. Everything downstream (the storefront page, the deep lin
 delivery to a bot) is a **projection of what you declared** — the platform renders and
 routes it. Nothing is hand-wired per Talent.
 
-A useful mental model is **two destinations on two clocks**: the **Bot Market**
-(`oteny.com/bots`) is the *shop window* a prospect browses; a **bot's box** is where your
+A useful mental model is **two destinations on two clocks**: the **Talent Market**
+(`oteny.com/talents`) is the *shop window* a prospect browses; a **bot's box** is where your
 Talent *actually runs*. A Talent can be live in the shop before any bot has it, or
 running on bots before the shop shows it — the two update independently.
 
@@ -90,10 +90,10 @@ playbook that stops rather than guesses — is simply what makes the attacks bou
 
 ## Discovery
 
-A published, **public** Talent appears on the **Bot Market** at `oteny.com/bots`: a
+A published, **public** Talent appears on the **Talent Market** at `oteny.com/talents`: a
 filterable grid of cards, narrowed by **category** and ordered by **reputation** within a
 featured tier (higher-reputation Talents float up; ties fall back to name for a stable
-order). Every card links to a **landing page** at `oteny.com/bots/<your-slug>`.
+order). Every card links to a **landing page** at `oteny.com/talents/<your-slug>`.
 
 You do not build that landing page — **it is rendered entirely from what you declare** in
 the bundle:
@@ -150,7 +150,7 @@ wire a delivery:
 
 - **The persona + skills** (`agent-profile.yaml`) → the locked scope the bot runs inside,
   the delivery, and what its usage costs.
-- **`display_name`, `tagline`, `long_md`, `category`, `price`** → the Bot Market card and
+- **`display_name`, `tagline`, `long_md`, `category`, `price`** → the Talent Market card and
   landing page.
 - **`icon.png`, `teaser.yaml`** → the card mark and the sample-chat demo.
 - **`visibility`** (public / unlisted / private) → who sees the row and the per-owner store.

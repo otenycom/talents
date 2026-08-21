@@ -280,7 +280,7 @@ in CI) + `--backend live`. Schema + examples: [`references/behavioral-scenarios.
 ## Store presentation + per-Talent tools
 
 A Talent's storefront face — the optional bundle-root `icon.png` + `teaser.yaml` (sample
-chat) the Bot Market seeder reads — and the `agent-profile.yaml` tools declaration that
+chat) the Talent Market seeder reads — and the `agent-profile.yaml` tools declaration that
 doubles as the "what it can do" copy (the check-9 extension) live in
 [`references/store-presentation.md`](references/store-presentation.md).
 

@@ -21,7 +21,7 @@ checklist warnings; ``green`` = clean.
 
 ``--request-publish`` on a green/yellow Talent writes a publish-request marker under
 ``~/.hermes/data/oteny-talent-authoring/publish-requests/<slug>.json`` (never a red one).
-The sidecar sweep drains that marker into the Oteny Bot Market review queue; nothing here
+The sidecar sweep drains that marker into the Oteny Talent Market review queue; nothing here
 touches the network or the control plane (the box holds no control-plane key). Pure +
 file-based → unit-tested offline.
 """
@@ -71,14 +71,14 @@ def _load_lint():
 
 
 def _publishability_floor(bundle: Path) -> list[str]:
-    """The one hard 'can this even become a Bot Market Talent?' check — runs ALWAYS,
+    """The one hard 'can this even become a Talent Market Talent?' check — runs ALWAYS,
     lint present or not, because the upgrade-safety lint does NOT cover it: a bundle with
     no ``agent-profile.yaml`` is a bare skill, and the store seed only ever creates an
     ``hh.talent`` row from a profile (``bot:``) — so a profile-less bundle can never list,
     route, or self-check. Promoting it is a dead end, so it grades red."""
     if not (bundle / "agent-profile.yaml").is_file():
         return ["no agent-profile.yaml — a bare skill can't be published as a Talent "
-                "(add a profile so it can route + list in the Bot Market)"]
+                "(add a profile so it can route + list in the Talent Market)"]
     return []
 
 
@@ -187,7 +187,7 @@ def _requests_dir(home: Path) -> Path:
 def request_publish(slug: str, *, home: Path | str | None = None,
                     viewer_url: str | None = None, lint=None) -> dict:
     """Self-check ``slug`` and, only on a green/yellow result, write a publish-request
-    marker for the sidecar sweep to drain into the Bot Market review queue. A red Talent
+    marker for the sidecar sweep to drain into the Talent Market review queue. A red Talent
     is refused (the marker is never written) with the violations to fix."""
     h = _managed.hermes_home(home)
     report = check_one(slug, home=h, lint=lint if lint is not None else _load_lint())
@@ -230,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--all", action="store_true", help="grade every owner Talent on the box")
     g.add_argument("--slug", help="grade a single Talent dir under ~/.hermes/skills/talents/")
     ap.add_argument("--request-publish", action="store_true",
-                    help="on a green/yellow --slug, queue it for Oteny Bot Market review")
+                    help="on a green/yellow --slug, queue it for Oteny Talent Market review")
     ap.add_argument("--viewer-url", help="the Oteny Talent Drop viewer link (for the reviewer)")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args(argv)
@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(json.dumps(res, indent=2))
         elif res["requested"]:
-            print(f"Submitted {args.slug} ({res['status']}) for Oteny Bot Market review.")
+            print(f"Submitted {args.slug} ({res['status']}) for Oteny Talent Market review.")
         else:
             print(f"Not submitted: {res['reason']}")
             _print_report([res["report"]])

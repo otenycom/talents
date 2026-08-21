@@ -1,5 +1,5 @@
 # Travel sample-chat teaser — the single source for the "Our Trip to Lisbon" group-chat
-# demo. Rendered on the /bots/travel landing AND the oteny.com homepage by the shared
+# demo. Rendered on the /talents/travel landing AND the oteny.com homepage by the shared
 # oteny_website.talent_teaser macro (seeded into hh.talent.teaser_json). Text + rich cards
 # only (no media) — crisp at any DPI, fully accessible, localisable.
 teaser:

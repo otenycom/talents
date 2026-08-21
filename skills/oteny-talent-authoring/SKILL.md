@@ -182,12 +182,12 @@ That's the whole gap between "a handy skill I made" and "a Talent worth publishi
 
 ## Publishing to the Oteny Talent Store
 
-> For the whole picture — how a Talent is **published, discovered** on the Bot Market, and
+> For the whole picture — how a Talent is **published, discovered** on the Talent Market, and
 > **installed** onto a bot (on launch vs on request), and what you declare vs what the
 > platform renders — see [publish-discover-install.md](references/publish-discover-install.md).
 >
 > **That file is the source of a public web page** — Oteny renders it verbatim as
-> [oteny.com/bots/how-it-works](https://oteny.com/bots/how-it-works). So edit it **here**
+> [oteny.com/talents/how-it-works](https://oteny.com/talents/how-it-works). So edit it **here**
 > and let the page regenerate; never edit the page. And hold it to published-copy hygiene
 > ([`audience-and-voice.md`](../talent-authoring-standard/references/audience-and-voice.md)):
 > an author is an outsider too, so an Odoo model id or a platform-internal word in this
@@ -222,7 +222,7 @@ When the owner says *"publish my &lt;X&gt; Talent"* (or *"submit it to the store
    python3 ~/.hermes/skills/talents/oteny-talent-authoring/scripts/self_check.py \
      --slug <slug> --request-publish --viewer-url "<viewer link>"
    ```
-   This queues a publish request. The **Oteny Bot Market review** picks it up (the nightly
+   This queues a publish request. The **Oteny Talent Market review** picks it up (the nightly
    `owner-talent-health` sweep drains it), an operator vets the rendered bundle, and on approval
    it's promoted into the catalog — after which it's installable by other Oteny users.
 4. **Tell the owner** it's submitted for review, and share the viewer link so they can see exactly

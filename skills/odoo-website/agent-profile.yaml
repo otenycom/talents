@@ -6,7 +6,7 @@
 bot: odoo-website
 display_name: WebsiteBot
 tagline: "Build a real website by chatting — a landing page, a shop, a booking site — and put it online at your own address."
-# The landing-page "what it does" body (oteny.com/bots/odoo-website) — plain paragraphs,
+# The landing-page "what it does" body (oteny.com/talents/odoo-website) — plain paragraphs,
 # escaped, split on blank lines. House voice: lead with the value, plain English, honest.
 long_md: |
   Talk to WebsiteBot in chat — you never run tools or code. Say what you want online ("a
@@ -88,7 +88,7 @@ toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned i
 # the store copy + the lint know the Talent depends on them (they are LIVE, never stubbed).
 tools:
   required: [host_website, unhost_website, list_hosted_websites]
-delivery: purchased                      # à-la-carte from the Bot Market (not baked into every box)
+delivery: purchased                      # à-la-carte from the Talent Market (not baked into every box)
 price: free                              # free during the pilot (Q4: flip to paid at go-live)
 # Verify budget: the whole scenario-suite staging run must stay under this measured spend or
 # the dev-loop verify holds the Talent for review. OTC = internal credits; tune from runs.

@@ -6,7 +6,7 @@
 bot: oteny-flatbelly-talent
 display_name: FlatbellyBot
 tagline: "Your private flat-belly coach — real food, protein timing, sleep, evidence-based."
-# The landing-page "what it does" body (oteny.com/bots/flatbelly) — plain paragraphs, escaped,
+# The landing-page "what it does" body (oteny.com/talents/flatbelly) — plain paragraphs, escaped,
 # split on blank lines (hh.talent.long_md → store.py _paragraphs). House voice: lead with the
 # value, plain English, honest. Re-seeded from this file on every catalog seed.
 long_md: |

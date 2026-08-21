@@ -570,7 +570,7 @@ When `test` is green and `lint-talent` passes, tag the release
 `agent-profile.yaml: version:`). A green staging run **auto-grades** the Talent:
 an all-green run lists with no human review (`auto_passed`); a red/partial run
 goes to the operator review queue. Community flags can quarantine a listing — keep
-your Talent honest and your reputation rises in the Bot Market.
+your Talent honest and your reputation rises in the Talent Market.
 
 ## Verification checklist
 

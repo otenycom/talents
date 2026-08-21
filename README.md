@@ -10,8 +10,8 @@ Everything here is **open** ([Apache-2.0](LICENSE)) — read any Talent end to e
 it, and publish your own. Oteny does the hard part — hosting your OtenyBot, running it
 safely, and covering the model bills — so a great Talent is all you bring.
 
-> Browse the live store at **[oteny.com/bots](https://oteny.com/bots)**.
-> Want to write one? Start at **[oteny.com/bots/build](https://oteny.com/bots/build)**.
+> Browse the live store at **[oteny.com/talents](https://oteny.com/talents)**.
+> Want to write one? Start at **[oteny.com/talents/build](https://oteny.com/talents/build)**.
 
 ---
 
@@ -54,7 +54,7 @@ leaves your laptop. Files you have not pushed never reach the bot. `active` mean
 box booted — wait until delivery finishes before you test. Detail:
 [`how-delivery-works.md`](skills/oteny-talent-dev-loop/references/how-delivery-works.md).
 
-**Two independent clocks.** The **store/website** (what's listed at oteny.com/bots) and the
+**Two independent clocks.** The **store/website** (what's listed at oteny.com/talents) and the
 **per-bot delivery** (what's actually running on a tenant) update on their own schedules — a
 Talent can be live on bots before its store page changes, or vice-versa. Don't assume one
 implies the other.
@@ -150,7 +150,7 @@ runs it on every push. A merged Talent lists as **Community** until a reviewer m
 | Learn to write my first Talent, from scratch (newcomer's guide) | [`docs/writing-a-talent.md`](docs/writing-a-talent.md) |
 | Know the rules a Talent must satisfy | [`skills/talent-authoring-standard/`](skills/talent-authoring-standard) |
 | Write or edit a Talent step by step | [`skills/oteny-talent-authoring/`](skills/oteny-talent-authoring) |
-| Understand how a Talent is published, discovered & installed | [`publish-discover-install.md`](skills/oteny-talent-authoring/references/publish-discover-install.md) ([oteny.com/bots/how-it-works](https://oteny.com/bots/how-it-works)) |
+| Understand how a Talent is published, discovered & installed | [`publish-discover-install.md`](skills/oteny-talent-authoring/references/publish-discover-install.md) ([oteny.com/talents/how-it-works](https://oteny.com/talents/how-it-works)) |
 | Test, clone, debug, and ship a Talent | [`skills/oteny-talent-dev-loop/`](skills/oteny-talent-dev-loop) |
 | See which tools a Talent can request | [`TOOLS.md`](TOOLS.md) |
 | Copy a working example | any `skills/*-talent/` bundle |
