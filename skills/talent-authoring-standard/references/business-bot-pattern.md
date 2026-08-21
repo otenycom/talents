@@ -768,6 +768,13 @@ finalizing, wait a minute and retry. Both need that uplink tier claimed with `li
 **No browser used** while Discuss shows an active filing, redeliver/converge the bot (stale
 discuss plugin) or ask Oteny to wire the purpose tokens.
 
+A run that **adopts** a human-login session (the owner clicked *Refresh portal login*, so
+the bot inherited that browser) is watchable like any other run. The one window that is
+never watchable is the human sign-in itself: while the owner still has the login tab open,
+Watch refuses. The live view is a bearer link, so possession is control, and the platform
+will not hand out the tab where a person is typing an identity-provider password. Watching
+opens the moment the owner clicks OK and the session passes to the bot.
+
 ### The workflow — `selector-audit` BEFORE, `browser-diff` AFTER
 
 The platform captures, server-side and **PII-free**:
@@ -1743,6 +1750,21 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   strip and the session form. Resolve it from `oteny.bot.discuss_channel_id` or the
   client's xmlid. Do not hard-code a channel id. Reload the origin form to see a new
   session; do not add a live ticker unless the session model writes `bus.bus`.
+- **Render the short response as HTML from markdown — never as raw text.** The bot's
+  reply is markdown (`**bold**`, bullet lists, links). Discuss shows it formatted
+  because the platform's Discuss adapter converts markdown to HTML before posting.
+  A `oteny.bot.session.response`/`request` field read straight into a `fields.Text`
+  widget shows the literal `**`/`-` markers instead — the origin strip must render
+  it the same way Discuss does, or it looks broken next to the channel. Add a small
+  markdown-to-HTML helper (e.g. `oteny.bot.session._markdown_to_html`, using a
+  markdown library with `nl2br`/`hard_wrap` so a single newline still breaks the
+  line) and expose the truncated preview as `fields.Html`, not `fields.Text`.
+  `html_sanitize()` the output — a bot's own markdown can still carry inline HTML.
+- **Open the Discuss link in a new tab, not the current one.** Discuss carries no
+  Odoo breadcrumb, so a same-tab open strands the operator with no path back to the
+  origin form they came from. `discuss.channel._get_access_action()` returns
+  `target: "self"`; override it to `target: "new"` before returning the action from
+  your own "open the filing channel" button.
 - **Show who owns the current workflow state on that same strip.** Encode bot vs
   human ownership in the state (`is_owned_by_bot`), not the responsible team. The
   header line must lead with the current state name and a bot/human owner pill.
