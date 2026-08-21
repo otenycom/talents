@@ -384,6 +384,17 @@ It does **not** open a second window while the first is still queued — that fi
 account inflight cap and every later open 429s. A 429 waits one drain tick (~60 s)
 and retries `_open` only. Do not add a retry loop in a caller script.
 
+**Two costs to plan around, because the retry hides neither.** First, **every close restarts
+the gateway**, since the model key you saw is treated as disclosed and gets rotated. So a
+string of one-off `oteny shell --cmd` calls pays that restart each time — budget roughly three
+minutes per call, and prefer one `--cmd` that does the whole job, or one window you keep open
+and run several commands in. Second, **an abandoned window still counts against you.** If you
+Ctrl-C out without closing, the row stays inflight against the account cap (three by default)
+until its TTL expires or the drain reaps it, and every later open 429s in the meantime. If the
+CLI retries and still never gets a window, the failure is usually a node-hop `TimeoutError`.
+That is a platform-side outage: the retry is correct but cannot fix it, so stop and report it
+rather than looping.
+
 ## The readiness contract: `active` is not enough — wait for `talent_delivered`
 
 When you commission a fresh dev bot (`request_dev_bot`), poll `dev_bot_request_status` and treat a
@@ -507,6 +518,25 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   that tier (it probes `/json/2/` with the fresh mint and binds the Discuss channel to the current
   ref). Author Logs shows the same status. **Website login** (`/get-started/web` / `/app`) is
   **not** the debug path for this class — that lane is consumer onboarding.
+- **No reply at all — not even the "starting" line — while `traces` says `uplink_status: ok`.**
+  The box's gateway process is dead or frozen. This is a different fault from `auth_failed`
+  above and from a hung turn below, and it needs the opposite action. A frozen event loop keeps
+  the service unit up, so nothing about the box *looks* wrong. **Your `uplink_status` will not
+  name it** — the author CLI derives only `auth_failed` / `unreachable` / `ok` / `unknown`. Read
+  the `diagnostics` rows in the same `traces` DTO instead: a `health_alert` whose summary says
+  the gateway is not alive is the tell. The platform raises it when the box stops writing its
+  log for 90 s while the unit is still active. **Retrying is the one thing that cannot work
+  here**, because a re-dispatch posts into a process that consumes nothing — you need a
+  liveness signal, not another attempt. Recover with `oteny reload --ref <ref>`; the converge
+  restarts the gateway.
+- **The bot narrated a few steps, then went silent for the rest of the run.** The model stream
+  hung mid-turn and the box is healthy — the opposite of the case above. The platform ends that
+  turn for you after **480 s** of silence on the next model call, so you do not wait out the
+  gateway watchdog. The run record carries `outcome=error` with `outcome_detail`
+  `model stream timed out after 480s`, and a workflow-driven record is handed back through its
+  timeout exit instead of sitting claimed until the owner's SLA reaper fires. Read that detail
+  as a platform belt firing, **not** as your Talent refusing: the trace up to the last tool
+  result is real work, and a re-run is the right next step.
 - **`hand_off matched N records` (N≠1)** — the fixture is absent or duplicated; seed exactly
   one matching record in the *from* state (reset a consumed one) before the run.
 - **A `hand_off` claims the record, the bot never runs, and it sits in the working state forever

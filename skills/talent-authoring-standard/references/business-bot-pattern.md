@@ -514,6 +514,24 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    it re-render with an error, so the agent can recover), and interaction quirks (a filter checkbox
    that must be unchecked before the needed option exists). The test of fidelity: **the same skill
    text drives the double and the real system with zero branching.**
+
+   **Match each control's WIDGET SHAPE, not just its label and options.** A field your double
+   renders as a native `<select>` where the real system renders a trigger plus a popup listbox is
+   a fidelity gap, even though both hold the same options and both post the same value. Your
+   skill teaches the recipe for the real widget — click the trigger, then click the option — so
+   on the double the bot finds no list, improvises, and **burns a model action per field
+   discovering the difference**. A wizard with nine such fields pays nine actions plus the
+   context they carry, which is the exact cost a double exists to avoid. So render the trigger,
+   the listbox and the option rows your step-1 observation recorded, and keep a hidden input on
+   the same `id`/`name` if the double still needs a plain form post to work. Declare the same
+   shape in the runbook (§4e, "The real page is not your stub") so the two never drift.
+
+   Expect a **fidelity** win, not a speed win. Measured on one bot's two graded scenarios, the
+   same change moved one run about 9% faster and the other about 4% slower. What you buy is that
+   a green run on the double now exercises the technique a live run needs, so the two stop
+   drifting silently. **Keep the skill's dual-shape handling anyway** — read the control's shape
+   off the snapshot and handle a native `<select>` too. A real third-party page may serve one, so
+   that rule teaches a browser fact, never a fact about which tier the bot is on.
 4. **Mark what you haven't seen.** Screens the walkthrough skipped stay in the double as
    best-effort with an explicit *unverified* note, and your field map keeps an "open unknowns" list
    you burn down with the operator. Re-harvest whenever the real system changes (your skill's
