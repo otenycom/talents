@@ -1519,6 +1519,10 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
     "env_var": {
       "type": "string",
       "description": "UPPER_SNAKE_CASE env var to deliver the key as, e.g. OPENWEATHER_API_KEY."
+    },
+    "rotate": {
+      "type": "boolean",
+      "description": "Replace a credential that was already delivered. Ask the owner first — the current one stops working."
     }
   },
   "required": [
@@ -1553,7 +1557,57 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Authoring notes** — NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login.
+**Authoring notes** — NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login. Call credential_status FIRST: one variable gets ONE link, and asking twice returns the same link with reused: true rather than a second one. A variable already delivered refuses with reason: already_delivered — ask the owner, then retry with rotate: true.
+
+### `credential_status` — Check a connected account
+
+*first-party tool · request via `tools.required` · status **coming** · cost Included*
+
+> Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` (none/pending/submitted/delivered) is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. If `process_ready` is true, just use the secret — do not mint. If `odoo_state` is pending or submitted, a link is already with the owner: send them that same one and wait. Mint only when `odoo_state` is none, or the owner asked you to replace it.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "env_var": {
+      "type": "string",
+      "description": "UPPER_SNAKE_CASE env var to report on, e.g. OPENWEATHER_API_KEY."
+    }
+  },
+  "required": [
+    "env_var"
+  ]
+}
+```
+
+**Result** — {ok: true, env_var, odoo_state: none|pending|submitted|delivered, local_ready, process_ready, credential_id} — metadata only, NEVER the value. odoo_state is what the platform records; local_ready is whether this bot was handed the credential; process_ready is whether it is loaded in the running process right now. A revoked grant also reports connection + connection_state.
+
+**Errors / edges** — {ok: false, reason} for a missing env_var. Plus the shared platform set.
+
+**Example**
+
+```json
+{
+  "env_var": "OPENWEATHER_API_KEY"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "env_var": "OPENWEATHER_API_KEY",
+  "odoo_state": "delivered",
+  "local_ready": true,
+  "process_ready": true,
+  "credential_id": 196
+}
+```
+
+**Authoring notes** — Free, and side-effect-free. Call it BEFORE connect_account. process_ready true means just use the secret. pending or submitted means a link is already with the owner — send that one and wait.
 
 ### `connect_login` — Remember a website login
 

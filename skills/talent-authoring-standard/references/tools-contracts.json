@@ -915,6 +915,10 @@
           "env_var": {
             "type": "string",
             "description": "UPPER_SNAKE_CASE env var to deliver the key as, e.g. OPENWEATHER_API_KEY."
+          },
+          "rotate": {
+            "type": "boolean",
+            "description": "Replace a credential that was already delivered. Ask the owner first — the current one stops working."
           }
         },
         "required": [
@@ -926,7 +930,33 @@
       "errors": "{ok: false, reason} for: an empty label · env_var not UPPER_SNAKE_CASE · a reserved/managed env_var (pick a provider-specific name) · too many open links (ask the owner to complete one or let it expire, then retry). Plus the shared platform set.",
       "example_request": "{\n  \"label\": \"OpenWeather\",\n  \"env_var\": \"OPENWEATHER_API_KEY\"\n}",
       "example_result": "{\n  \"ok\": true,\n  \"url\": \"https://oteny.com/connect/ab12cd\",\n  \"expires_minutes\": 30,\n  \"label\": \"OpenWeather\",\n  \"env_var\": \"OPENWEATHER_API_KEY\"\n}",
-      "notes": "NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login."
+      "notes": "NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login. Call credential_status FIRST: one variable gets ONE link, and asking twice returns the same link with reused: true rather than a second one. A variable already delivered refuses with reason: already_delivered — ask the owner, then retry with rotate: true."
+    },
+    {
+      "name": "credential_status",
+      "requestable_name": "credential_status",
+      "request_via": "tools.required",
+      "group": "Connect your accounts",
+      "status": "coming",
+      "cost": "free",
+      "description": "Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` (none/pending/submitted/delivered) is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. If `process_ready` is true, just use the secret — do not mint. If `odoo_state` is pending or submitted, a link is already with the owner: send them that same one and wait. Mint only when `odoo_state` is none, or the owner asked you to replace it.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "env_var": {
+            "type": "string",
+            "description": "UPPER_SNAKE_CASE env var to report on, e.g. OPENWEATHER_API_KEY."
+          }
+        },
+        "required": [
+          "env_var"
+        ]
+      },
+      "result": "{ok: true, env_var, odoo_state: none|pending|submitted|delivered, local_ready, process_ready, credential_id} — metadata only, NEVER the value. odoo_state is what the platform records; local_ready is whether this bot was handed the credential; process_ready is whether it is loaded in the running process right now. A revoked grant also reports connection + connection_state.",
+      "errors": "{ok: false, reason} for a missing env_var. Plus the shared platform set.",
+      "example_request": "{\n  \"env_var\": \"OPENWEATHER_API_KEY\"\n}",
+      "example_result": "{\n  \"ok\": true,\n  \"env_var\": \"OPENWEATHER_API_KEY\",\n  \"odoo_state\": \"delivered\",\n  \"local_ready\": true,\n  \"process_ready\": true,\n  \"credential_id\": 196\n}",
+      "notes": "Free, and side-effect-free. Call it BEFORE connect_account. process_ready true means just use the secret. pending or submitted means a link is already with the owner — send that one and wait."
     },
     {
       "name": "connect_login",
