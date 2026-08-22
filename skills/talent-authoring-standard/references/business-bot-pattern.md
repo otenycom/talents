@@ -565,6 +565,12 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    been harvested carefully; the index page had been guessed. It went unnoticed for weeks because
    the happy path never reads the dashboard — only a resume-and-correct run does.
 
+   Persist the portal's draft id on the ERP record after save. Isolated dispatch
+   is thin: the next run reads a DTO. It does not remember the last browser row.
+   If the skill saves a Concept and never writes the Meldingnummer back, the next
+   Hand treats the key as empty and starts a new filing. Empty on the DTO means
+   start new. A stored number whose row is gone means stop.
+
 *Worked example (Barney):* Kirsten's 24-screenshot walkthrough of one real meldloket filing was
 transcribed screen-by-screen, cross-checked against CrewRadar (surfacing the VAT transposition, a
 per-ship SBI rule, the −1-day/+1-year date convention, and an optional-BSN the DTO wrongly
