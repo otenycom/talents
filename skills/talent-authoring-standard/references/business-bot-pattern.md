@@ -526,6 +526,18 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    the same `id`/`name` if the double still needs a plain form post to work. Declare the same
    shape in the runbook (§4e, "The real page is not your stub") so the two never drift.
 
+   **The product path is the live accessible name, never a stub shortcut.** The Talent must
+   be fastest on the live site. The double exists so the same `role+name` click works on
+   both. Hidden inputs, stub `#id`s, and CDP `element.value` writes are POST / debug
+   affordances — they are **not** the fill recipe. A wrapper the HTML parser closes before
+   the listbox (`<p>` around a `<ul>`), or a radio group wrapped so a centre-click hits the
+   question text, trains the bot to cheat on the double and miss on the live page. Render a
+   combobox so the listbox is inside the wrapper (`aria-controls`); a click on list chrome
+   must pick the nearest **visible** option, never close the list. Render a radio group as
+   `<fieldset>` + `<legend>` + a visible native radio so the snapshot is
+   `role=group[name="…"] >> role=radio[name="…"]`. A generated shared `name` across a live
+   group cannot be the primary. Old `input[name=]` rungs stay fallbacks only.
+
    Expect a **fidelity** win, not a speed win. Measured on one bot's two graded scenarios, the
    same change moved one run about 9% faster and the other about 4% slower. What you buy is that
    a green run on the double now exercises the technique a live run needs, so the two stop
