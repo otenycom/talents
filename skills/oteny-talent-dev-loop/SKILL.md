@@ -224,8 +224,9 @@ one you called — so you map a `403` straight to the missing grant (see the sil
 below).
 
 **Browser-driven bot?** `traces --ref <clone>` also returns a PII-free `browser_traces` list +
-`browser_summary` — per-step rows from `browser_fill_form` **and** `page_snapshot` form-control
-inventories from observe walks (`browser_snapshot` / `browser_navigate`, no fill required).
+`browser_summary` — per-step rows from native `browser_click` / `browser_type`
+**and** `page_snapshot` form-control inventories from observe walks
+(`browser_snapshot` / `browser_navigate`).
 `browser_summary.pages_captured` / `controls_captured` tell you whether the walk left usable
 inventory. `selector-audit` and `browser-diff` still live in hermeshost.
 An outside author cannot run them on Path B today. Until they land on
@@ -263,7 +264,7 @@ a run did the wrong thing.
 1. **Read the run, don't guess.** Pull the evidence for that bot (all record-rule-scoped to your
    own bots): the escalation/handback text, `traces --ref <bot>` (per-turn, tool-by-tool),
    `logs --ref <bot>`, the **Author Logs portal**, and — for a browser bot — `browser-diff --ref
-   <bot>` (it diffs the bot's real `browser_fill_form` traces against your manifest and
+   <bot>` (it diffs the bot's real `browser_click` / `browser_type` traces against your manifest and
    **proposes** fixes).
 2. **Classify the failure — three kinds, three homes.**
    - **Selector drift** (the portal moved: a field missed / the wrong control filled) → fix the
@@ -307,7 +308,7 @@ declares — deciding *what* to declare needs the catalog + reference first):
   surface — if a tool you declared is missing, your `toolset_contribution` /
   `tools.required` (or the delivery) is the bug, not your skill.
 - **One live call beats a guess:** before writing a long skill around a tool, run
-  one real call on your dev bot (e.g. a two-field `browser_fill_form` against your
+  one real call on your dev bot (e.g. a `browser_type` then a snapshot against your
   own stub page) and read the result shape with your own eyes.
 
 ## See inside your bot's box (inspect + shell — your box, over your account key)

@@ -113,8 +113,8 @@ the generic toolsets are **OFF**:
   bot to load its own composing skills; what's off is skill *creation/self-editing*, see
   the lockdown below.)
 - **ON, named explicitly:** `odoo_client` (the data plane — §3, always with `connection=<name>`);
-  optionally the secure browser (`browser` + `browser_request_human` + `browser_download` +
-  `browser_fill_form`) for portal filing; optionally a mailbox reader for an inbox
+  optionally the secure browser (`browser` + `browser_request_human` + `browser_download`)
+  for portal filing; optionally a mailbox reader for an inbox
   round-trip; optionally a knowledge lookup; plus `send_message` / `memory` / `todo` as
   the job needs. Which tools exist and how to request them:
   [`tools-catalog.md`](tools-catalog.md); the exact call contracts (parameters, result
@@ -131,7 +131,7 @@ prompt-injected bot has no way to reach.
 whole-toolset granular: requesting `browser` mounts *every* native browser tool, and a scoped
 job rarely uses all of them — a filing bot never needs `browser_console` (raw JS eval; the
 platform blocks form-value reads through it anyway, so every call is dead) or `browser_vision`
-(screenshots — once `browser_fill_form`'s readback and `page_digest` give you the page state,
+(screenshots — a snapshot already gives the page state,
 vision is never needed). Every extra tool the model can *see* is one it will occasionally
 *probe* — wasted turns and wall-clock, and it hits weak/cheap tiers hardest. Declare the tools
 your job never uses under `toolset_tool_exclusions:` in `agent-profile.yaml` (a flat list of
@@ -618,9 +618,10 @@ artifact.
 
 Your dev stub (§4c) has clean, stable ids you chose; the **real third-party site does not** — its
 ids are framework-generated, its custom widgets aren't native controls, and a re-skin renames both
-without warning. A skill whose `browser_fill_form` selectors were written against the stub's tidy
+without warning. A skill whose `#id` selectors were written against the stub's tidy
 `#first_name` drives the stub perfectly and then **misses on the real page**, mid-filing, where a
-miss is a stalled job (or worse, the wrong field filled). So author every selector as a **resilience
+miss is a stalled job (or worse, the wrong field filled). Prefer
+`role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`. So author every selector as a **resilience
 ladder**, not a single guess, and verify it twice — **statically before** a run, and **against the
 real page after** one. Two generic CLI verbs do this from an author-supplied **expected-selector
 manifest**.
@@ -662,10 +663,11 @@ manifest**.
   the comma is a selector-list separator, so `querySelectorAll` throws a SyntaxError and the step is a
   **guaranteed 0-match miss** (benign only if the field is already at that value; otherwise the
   verified-submit gate fail-closes and the page **stalls**). Write it quoted:
-  `input[name=agree][value="Yes, I consent"]`. The platform's `browser_fill_form` now **auto-quotes**
-  an unquoted attr-value selector as a belt (a bare-identifier value like `[value=Yes]` is left
-  untouched), but author it quoted so the runbook is correct on its face — the model copies structure,
-  not prose. This is the value-targeting analogue of the exact-option-string rule above.
+  `input[name=agree][value="Yes, I consent"]`. Prefer a role+name locator
+  (`role=radio[name="Yes, I consent"]`) so you never write that CSS. If you
+  must keep a CSS fallback, quote the attribute value so the runbook is
+  correct on its face — the model copies structure, not prose. This is the
+  value-targeting analogue of the exact-option-string rule above.
 
 Every rule is the same bet — **the real site's ids and triggers differ from your stub's** — so encode
 what won't change (semantics) as the floor, and flag every place a single exact string is load-bearing.
@@ -791,14 +793,15 @@ opens the moment the owner clicks OK and the session passes to the bot.
 
 The platform captures, server-side and **PII-free**:
 
-- a per-action trace of every `browser_fill_form` step your bot runs — the selector it tried, how
-  many elements matched (0 / 1 / N), and the **actual** element the page rendered (id / name /
-  role / aria-label / text / tag / type);
+- a per-action trace of every native `browser_click` / `browser_type` your bot
+  runs — the target it tried, how many elements matched, and the **actual**
+  element the page rendered (id / name / role / aria-label / text / tag / type)
+  when the broker captured it;
 - a per-page **form-control inventory** (`page_snapshot`) after each successful
-  `browser_snapshot` / `browser_navigate` (and after `browser_fill_form`) — so an **observe walk
-  that only snapshots and clicks** still leaves structured inventory for `browser-diff` without
-  needing `browser_fill_form`. Scraping `~/.hermes/state.db` (conversation/tool blobs) is the
-  **wrong** store for selector tuning — use account-key `traces` (`browser_traces` /
+  `browser_snapshot` / `browser_navigate` — so an **observe walk that only
+  snapshots and clicks** still leaves structured inventory for `browser-diff`.
+  Scraping `~/.hermes/state.db` (conversation/tool blobs) is the **wrong**
+  store for selector tuning — use account-key `traces` (`browser_traces` /
   `form_inventory`).
 
 These are your own bot's real browser interactions on your **account-key dog-food surface** —
@@ -810,9 +813,9 @@ These are your own bot's real browser interactions on your **account-key dog-foo
    flexible enough for the real website?" check. Harden what it flags (add ladder rungs down to a
    semantic anchor, add `expect_unique`, add `option_fallbacks`) until it passes. No bot needed —
    run it in CI.
-2. **Run the bot** — a scenario, a handed-off job, or an **observe walk** (snapshot/navigate/click,
-   optionally `browser_fill_form`) against the real (or stub) site so it emits `browser_traces`
-   (step rows and/or `page_snapshot` inventories).
+2. **Run the bot** — a scenario, a handed-off job, or an **observe walk**
+   (snapshot/navigate/click/type) against the real (or stub) site so it emits
+   `browser_traces` (step rows and/or `page_snapshot` inventories).
 3. **`browser-diff --manifest <file> [--observed <traces.json> | --ref <ref>]` (Oteny author CLI) —
    dynamic, after the run.** Diffs the observed `hh.browser.trace` rows against the manifest and
    **proposes** a verdict + fix per field:
@@ -854,14 +857,15 @@ spend a live run, and **diff** turns each real-site mismatch into a concrete fix
 never the platform reaching into your bundle.
 
 **Reading a one-off timeout/miss — don't chase weather.** A single live run that shows a step time out
-(matched 1, never actioned) or a `MISSED` is **n=1 evidence**. `browser_fill_form` **auto-waits for
-actionability** (a control that renders a second or two late still fills), so a step that fails only
-after the *full* per-action timeout usually means a genuinely stuck/slow page in that one run — an
-environmental transient — not a broken selector. Before treating it as a bug: check whether the field
-is even conditional (read the page, not your assumption), re-run once, and — fastest of all —
-**reproduce the page mechanics offline against your own stub** (a real headless browser is enough; no
-live infra) before spending a bring-up chasing it. A selector that misses on *every* run is real (the
-`browser-diff` verdict tells you which); a selector that misses once is a coin toss until a second run
+(matched 1, never actioned) or a `MISSED` is **n=1 evidence**. A native click
+or type that fails only after the *full* per-action timeout usually means a
+genuinely stuck/slow page in that one run — an environmental transient — not a
+broken selector. Before treating it as a bug: check whether the field is even
+conditional (read the page, not your assumption), re-run once, and — fastest of
+all — **reproduce the page mechanics offline against your own stub** (a real
+headless browser is enough; no live infra) before spending a bring-up chasing
+it. A selector that misses on *every* run is real (the `browser-diff` verdict
+tells you which); a selector that misses once is a coin toss until a second run
 confirms it.
 
 ### Observe mode — reconcile against the real portal before the first side-effect
@@ -870,9 +874,10 @@ confirms it.
 *your double* — but none of that has yet touched the **real** site. Before the bot's **first real
 side-effect**, close that last gap with an **observe pass**: arm the submit-deny belt (§4f), hand the
 bot a real record, and let it **walk the real portal all the way to — but never through — the
-submit**. Prefer `browser_fill_form` when you can (richer per-step rows); a snapshot/navigate/click
-walk is enough for inventory — every successful snapshot/navigate lands a PII-free `page_snapshot`
-in `traces` (structured broker capture — not something you scrape from `state.db` over shell).
+submit**. A snapshot/navigate/click/type walk is enough for inventory —
+every successful snapshot/navigate lands a PII-free `page_snapshot` in
+`traces` (structured broker capture — not something you scrape from
+`state.db` over shell).
 Then reconcile, iterating four steps until the diff is clean:
 
 1. **Observe** — the belt-armed bot walks the real site; pull `traces --ref <bot>` (account key).
@@ -908,12 +913,14 @@ shares.
   `commission --submit-deny-patterns <comma,list>` records a `config_overrides["browser.submit_deny"]`
   value on **that** bot, which the box receives as the env var `OTENY_BROWSER_SUBMIT_DENY`. A normal
   bot carries **no** patterns and submits freely; only the bot you armed refuses.
-- **The secure browser enforces it structurally.** With the belt armed, `browser_fill_form` refuses
-  any **click / check / submit** step whose **selector string** *or* **resolved element text** matches
-  one of your patterns, returning a blocked result instead of acting. The **resolved-text leg** is
-  what makes it robust: it catches a generic `button[type=submit]` whose *visible label* is the submit
-  word, even though the selector itself names no button text. Feed it the site's submit words (in the
-  site's language) and the belt fires on the real button however its selector is written.
+- **The structural belt was `fill_form`-only, and that tool is gone.**
+  `config_overrides["browser.submit_deny"]` still renders to
+  `OTENY_BROWSER_SUBMIT_DENY`. The residual broker path honors it if
+  anything still calls `POST …/fill_form`. The agent fill path is native
+  `browser_click` / `browser_type`, and those calls are **not** refused
+  by the belt. Rehearse with an operator watching. Do not click the
+  irreversible button on a rehearsal bot. Do not add a new click-deny
+  unless a later stage asks for it.
 - **It stacks on top of the softer layers — structural, not a hope.** The belt is a third,
   *structural* line behind the prompt-level "never submit" instruction and the **server-side proof
   guard** (§4b): the prompt is a wish, the proof guard refuses an unproven *done*, and the belt refuses
@@ -927,18 +934,18 @@ shares.
   the run, and treat a per-field click on the submit control as the one gap the belt can't close for
   you.
 
-## 4g. Unmount a fill tool that cannot see the page
+## 4g. There is no batch fill tool
 
-If `browser_fill_form` stays page-less after a redial, hide it.
-Add the name to `toolset_tool_exclusions`.
-Also drop it from `tools.required`.
-The `browser` toolset still mounts it otherwise.
-Do not leave it mounted with a "do not use it" prompt.
-Native `browser_click` is then the fill path.
+`browser_fill_form` is gone from the control plane. Fill a page with
+`browser_snapshot`, `browser_click`, and `browser_type`. Prefer
+`role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
+Do not write a form value through CDP or `Runtime.evaluate`.
+Do not request the removed tool in `tools.required`.
 
 **Draft-only is a rung on the ladder, not a permanent product lock.**
-Unmounting the fill tool moves the submit onto `browser_click`.
-Submit-deny covers `browser_fill_form` only, so it stops covering that click.
+The government submit rides `browser_click`.
+Submit-deny covered the removed batch tool only, so it does not cover
+that click.
 The honest response is to ship **draft-only first**: the bot saves a draft, and a
 human clicks the government submit.
 
@@ -1274,74 +1281,38 @@ the tool calls in a full run and add headroom); omit it and you keep the safe de
 *platform provisioning* knob — separate from any per-transition budget your **workflow** may also
 declare on the owner-Odoo side (that governs the dispatch spec; this governs the container). Verify
 after a delivery in the gateway log (`Agent budget: max_iterations=<n>`), and prefer **fewer calls**
-(batch form-fills, trim mid-run narration) over an ever-larger ceiling — a smaller budget is a
+(trim mid-run narration) over an ever-larger ceiling — a smaller budget is a
 tighter safety bound.
 
-### Batch independent inputs — one fill, one verify per group
+### Fill the page the bot can see — click, type, snapshot
 
 The biggest lever on a long browser-driven run is **doing fewer round-trips**, and the finest-grained
 trap is treating every field as its own observe-act-verify cycle. Each cycle is a browser round-trip
 plus a model call; a thirty-field form becomes sixty serial steps and minutes of wall-clock — enough
-to run into the session cap. **Batch the typing, never the thinking:**
+to run into the session cap. There is no batch fill tool. **One native
+action at a time:**
 
-- **Use `browser_fill_form` — one call per form page.** Pass `steps=[{selector|label, value}, …]`
-  and it fills text inputs, selects native dropdowns, and checks boxes/radios through the real
-  browser engine, then **reads every value back** — the per-field `ok`/`actual` in its result *is*
-  the group verify, so a whole page costs one round-trip instead of one per field. Pass the page's
-  next/continue button as `submit_selector`: it is clicked **only when every field verified**, in
-  the same call — so a dynamic page cannot reset a field between your fill and your navigate (the
-  classic lost-value loop). The platform scales the batch wall budget with field count and
-  reserves slack for that Next click — do not assume a flat 75 s, and do not pad one call with
-  huge step lists across page cascades. Steps run in order — sequence unlock-then-set interactions
-  (a filter checkbox that hides options) inside the one call. Ship the page's **selector map in
-  the skill** (a `references/` file): the browser snapshot shows accessibility refs and labels,
-  not CSS ids, so the skill — not the snapshot — is where selectors come from (`label=` targeting
-  works too). **Give each page an explicit `submit_selector` line in that map — a value the model
-  copies verbatim — not just prose naming the *Next*/*OK* button.** A model that has to *infer*
-  the submit selector from prose passes it on only a fraction of its fill calls (live-measured 2
-  of 12), losing the atomic fill-then-submit and burning a separate navigate turn per page; a
-  per-page map with an explicit submit line binds far better than prose because the model copies
-  structure instead of interpreting it. **If submit was skipped after a verified fill** (all
-  fields `ok`, skip reason mentions reserved time / budget), **click that button once** — do not
-  re-batch the same `steps`. If the tool reports *unavailable*, fall back to
-  per-field fills with **one** snapshot verify per group.
-- **Dropdowns: `kind: 'select'`, whatever the page is built from — never hand-drive one.** Pass
-  the option's **exact visible text** as the value. It works on a real `<select>` and equally on
-  a custom widget (Angular Material, React, a styled `div`): the tool opens the widget, clicks
-  the option and confirms the trigger now shows it. **Do not** drive a dropdown with `click`
-  steps or raw CDP, and do not "fall back" to those when one fails. That is not a slower route
-  to the same place — it skips the readback *and* the page-inventory capture, so the page you
-  filled leaves no trace for `browser-diff` and your selector map learns nothing from a run you
-  paid an attended login for. (Measured on a live government portal: the one page filled through
-  the tool captured 261 controls; the five pages hand-driven after it captured **zero**.)
-  Matching is exact — normalized whitespace, then case-insensitive, and nothing looser, because
-  a prefix rule would file `Nederland (EER)` when your data said `Nederland`. **A miss is a
-  feature:** the step fails closed, the submit is blocked, and the result hands you the option
-  texts the list really carries. That error is the cheapest way to learn a portal's real
-  vocabulary — reuse one of those strings verbatim in your map rather than guessing at it. A
-  dependent pair (picking A repopulates B) works in one call when you order A before B; a
-  cascade whose next list arrives from the **server** still belongs in its own call, per the
-  never-batch-across-a-round-trip rule below — but it belongs in a `browser_fill_form` call, not
-  in hand-driven clicks.
-- **Chain pages off `page_digest` — normally zero snapshots between pages.** A submitted call's
-  result carries `page_digest` (headings + labels + buttons of the page you landed on): when it
-  shows the expected page (per your shipped map), that IS your portal-change check and your next
-  `label=` targets — go straight into the next page's fill call. Budget **at most one snapshot
-  per form page**, and spend it only where you must *read values off the page* (a pre-filled
-  verify page, a summary check, the confirmation read) or when the digest is missing/ambiguous
-  or a field failed verify. Never snapshot to confirm a fill — the readback already did. And
-  **narrate at page-count granularity, not per page**: each optional progress line costs a model
-  turn; say you started, summarize before the irreversible step, report the outcome.
-- **Never batch across a server round-trip** or anything that changes later fields: a search-then-pick
-  (type a registration number → the site returns matches → select one), a cascade where each choice
-  populates the next, or any control that loads a page the next field depends on. Those stay one action
-  at a time — batching them races the site's own response.
-- **Keep the page-boundary verify and the pre-commit read.** Batching changes *how many* fields you
-  set between checks, never *whether* you check: fix and re-verify any field the readback reports
-  `ok: false` before moving on, keep the portal-change check before each page, and always take a
-  fresh full read immediately before the irreversible action (§4b) and before reading any
-  confirmation value off the page — **the irreversible action is never a `submit_selector`**.
-  Fewer calls is an efficiency win, not a safety discount.
+- **Snapshot, then click or type the control the snapshot shows.** Prefer
+  `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
+  A live accessible name may carry a trailing space — match the question
+  text, do not require an exact quoted name. After a radio click, snapshot
+  and confirm the option is checked. Do not write `.checked` or
+  `element.value` through CDP. Ship the page's **selector map in the
+  skill** (a `references/` file). Name each page's advance control
+  (`Next` / `OK` / a later *Summary*) so the model copies it. If the
+  page does not change after that click, one native retry. Then halt.
+- **Dropdowns: click the combobox, then the option.** Use the option's
+  **exact visible text**. Copy it from the open list. Do not guess a
+  translation. Do not write a hidden input. A cascade whose next list
+  arrives from the server stays one action at a time.
+- **Never batch across a server round-trip:** a search-then-pick, or a
+  cascade where each choice populates the next. Those stay one action
+  at a time.
+- **Keep the page-boundary verify and the pre-commit read.** Snapshot
+  before each named advance. Always take a fresh full read immediately
+  before the irreversible action (§4b) and before reading any
+  confirmation value off the page. Narrate at start / before that
+  irreversible step / outcome, not per page.
 
 Same instinct as `agent_max_turns` (above), from the other side: raise the ceiling so a long job *can*
 finish, and batch the inputs so it finishes *sooner* — inside the browser session's hard lifetime.

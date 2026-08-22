@@ -10,20 +10,20 @@
 bot: oteny-permit-filer-demo
 display_name: Permit Filer (demo)
 tagline: "A worked example: files a permit on a demo portal, the business-bot way."
-version: 0.1.0   # semver — bump on every change.
+version: 0.1.1   # semver — bump on every change.
 
 skills:
   - permit-filing
 
 base_language: en
 
-# The locked toolbox — list the minimum and stop. `browser` is the native browsing
-# TOOLSET (and it already covers the platform's browser_fill_form — first-party
-# browser tools ride the same toolset; declare them by name under tools.required
-# below, not here). `terminal` is here ONLY because the demo's system of record is
-# a local sqlite db (kept via the sqlite3 CLI); a real business bot replaces that
-# with its API connection tool and drops terminal. Deliberately absent: execute_code,
-# skills, cron, open-web search — this bot files permits, nothing else.
+# The locked toolbox — list the minimum and stop. `browser` is the native
+# browsing TOOLSET (snapshot, click, type). There is no batch fill tool.
+# `terminal` is here ONLY because the demo's system of record is a local
+# sqlite db (kept via the sqlite3 CLI); a real business bot replaces that
+# with its API connection tool and drops terminal. Deliberately absent:
+# execute_code, skills, cron, open-web search — this bot files permits,
+# nothing else.
 toolset_contribution:
   - browser
   - terminal
@@ -31,7 +31,6 @@ toolset_contribution:
 tools:
   required:
     - browser
-    - browser_fill_form
   stubbed: []
 
 # The tier-bound portal connection (stub-double pattern): the platform points

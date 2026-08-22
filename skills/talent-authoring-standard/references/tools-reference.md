@@ -411,7 +411,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 *first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
 
-> Read an image or document so you can see/understand it. Accepts a URL, a local file path, or a data URL. Works on any model — the image is understood by a dedicated perception engine and the result comes back as text. Call this any time the user references an image, screenshot, or PDF.
+> Read a file or URL image or document. Accepts an http(s) URL or a local file path. Do not call this for an image the user already sent inline. That image is already visible. Use this for files or URLs, not inline chat images. Works on any model — a dedicated perception engine returns text.
 
 **Parameters**
 
@@ -421,7 +421,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
   "properties": {
     "image_url": {
       "type": "string",
-      "description": "Image URL (http/https), local file path, or data: URL to read."
+      "description": "http(s) URL or local file path. Not an inline chat image."
     },
     "question": {
       "type": "string",
@@ -884,7 +884,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 - `browser_back()` — Browser history back.
 - `browser_get_images()` — List the images on the page.
 - `browser_vision(question, annotate?)` — Ask a vision model about a screenshot — the SLOWEST browser tool; reserve it for what the DOM genuinely can't tell you.
-- `browser_console(clear?, expression?)` — Read console messages / evaluate a JS expression. The safety policy BLOCKS reading form values, cookies, storage, and network primitives from JS — verify form state via snapshots or browser_fill_form's readback, never via JS.
+- `browser_console(clear?, expression?)` — Read console messages / evaluate a JS expression. The safety policy BLOCKS reading form values, cookies, storage, and network primitives from JS — verify form state via snapshots, never via JS.
 
 Your bot also carries the delivered `oteny-web-operator` skill (visible on the box) with the operating discipline; the authoring-side counterpart is `browser-authoring.md` in this directory.
 
@@ -975,143 +975,6 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 ```
 
 **Authoring notes** — The browser is REMOTE: a downloaded file is NOT on the bot's machine — never look in ~/Downloads or curl the portal. Trigger the download in the browser, then call this.
-
-### `browser_fill_form` — Fill a whole form at once
-
-*first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
-
-> Fill a whole form page in ONE call instead of one field per step. Pass steps=[{selector|label, value, kind?}]: text inputs are filled, dropdowns selected, checkboxes/radios checked — all through the real browser engine with human-like waiting, so it works on dynamic pages where raw JS does not. Every field's value is read BACK and returned (ok/actual per field), so you verify the page in the same call — no extra snapshot needed for the fields themselves. Optionally pass submit_selector (the page's next/continue button): it is clicked ONLY when every field verified, in the same call — so nothing can reset a field between filling and navigating. A submitted call also returns page_digest (headings/labels/buttons of the page you landed on): with the returned title it is usually enough to pick and fill the NEXT page directly (label= steps work straight from its labels) — no snapshot round-trip first. Targeting: selector takes CSS (input#city, input[name=group][value=Yes]) or Playwright selectors; or use label='visible field label' instead. kind is auto-detected. DROPDOWNS: use kind:'select' with value= the option's exact visible text and it works whether the page uses a real <select> or a custom widget (Angular Material, React, a styled div) — the tool opens the widget, clicks the option and confirms the trigger now shows it. Do NOT hand-drive a dropdown with click steps or raw CDP; that skips the verification and the page-inventory capture. If an option is not found the call returns the option texts the list really has — reuse one of those verbatim rather than guessing. Dependent dropdowns (picking A repopulates B) work in one call: put them in order, A before B. RULES: batch only INDEPENDENT fields whose values you already hold; never batch across a server response (a search that populates fields stays step-by-step); never use submit_selector for a final/irreversible submission — for those take a fresh snapshot and click explicitly. If this tool reports unavailable, fall back to per-field browser_type/browser_click.
-
-**Parameters**
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "steps": {
-      "type": "array",
-      "description": "The fields to set, in order. Each step: {selector: CSS/Playwright selector} OR {label: visible label}, plus value, plus optional kind (fill|select|pick_option|check|uncheck|click|press; default auto). Order matters only for dependent dropdowns — otherwise the fields must be independent.",
-      "items": {
-        "type": "object",
-        "properties": {
-          "selector": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "value": {
-            "type": [
-              "string",
-              "boolean",
-              "null"
-            ]
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "fill",
-              "select",
-              "pick_option",
-              "check",
-              "uncheck",
-              "click",
-              "press"
-            ],
-            "description": "select handles BOTH a real <select> and a custom dropdown widget; pick_option forces the widget path."
-          }
-        }
-      }
-    },
-    "submit_selector": {
-      "type": "string",
-      "description": "Next/continue button to click AFTER every field verifies (never a final submission)."
-    },
-    "frame_selector": {
-      "type": "string",
-      "description": "Optional iframe selector when the form lives inside an iframe."
-    }
-  },
-  "required": [
-    "steps"
-  ]
-}
-```
-
-**Result** — {ok, results: [{target, kind, ok, requested, actual, error}], submitted, submit_skipped, url, title, page_digest, message}. Every field is read BACK after filling — in one fused end-of-batch readback, so `actual` is the page's FINAL state (a later step that reset an earlier field is caught) — and `ok` is the per-field verify. Readback shapes per kind: fill → the field's text; select → {value, label} of the selected option; check/uncheck (checkboxes AND radios) → the checked-state boolean; click/press → no readback (ok = the action landed). `submitted` is true only when submit_selector was clicked (which happens ONLY when every field verified). A submitted call also carries `page_digest` ({headings, labels, buttons} of the page you landed on) — with `title`, usually enough to decide and target the NEXT page (label= steps work straight from its labels) without a snapshot round-trip first.
-
-**Errors / edges** — {status:'no_session'} → navigate first. {status:'unavailable'} → fill per-field with browser_type/browser_click instead. {status:'bad_request', message} → fix the step shape. A per-field error row (ok:false, error) → fix and re-verify that field before moving on; the submit was NOT clicked.
-
-**Example**
-
-```json
-{
-  "steps": [
-    {
-      "selector": "#show_filter",
-      "value": "false"
-    },
-    {
-      "selector": "#first_name",
-      "value": "Ada"
-    },
-    {
-      "selector": "#country",
-      "value": "Portugal",
-      "kind": "select"
-    },
-    {
-      "selector": "input[name=consent][value=Yes]",
-      "kind": "check"
-    },
-    {
-      "label": "Date of birth (dd-mm-yyyy)",
-      "value": "01-02-1990"
-    }
-  ],
-  "submit_selector": "button[type=submit]"
-}
-```
-
-→
-
-```json
-{
-  "ok": true,
-  "results": [
-    {
-      "target": "#first_name",
-      "kind": "fill",
-      "ok": true,
-      "requested": "Ada",
-      "actual": "Ada",
-      "error": null
-    },
-    "\u2026 one row per step \u2026"
-  ],
-  "submitted": true,
-  "submit_skipped": null,
-  "url": "https://portal.example/step2",
-  "title": "Step 2",
-  "page_digest": {
-    "headings": [
-      "Step 2 \u2014 Employer"
-    ],
-    "labels": [
-      "Company name",
-      "Registration number"
-    ],
-    "buttons": [
-      "Previous",
-      "Next"
-    ]
-  },
-  "message": "5/5 fields verified, page submitted"
-}
-```
-
-**Authoring notes** — One call per FORM PAGE. Steps run in order (sequence unlock-then-set interactions, e.g. uncheck a filter checkbox before selecting the option it hides). Selectors are CSS or Playwright selectors; `label=` targets the visible field label (what snapshots show). Ship your portal's selector map in your skill's `references/` — snapshots expose refs and labels, never CSS ids, so derive the map from your portal's DOM in your own browser devtools. `kind` is auto-detected for native controls; a checkbox accepts either {selector, value: 'false'/'true'} (kind auto) or an explicit kind:'uncheck'/'check' with value omitted — both canonical, pick one; a radio is a check on the option (input[name=g][value=X]). Drive a custom widget (a dropdown that is not a real <select>) with explicit kind:'click' steps. NEVER batch across a server round-trip (a search that populates fields), and NEVER use submit_selector for an irreversible/final submission — take a fresh snapshot and click that explicitly. Full discipline: business-bot-pattern.md §6 and browser-authoring.md.
 
 ### `browser_needs_login` — Signal a login is required
 
@@ -1641,7 +1504,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Create a secure, single-use link the user opens to hand you an API key or token for another service (use when they want to connect an account, e.g. 'connect my OpenWeather key'). Never ask for the key in chat. Pass a human-readable `label` (the provider/account name shown on the form) and the UPPER_SNAKE_CASE `env_var` the key should be delivered as, then send the user the returned link. After they submit, the value appears as that environment variable for your tools within a few minutes.
+> Create a secure, single-use link the user opens to hand you an API key or token for another service (use when they want to connect an account, e.g. 'connect my OpenWeather key'). Never ask for the key in chat. Pass a human-readable `label` (the provider/account name shown on the form) and the UPPER_SNAKE_CASE `env_var` the key should be delivered as, then send the user the returned link. After they submit, wait and retry the same env_var — do not mint a second link for the same secret. The value appears as that environment variable on the next turn after delivery (about a minute).
 
 **Parameters**
 

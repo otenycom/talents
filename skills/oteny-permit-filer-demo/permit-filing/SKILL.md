@@ -1,7 +1,7 @@
 ---
 name: permit-filing
 description: "File a permit application on the demo portal"
-version: 0.1.0
+version: 0.1.1
 author: Oteny
 license: MIT
 metadata:
@@ -16,9 +16,10 @@ metadata:
 You file **permit applications** from your local records onto the permit portal at
 **`$OTENY_CONN_PORTAL_BASE_URL`**, capture the **confirmation number** the portal shows
 you, and record it back on the application row. This skill is a *worked example* of
-the scoped business-bot filing pattern: everything here generalizes — the batch-fill
-wizard, the shipped selector map, the write-ahead intent, the fail-closed rules —
-and the portal is a small local app you (the author) can run and read.
+the scoped business-bot filing pattern: everything here generalizes — the
+page-shaped fill, the shipped selector map, the write-ahead intent, the
+fail-closed rules — and the portal is a small local app you (the author)
+can run and read.
 
 Your system of record is the local database
 `~/.hermes/data/oteny-permit-filer-demo/permits.db` (table `permit_applications`).
@@ -39,17 +40,15 @@ not mounted — see the pattern reference.)*
 
 ## Filing checklist (run in order, every time)
 
-> **⚡ Batch-fill rule — one `browser_fill_form` call per wizard page.** Fill every
-> independent field on a page in ONE call using the selector map in
-> [`references/form-selectors.md`](references/form-selectors.md), with the page's
-> *Next* button as `submit_selector`: the tool reads every value back (its
-> per-field `ok`/`actual` IS your verify) and clicks next only when every field
-> verified. Steps run in order — on the site page, UNCHECK the "local
-> municipalities only" filter *before* selecting a non-local municipality, in the
-> same call. Fix and re-verify any `ok:false` field before moving on. If submit
-> was skipped after a verified fill, click that *Next* once — do not re-batch the
-> same steps. The final *Submit application* is **never** a `submit_selector` —
-> see step 4.
+> **⚡ Page-fill rule — snapshot, then one native click or type at a time.**
+> Use the selector map in
+> [`references/form-selectors.md`](references/form-selectors.md). Prefer
+> `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
+> After each radio or select, snapshot and confirm the value stuck. Do not
+> write `.checked` or `element.value` through CDP. On the site page, UNCHECK
+> the "local municipalities only" filter *before* selecting a non-local
+> municipality. Then click the named *Next* button. The final *Submit
+> application* is an explicit click after a fresh snapshot — see step 4.
 
 ### Step 0 — pick the work
 
@@ -74,20 +73,22 @@ not mounted — see the pattern reference.)*
    snapshot). A redesigned page = selectors will miss → halt and escalate, never
    improvise selectors mid-run.
 
-### Step 3 — drive the wizard from the row (one batch per page)
+### Step 3 — drive the wizard from the row (one page at a time)
 
 1. Click **“+ New application”** on the dashboard.
-2. **Application details** — one `browser_fill_form` call (map §1):
-   `applicant_name`, `company`, `permit_type` (a native select), `start_date`
-   (dd-mm-yyyy, verbatim from the row), submit = the *Next* button.
-3. **Work site** — one call (map §2), ordered: first **uncheck** the "local
+2. **Application details** — type and pick from the map §1:
+   `applicant_name`, `company`, `permit_type` (click the combobox, then the
+   option), `start_date` (dd-mm-yyyy, verbatim from the row). Snapshot.
+   Click *Next*.
+3. **Work site** — map §2, ordered: first **uncheck** the "local
    municipalities only" filter (a non-local municipality is unselectable until
-   you do), then `municipality` (select), `street`, `house_number`, `postcode`,
-   `city`, the `has_insurance` and `night_work` radios (value = `Yes`/`No`
-   exactly as in the row), submit = *Next*.
+   you do), then `municipality` (combobox), `street`, `house_number`, `postcode`,
+   `city`, the `has_insurance` and `night_work` radios (`Yes`/`No` exactly as
+   in the row). Snapshot. Click *Next*.
 4. **Review** — take a fresh snapshot; check every echoed value against the row.
    Any mismatch → go back and fix that field, or escalate. Then continue to
-   step 4 below — the declaration + submit are handled there, never batched.
+   step 4 below — the declaration + submit are handled there, never as a silent
+   next-click.
 
 ### Step 4 — write-ahead, then the explicit submit
 
@@ -95,8 +96,8 @@ not mounted — see the pattern reference.)*
    `sqlite3 ~/.hermes/data/oteny-permit-filer-demo/permits.db "UPDATE permit_applications SET status='filing', confirmation_no='PENDING-' || strftime('%s','now') WHERE id=<id>;"`
    This is the crash fence: if you die between submit and proof, the next run's
    Step 1 sees the marker and never files a duplicate.
-2. On the review page: tick the **declaration** checkbox (one `browser_fill_form`
-   call, no submit_selector — map §3).
+2. On the review page: tick the **declaration** checkbox (one native click —
+   map §3).
 3. Take a **fresh full snapshot**, confirm the declaration is ticked and the
    values are right, then click **Submit application** explicitly
    (`browser_click` on its snapshot ref). If the confirmation page does not load
@@ -120,9 +121,8 @@ not mounted — see the pattern reference.)*
   populates fields) — this demo has none, your real portal will; those stay
   one-action-at-a-time.
 - The `browser_console` JS escape hatch **cannot read form values** (safety
-  policy) — verification is `browser_fill_form`'s readback plus snapshots.
-- Tool unavailable? Fall back to per-field `browser_type`/`browser_click` with one
-  snapshot verify per page — same checklist, slower.
+  policy) — verification is a snapshot after the native click or type.
+- There is no batch fill tool. Do not ask for `browser_fill_form`.
 
 ## Related
 

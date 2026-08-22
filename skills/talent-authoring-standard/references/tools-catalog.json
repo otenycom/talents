@@ -155,15 +155,6 @@
       "cost": "low"
     },
     {
-      "name": "browser_fill_form",
-      "requestable_name": "browser_fill_form",
-      "request_via": "tools.required",
-      "kind": "browser",
-      "group": "Browse real websites",
-      "status": "live",
-      "cost": "low"
-    },
-    {
       "name": "browser_needs_login",
       "requestable_name": "browser_needs_login",
       "request_via": "tools.required",

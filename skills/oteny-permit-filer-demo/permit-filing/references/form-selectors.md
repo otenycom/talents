@@ -1,45 +1,43 @@
-# Demo portal form selectors — the per-page `browser_fill_form` map
+# Demo portal form selectors — the per-page native-click map
 
-One `browser_fill_form` call per wizard page: `steps=[{selector, value}, …]` plus
-the page's *Next* button as `submit_selector`. Text inputs and selects carry
-`id == name` (so `#field_name` works); **radios carry a name only** — target one
-option as `input[name=field][value=Yes]`; same for checkboxes without an id. Each
-wizard page has exactly one `button[type=submit]`.
+Fill each wizard page with `browser_snapshot`, then one `browser_click` or
+`browser_type` at a time. Prefer role+name locators the snapshot already
+shows. A stub id attribute is a text-field fallback only — not a radio or combobox
+primary. After a radio or select, snapshot and confirm the value stuck.
+Do not write a checked property or `element.value` through CDP.
 
 *How this file was made (do the same for your portal):* run the portal locally
 (`python3 scripts/demo_portal.py --port 8099`), open it in your own browser, and
-read the ids/names off the DOM in devtools. The bot cannot do this at runtime —
-snapshots show accessibility refs and labels, never CSS ids — which is exactly why
-the skill ships this map.
+read the accessible names off the page. The bot cannot derive CSS ids at
+runtime — snapshots show roles and labels — which is exactly why the skill
+ships this map.
 
-## §1 — Application details (`Next` = `button[type=submit]`)
+## §1 — Application details (`Next` = `role=button[name="Next"]`)
 
-| Field | Selector | Control |
+| Field | Primary | Fallback |
 | --- | --- | --- |
-| Applicant name | `#applicant_name` | text |
-| Company | `#company` | text |
-| Permit type | `#permit_type` | native select — pass the option's visible text |
-| Start date (dd-mm-yyyy) | `#start_date` | text |
+| Applicant name | label `Applicant name` | `#applicant_name` |
+| Company | label `Company` | `#company` |
+| Permit type | `role=combobox[name="Permit type"]` then the option text | `#permit_type` |
+| Start date (dd-mm-yyyy) | label `Start date (dd-mm-yyyy)` | `#start_date` |
 
-## §2 — Work site (`Next` = `button[type=submit]`)
+## §2 — Work site (`Next` = `role=button[name="Next"]`)
 
-**Order matters:** step 1 is `{"selector": "#local_only", "value": "false"}` — the
-filter checkbox starts CHECKED and hides/disables the non-local municipality
-options until unchecked. Then:
+**Order matters:** uncheck `Show local municipalities only` first. The
+filter starts CHECKED and hides the non-local municipality options.
 
-| Field | Selector | Control |
+| Field | Primary | Fallback |
 | --- | --- | --- |
-| Municipality | `#municipality` | native select |
-| Street | `#street` | text |
-| House number | `#house_number` | text |
-| Postcode | `#postcode` | text |
-| City | `#city` | text |
-| Liability insurance? | `input[name=has_insurance][value=Yes]` (or `=No`) | radio |
-| Night work? | `input[name=night_work][value=Yes]` (or `=No`) | radio |
+| Municipality | `role=combobox[name="Municipality"]` then the option text | `#municipality` |
+| Street | label `Street` | `#street` |
+| House number | label `House number` | `#house_number` |
+| Postcode | label `Postcode` | `#postcode` |
+| City | label `City` | `#city` |
+| Liability insurance? | `role=group[name="Does the applicant hold liability insurance?"] >> role=radio[name=/^\s*Yes\s*$/]` (or `No`) | — |
+| Night work? | `role=group[name="Will work happen at night?"] >> role=radio[name=/^\s*Yes\s*$/]` | — |
 
 ## §3 — Review page
 
-The declaration checkbox is `input[name=declaration]` — a single `check` step,
-**no** `submit_selector`. The **Submit application** button is clicked explicitly
-by ref after a fresh snapshot (the skill's step 4) — an irreversible action is
-never part of a batch.
+The declaration checkbox is the label that starts with `I declare`. Click
+it. Then take a **fresh snapshot** and click **Submit application** by
+ref. An irreversible action is never a silent next-click.

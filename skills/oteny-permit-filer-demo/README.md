@@ -10,7 +10,7 @@ Everything a real one has, at toy scale, against a portal you run yourself.
 | In this bundle | The pattern | Explained in |
 | --- | --- | --- |
 | `agent-profile.yaml` — minimal toolbox + `connections.portal` tier binding | scope-lock; stub-double | `business-bot-pattern.md` §2, §5 |
-| `permit-filing/SKILL.md` — one `browser_fill_form` call per wizard page, verified next-click | batch-fill | `business-bot-pattern.md` §6; `browser-authoring.md` |
+| `permit-filing/SKILL.md` — snapshot, then native click/type per field, then *Next* | page-shaped fill | `business-bot-pattern.md` §6; `browser-authoring.md` |
 | `permit-filing/references/form-selectors.md` — the shipped selector map (+ how it was derived) | skills ship selectors; snapshots show refs, not CSS | `browser-authoring.md` |
 | write-ahead `PENDING-…` → explicit submit → number read off the page | fail-closed + the crash fence | `business-bot-pattern.md` §4 |
 | `tests/scenarios/` — a mock-green happy path + a live-only fail-closed probe | scenario grammar; mutually-exclusive classes | `oteny-talent-dev-loop` |

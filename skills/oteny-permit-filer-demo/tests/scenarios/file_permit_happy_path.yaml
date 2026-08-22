@@ -43,5 +43,5 @@ turns:
         contains: ["iled", "P-"]
         not_contains: ["PENDING-"]
       trace:
-        markers: ["browser_fill_form"]
+        markers: ["browser_click"]
         absent: ["tool terminal error"]

@@ -6,10 +6,11 @@ truth. Pure stdlib, no framework; the page shapes deliberately exercise what a
 real portal throws at a filing bot:
 
 * stable ``id == name`` text inputs and native ``<select>``s (CSS-selectable),
-* radio groups that carry a *name* only (target ``input[name=x][value=Yes]``),
+* radio groups as ``<fieldset aria-label>`` so a snapshot shows
+  ``role=group`` + ``role=radio`` (target the radio option itself),
 * an unlock-then-set interaction: the "local municipalities only" checkbox on
-  page 2 hides/disables the non-local options until unchecked — set it FIRST,
-  then select, in the same ``browser_fill_form`` call,
+  page 2 hides/disables the non-local options until unchecked — uncheck it FIRST,
+  then pick the municipality,
 * a declaration checkbox gating the final submit (the irreversible step your
   skill must NEVER batch — fresh snapshot, explicit click),
 * a confirmation page that is the ONLY source of the permit number.
@@ -72,11 +73,14 @@ def _text(name: str, label: str, value: str = "") -> str:
 
 
 def _radio(name: str, label: str, options: list[str]) -> str:
-    opts = " ".join(
+    opts = "".join(
         f'<label><input type="radio" name="{name}" value="{escape(o)}"> {escape(o)}</label>'
         for o in options
     )
-    return f"<p><strong>{escape(label)}</strong><br>{opts}</p>"
+    return (
+        f'<fieldset aria-label="{escape(label)}">'
+        f"<legend>{escape(label)}</legend>{opts}</fieldset>"
+    )
 
 
 def _details_html(did: str, d: dict) -> str:
