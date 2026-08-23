@@ -263,6 +263,15 @@
       "cost": "free"
     },
     {
+      "name": "credential_status",
+      "requestable_name": "credential_status",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "coming",
+      "cost": "free"
+    },
+    {
       "name": "connect_login",
       "requestable_name": "connect_login",
       "request_via": "tools.required",
