@@ -115,8 +115,8 @@ work, each with a **machine-checkable** existence condition. That manifest *is* 
 goal; the first-run section is the loop that drives toward it; `selfcheck` is the
 deterministic judge. A bundle whose "done" state is vague cannot be validated and
 cannot self-heal — so a well-formed manifest is the first thing to check. The artifact
-classes it may declare (`data`/`profile`/`memory`/`routing`/`cron`/`tools`/`secret`)
-and their checkable conditions are in
+classes it may declare (`data`/`profile`/`memory`/`routing`/`cron`/`tools`/`secret`/
+`connection`) and their checkable conditions are in
 [`references/required-artifacts.md`](references/required-artifacts.md).
 
 ## The rubric — 14 checks (each PASS / FAIL / N/A)
@@ -190,6 +190,11 @@ returns nothing meaningful.
   the team's surface) — and shift the toolset (checks 1 + 9), data plane (`odoo_client` +
   named `connections:`, channel-agnostic — checks 2 + 6), and tests (check 14) accordingly;
   the full authoring delta is [`references/business-bot-pattern.md`](references/business-bot-pattern.md).
+- **Every outside system is a named `connections:` entry**, and there are four kinds. A
+  `kind: saas` entry names a third-party account the OWNER grants, so the platform can
+  gate the Talent's readiness on it rather than letting the bot half-work. The declaration
+  rules, the binding rules the registry enforces, and the readiness gate are in
+  [`references/connections.md`](references/connections.md).
 
 ### 6. Namespacing (so bots never collide)
 - Data under `~/.hermes/data/<bot>/` (D34); skills under
@@ -309,6 +314,8 @@ The exact output format is in
 
 - [`references/audience-and-voice.md`](references/audience-and-voice.md) — owner vs bot
   vs author; type-this writing style.
+- [`references/connections.md`](references/connections.md) — the four `connections:`
+  kinds, the binding rules, and the readiness gate a `kind: saas` entry arms.
 - [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →
   package → publish.
 - [`oteny-talent-dev-loop`](../oteny-talent-dev-loop/SKILL.md) — clone → reload →

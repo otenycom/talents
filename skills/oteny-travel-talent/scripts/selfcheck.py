@@ -643,6 +643,152 @@ def check_tools(a):
     return _r("tools", True, note, blocking=False, **detail)
 
 
+# --------------------------------------------------------------------------- #
+# the connection artifact class (Oteny Connections)                            #
+# --------------------------------------------------------------------------- #
+#
+# A Talent may declare that it needs a third-party account the OWNER grants
+# (`kind: saas` under `connections:` in agent-profile.yaml). This checker is the
+# box's own judge of whether that account has reached this box, and it stays
+# inside the belt's contract: pure, file-based, and no network. That matters more
+# here than anywhere else in the manifest. The authoritative judge IS a network
+# call, so a box that could only ask the network would go blind during exactly
+# the outage in which an honest answer matters most.
+#
+# It reads TWO facts, and neither is enough alone, because they move for
+# different reasons:
+#
+#   1. `~/.hermes/config.yaml` `secrets.oteny.env` — the map the last converge
+#      RENDERED. A grant that is revoked, purged, or expired past refreshing is
+#      dropped from it at the next converge.
+#   2. `~/.hermes/state/delivered/<VAR>.ready` — the receipt written when a value
+#      actually ARRIVES, and cleared when the control plane authoritatively
+#      denies one (a revoke, or a refresh the provider refused).
+#
+# The two facts also SPLIT the failure, and that split is the whole design:
+#
+#   * Nothing rendered → the owner has not granted the account, or it ended.
+#     That is ordinary first-run state, so the verdict is NOT-READY and the bot
+#     runs its connect drill.
+#   * Rendered but no receipt → the grant exists and nothing on this box has
+#     delivered it. The owner cannot fix that, so the verdict is UNKNOWN. Telling
+#     them to connect an account they already connected is the false-onboarding
+#     failure this belt exists to prevent.
+#
+# A grant that has EXPIRED but holds a refresh token stays in the render, so this
+# reads READY — which is correct, and is the same rule the renderer follows. A
+# refresh softens the CLOCK and never the state: a revoked grant leaves the render
+# whatever tokens it still holds.
+_CONNECTIONS_PLUGIN_DIR = ("plugins", "hh-connections")
+_RECEIPT_DIR = ("state", "delivered")
+_SECRET_REF_PREFIX = "oteny://"
+
+
+def _receipt_fingerprint(receipt_path, env_var):
+    """``match`` / ``differs`` / ``absent`` / ``unreadable`` — never a value.
+
+    The receipt carries the SHA-256 of the value the box was handed. Comparing it
+    to the running process's own variable answers "is this process holding what we
+    delivered", which is how a rotation that did not take is spotted. The digest is
+    the only thing read, and the only thing reported.
+    """
+    import hashlib
+
+    live = os.environ.get(env_var)
+    if live is None:
+        return "absent"
+    try:
+        with open(receipt_path, encoding="utf-8") as handle:
+            recorded = (json.load(handle) or {}).get("sha256") or ""
+    except (OSError, ValueError):
+        return "unreadable"
+    if not recorded:
+        return "unreadable"
+    return "match" if hashlib.sha256(live.encode("utf-8")).hexdigest() == recorded else "differs"
+
+
+def check_connection(a):
+    name = str(a.get("name") or "").strip()
+    env_vars = [str(v).strip() for v in (a.get("env_vars") or []) if str(v or "").strip()]
+    blocking = a.get("blocking", True)
+    remediation = a.get(
+        "remediation",
+        f"first-run §connect: send the owner the connect link for '{name}' and wait "
+        "for them to grant the account; nothing on the box can create the grant")
+    if not name or not env_vars:
+        # An authoring fault, not user state: the manifest cannot be judged at all.
+        return _r("connection", False,
+                  "a connection artifact needs both `name` and a non-empty `env_vars`",
+                  "authoring fault: fix required_artifacts.yaml; do NOT coach the owner",
+                  unknown=True)
+    hermes = _hermes_home()
+    cfg = read_yaml(hermes / "config.yaml")
+    if cfg is UNREADABLE or not isinstance(cfg, dict):
+        return _r("connection", False,
+                  f"{hermes}/config.yaml is missing or UNREADABLE, so the rendered "
+                  "connection map cannot be read",
+                  "environment fault: report the unreadable config.yaml; do NOT "
+                  "re-run first-run over it",
+                  unknown=True, connection=name, env_vars=env_vars)
+    secrets = cfg.get("secrets") if isinstance(cfg.get("secrets"), dict) else {}
+    oteny = secrets.get("oteny") if isinstance(secrets.get("oteny"), dict) else {}
+    rendered = oteny.get("env") if isinstance(oteny.get("env"), dict) else {}
+    receipts = hermes.joinpath(*_RECEIPT_DIR)
+
+    not_granted, misbound, not_delivered, fingerprints = [], [], [], {}
+    for var in env_vars:
+        ref = str(rendered.get(var) or "")
+        if not ref:
+            not_granted.append(var)
+            continue
+        bound_to = ref[len(_SECRET_REF_PREFIX):].split("/", 1)[0] if ref.startswith(
+            _SECRET_REF_PREFIX) else ""
+        if bound_to != name:
+            misbound.append(f"{var}->{bound_to or ref}")
+            continue
+        receipt = receipts / f"{var}.ready"
+        if not receipt.exists():
+            not_delivered.append(var)
+            continue
+        fingerprints[var] = _receipt_fingerprint(receipt, var)
+
+    detail = {"connection": name, "env_vars": env_vars, "fingerprints": fingerprints}
+    if misbound:
+        # A different grant holds the variable. The owner connected SOMETHING, so
+        # "go connect an account" is the wrong instruction — the rebind is.
+        return _r("connection", False,
+                  f"connection '{name}' does not own {misbound} — another grant binds it",
+                  "the variable is bound to a different connection: revoke that grant "
+                  "or rename this one, then reconnect",
+                  blocking=blocking, **detail)
+    if not_granted:
+        return _r("connection", False,
+                  f"connection '{name}' is not granted: {not_granted} is not in the "
+                  "rendered connection map",
+                  remediation, blocking=blocking, **detail)
+    if not_delivered:
+        # The grant EXISTS and nothing here delivered it. The owner cannot fix that,
+        # so this is UNKNOWN rather than NOT-READY. A box with no connections plugin
+        # is the common cause, and it is named because it is the actionable one.
+        missing_plugin = not hermes.joinpath(*_CONNECTIONS_PLUGIN_DIR).is_dir()
+        why = (" and this box carries no hh-connections plugin"
+               if missing_plugin else "")
+        return _r("connection", False,
+                  f"connection '{name}' is granted but undelivered: no receipt for "
+                  f"{not_delivered}{why}",
+                  "environment fault: the grant exists and no value has reached this "
+                  "box. Retry the action once; if it persists, report it and stop — "
+                  "do NOT ask the owner to connect again",
+                  unknown=True, **detail)
+    note = f"connection '{name}' granted and delivered ({len(env_vars)} variable(s))"
+    stale = sorted(v for v, f in fingerprints.items() if f == "differs")
+    if stale:
+        # NOT a readiness failure. The delivered value is good; this process simply
+        # started before the latest one landed, which the next gateway bounce fixes.
+        note += f"; running process holds an older value for {stale}"
+    return _r("connection", True, note, blocking=False, **detail)
+
+
 CHECKERS = {
     "sqlite_db": check_sqlite_db,
     "profile": check_profile,
@@ -650,6 +796,7 @@ CHECKERS = {
     "routing": check_routing,
     "cron": check_cron,
     "tools": check_tools,
+    "connection": check_connection,
 }
 
 

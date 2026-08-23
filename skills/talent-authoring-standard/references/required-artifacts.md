@@ -22,9 +22,17 @@ Omit those a bot doesn't need — a chat-only Talent may declare only `profile` 
 | `cron` | named jobs registered (with `enabled_when: tool:<x>` if gated) |
 | `tools` | required tools present; absent charged tools shipped as stubs |
 | `secret` | named env vars present (delivered by the deployer, never baked) |
+| `connection` | a named `kind: saas` connection is granted AND its value reached the box |
 
 Each condition must be a **one-line check** (a path, table names, field names) — if you
 cannot write one for an artifact, it is underspecified (the check-2 failure). The classes
 mirror the namespacing rules (check 6): `data` under `~/.hermes/data/<bot>/`, `routing`
 keyed by the bot's group id, `secret` delivered by the deployer and never baked into the
 bundle (check 4).
+
+A `connection` artifact is the readiness half of a `kind: saas` entry under
+`connections:`. It names the connection and the variables it binds, and `selfcheck`
+answers READY, NOT-READY or UNKNOWN from files on the box alone. Declaring
+`required: true` on the connection without this artifact is a lint failure, because the
+gate would never fire. Full rules:
+[`connections.md`](connections.md).
