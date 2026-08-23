@@ -18,9 +18,10 @@ Surface:
   * ``Oteny`` — the account-key ``/json/2/`` client.
   * ``dev_slot_slug(label, user=None)`` — the generic ``<user>-<label>`` slot label.
   * ``ensure(...)`` — ``request_dev_bot(dev_slot=…)`` → poll to ``active + talent_delivered``;
-    a **failed reuse target auto-rebuilds** (re-issue a plain create). ``dev_slot`` is optional —
-    omit it (or pass ``""``) for the always-create path (a CI one-shot / a channel-less author who
-    doesn't want a durable slot). Returns ``{ref, reused, request_id, delivered, rebuilt}``.
+    a **failed reuse target auto-rebuilds** (re-issue with ``force_create``, keeping the slot).
+    ``dev_slot`` is optional — omit it (or pass ``""``) for the always-create path (a CI one-shot /
+    a channel-less author who doesn't want a durable slot).
+    Returns ``{ref, reused, request_id, delivered, rebuilt}``.
   * ``touch(oteny, ref=…|dev_slot=…)`` / ``down(oteny, ref=…|dev_slot=…)`` — keep-alive / teardown.
   * ``open_quick_tunnel(port, label)`` → a ``Tunnel`` handle over a cloudflared **quick** tunnel
     (``trycloudflare.com``, no CF secrets). The zero-config fallback every author can use. A
@@ -94,15 +95,19 @@ def request_kwargs(*, dev_slot: str = "", bundle: str, uplink_key: str | None = 
                    source_ref: str | None = None, pin_mode: str = "follow",
                    uplink_url: str | None = None, uplink_db: str | None = None,
                    uplink_env: str = "staging", discuss_channel: str | None = None,
-                   spinup_config: dict | None = None) -> dict:
+                   spinup_config: dict | None = None, force_create: bool = False) -> dict:
     """Build the ``request_dev_bot`` payload — pure, so a test pins the shape with no round-trip.
     ``dev_slot`` is the D210 durable-singleton opt-in (defaults ``""`` → the always-create path the
     platform takes for a falsy slot); the launcher passes a **fresh** uplink key + the current
     coords/channel/stub on EVERY run (reuse is converge-in-place, so the platform re-pushes them).
-    ``spinup_config`` carries the account's own tunnelled doubles (D168)."""
+    ``spinup_config`` carries the account's own tunnelled doubles (D168). ``force_create`` asks
+    the platform to skip reuse and still stamp the slot; the key is added ONLY when truthy, so an
+    ordinary payload stays byte-identical (the compat fallback below keys on the payload)."""
     kw: dict = {
         "dev_slot": dev_slot, "bundle": bundle, "pin_mode": pin_mode, "uplink_env": uplink_env,
     }
+    if force_create:
+        kw["force_create"] = True
     for k, v in (("uplink_key", uplink_key), ("talent_source_repo", talent_source_repo),
                  ("repo_subpath", repo_subpath), ("source_ref", source_ref),
                  ("uplink_url", uplink_url), ("uplink_db", uplink_db),
@@ -142,10 +147,23 @@ def _request_or_fallback(oteny: Oteny, kwargs: dict, log):
     that has no ``dev_slot`` param rejects the kwarg (a `/json/2/` "unexpected keyword argument"
     error); drop it and create fresh (no reuse — the old platform can't). This makes a launcher
     that passes ``dev_slot`` FORWARD- and BACKWARD-compatible, so the platform-vs-launcher deploy
-    order never breaks a run."""
+    order never breaks a run.
+
+    The same degradation covers ``force_create`` (the D210 rebuild-keeps-its-slot flag), and it
+    takes ``dev_slot`` down with it. Dropping ``force_create`` alone would re-arm reuse against
+    the very incumbent the rebuild is replacing, which loops. So an old platform rebuilds without
+    the slot — the pre-fix behaviour, logged so the operator knows the by-slot keep-alive will
+    read ``not_found``."""
     try:
         return oteny.call(_DEV_BOT_MODEL, "request_dev_bot", **kwargs)
     except RuntimeError as exc:
+        if kwargs.get("force_create") and "force_create" in str(exc):
+            log("[dev_bot] this Oteny predates force_create — rebuilding WITHOUT the slot, so "
+                "the slot stays on the old bot and a by-slot keep-alive will read not_found.")
+            return _request_or_fallback(
+                oteny,
+                {k: v for k, v in kwargs.items() if k not in ("force_create", "dev_slot")},
+                log)
         if "dev_slot" in kwargs and "dev_slot" in str(exc):
             log("[dev_bot] this Oteny predates durable reuse (no dev_slot) — creating fresh.")
             return oteny.call(_DEV_BOT_MODEL, "request_dev_bot",
@@ -163,8 +181,9 @@ def ensure(oteny: Oteny, *, dev_slot: str = "", bundle: str,
     it (a CI one-shot like radar ``--verify``, or a channel-less author who wants no durable slot)
     gets the always-create path instead of a ``TypeError`` — the platform treats a falsy slot as
     no-opt-in. On a **failed reuse target** (the incumbent's clone vanished — a node death /
-    backup-reap; ``node_id`` was only a record check) it AUTO-REBUILDS: re-issue a plain create
-    (drop ``dev_slot``), which now misses and commissions fresh (§5.C2/R7).
+    backup-reap; ``node_id`` was only a record check) it AUTO-REBUILDS: re-issue the create with
+    ``force_create=True``, which misses reuse and commissions fresh while KEEPING ``dev_slot`` on
+    the replacement (§5.C2/R7).
 
     Returns ``{ref, reused, request_id, delivered, rebuilt}``. Raises RuntimeError on a create
     that fails (not a reuse) or on a refused request."""
@@ -181,13 +200,15 @@ def ensure(oteny: Oteny, *, dev_slot: str = "", bundle: str,
     if state == "active" and ref:
         return {"ref": ref, "reused": reused, "request_id": request_id,
                 "delivered": delivered, "rebuilt": False}
-    # A failed REUSE target → the incumbent is gone; re-issue a plain create (no dev_slot) so it
-    # misses and commissions fresh. A create that fails is a real error (raise).
+    # A failed REUSE target → the incumbent is gone; re-issue the create with force_create so it
+    # misses reuse and commissions fresh. The slot RIDES ALONG: dropping it (the pre-fix trick)
+    # left the slot on the destroyed predecessor, so the by-slot keep-alive read not_found about a
+    # healthy bot and the idle reaper destroyed it. A create that fails is a real error (raise).
     if reused:
         log(f"[dev_bot] reuse target failed ({error or state}); rebuilding fresh …")
         fresh = dict(kwargs)
-        fresh.pop("dev_slot", None)                       # drop the slot → force a create (miss)
-        accepted2 = oteny.call(_DEV_BOT_MODEL, "request_dev_bot", **fresh)
+        fresh["force_create"] = True                      # skip reuse, KEEP the durable slot
+        accepted2 = _request_or_fallback(oteny, fresh, log)
         if not isinstance(accepted2, dict) or not accepted2.get("accepted"):
             raise RuntimeError(f"rebuild request_dev_bot refused: {accepted2}")
         rid2 = accepted2["request_id"]

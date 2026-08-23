@@ -51,3 +51,77 @@ def test_ensure_without_dev_slot_takes_always_create_path():
     # The platform saw dev_slot="" (present, falsy), never a MISSING kwarg — proof there is no crash.
     req = next(kw for _m, m, kw in oteny.calls if m == "request_dev_bot")
     assert req.get("dev_slot", "__missing__") == ""
+
+
+# ── force_create: a rebuild keeps its durable slot ─────────────────────────────────────── #
+# Before this, ensure() rebuilt by DROPPING dev_slot to force the platform's reuse miss. The
+# replacement then carried no slot, the destroyed predecessor kept it, and the by-slot keep-alive
+# reported the live bot as gone until the idle reaper destroyed it.
+
+
+def test_request_kwargs_omits_force_create_when_falsy():
+    # An ordinary payload must stay byte-identical — _request_or_fallback keys its compat
+    # degradation on the presence of the key.
+    kw = db.request_kwargs(bundle="acme-permit-filer", dev_slot="dev-permits")
+    assert "force_create" not in kw
+    assert db.request_kwargs(bundle="acme-permit-filer", force_create=True)["force_create"] is True
+
+
+def test_rebuild_sends_force_create_with_the_slot_intact():
+    # First request reuses and the reuse target fails; the rebuild must carry force_create=True
+    # AND dev_slot, so the replacement bot owns the slot.
+    oteny = _FakeOteny({
+        "request_dev_bot": [
+            {"accepted": True, "http": 202, "request_id": 1, "reused": True, "ref": "hh0old"},
+            {"accepted": True, "http": 202, "request_id": 2},
+        ],
+        "dev_bot_request_status": [
+            {"ok": True, "terminal": True, "state": "failed", "ref": "",
+             "error": "reuse target gone"},
+            {"ok": True, "terminal": True, "state": "active", "ref": "hh0new",
+             "talent_delivered": True},
+        ],
+    })
+    res = db.ensure(oteny, bundle="acme-permit-filer", dev_slot="dev-permits",
+                    timeout_s=5, poll_s=0, log=lambda *a, **k: None)
+    assert res["ref"] == "hh0new"
+    assert res["rebuilt"] is True
+    reqs = [kw for _m, m, kw in oteny.calls if m == "request_dev_bot"]
+    assert len(reqs) == 2
+    assert "force_create" not in reqs[0]                  # the first call is an ordinary reuse
+    assert reqs[1]["force_create"] is True
+    assert reqs[1]["dev_slot"] == "dev-permits"           # the slot RIDES ALONG on the rebuild
+
+
+def test_rebuild_falls_back_by_dropping_force_create_and_the_slot_together():
+    # An Oteny that predates force_create rejects the kwarg. Dropping force_create alone would
+    # re-arm reuse against the very incumbent being replaced, so dev_slot goes with it.
+    class _OldOteny(_FakeOteny):
+        def call(self, model, method, **kw):
+            if method == "request_dev_bot" and "force_create" in kw:
+                self.calls.append((model, method, kw))
+                raise RuntimeError("request_dev_bot() got an unexpected keyword argument "
+                                   "'force_create'")
+            return super().call(model, method, **kw)
+
+    oteny = _OldOteny({
+        "request_dev_bot": [
+            {"accepted": True, "http": 202, "request_id": 1, "reused": True, "ref": "hh0old"},
+            {"accepted": True, "http": 202, "request_id": 2},
+        ],
+        "dev_bot_request_status": [
+            {"ok": True, "terminal": True, "state": "failed", "ref": "",
+             "error": "reuse target gone"},
+            {"ok": True, "terminal": True, "state": "active", "ref": "hh0new",
+             "talent_delivered": True},
+        ],
+    })
+    lines: list[str] = []
+    res = db.ensure(oteny, bundle="acme-permit-filer", dev_slot="dev-permits",
+                    timeout_s=5, poll_s=0, log=lines.append)
+    assert res["ref"] == "hh0new"
+    assert res["rebuilt"] is True
+    reqs = [kw for _m, m, kw in oteny.calls if m == "request_dev_bot"]
+    assert reqs[1]["force_create"] is True                # rejected by the old platform
+    assert "force_create" not in reqs[2] and "dev_slot" not in reqs[2]   # BOTH keys dropped
+    assert any("predates force_create" in ln for ln in lines)

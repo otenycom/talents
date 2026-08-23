@@ -555,16 +555,24 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   Talent's work; raise it per-tenant (an operator `config_overrides` knob) and re-run.
 - **Your keep-alive says the bot is gone, but the bot still answers.** A long-lived dev bot is
   usually held by an opt-in **`dev_slot`**, and a keep-alive job touches it by that slot rather
-  than by `ref`, so a rebuild does not break the job. The trap is that a **rebuild drops the
-  slot**: when `ensure()` (`skills/_shared/scripts/dev_bot.py`) finds a failed reuse target, it
-  re-issues the create *without* `dev_slot` to force a miss, and the replacement is therefore
-  stamped with no slot at all. The slot stays on the destroyed predecessor. Touching by slot then
-  returns `not_found` forever, even though the new bot is healthy — and because nothing touches
-  it, the idle TTL reaps it a day later. Read a slot `not_found` as **"prove it"**, never as
-  "the bot is dead": list your own non-destroyed dev bots first. A live row with a blank
-  `dev_slot` is this case. Re-provision so the slot is stamped again, then re-run the keep-alive
-  and confirm it reports the new `ref`. The same reasoning applies to any tooling you key on
-  `dev_slot` — a slot is only as durable as the last create that carried it.
+  than by `ref`, so a rebuild does not break the job. **A current rebuild keeps the slot.** When
+  `ensure()` (`skills/_shared/scripts/dev_bot.py`) finds a failed reuse target, it re-issues the
+  create with `force_create=True` and `dev_slot` intact. The platform then skips reuse, retires
+  the slot's old holder, and stamps the slot on the replacement. So the keep-alive follows the
+  rebuild.
+
+  **The failure this replaced still bites on an Oteny that predates `force_create`.** There the
+  rebuild had to drop `dev_slot` to force the reuse miss, so the replacement carried no slot at
+  all and the slot stayed on the destroyed predecessor. Touching by slot then returned
+  `not_found` forever, even though the new bot was healthy — and because nothing touched it, the
+  idle TTL reaped it a day later. `ensure()` degrades to exactly that behaviour when the platform
+  rejects `force_create`, and it logs `predates force_create` when it does. Watch for that line.
+
+  Either way, read a slot `not_found` as **"prove it"**, never as "the bot is dead": list your own
+  non-destroyed dev bots first. A live row with a blank `dev_slot` is this case. Re-provision so
+  the slot is stamped again, then re-run the keep-alive and confirm it reports the new `ref`. The
+  same reasoning applies to any tooling you key on `dev_slot` — a slot is only as durable as the
+  last create that carried it.
 - **`clone`/`test`/`traces` says "not permitted"** — you can only touch your own + granted +
   Oteny demo bots; `oteny clone --source` naming a source outside that scope is refused by the record rules.
 - **A just-created bot isn't visible to your key for a moment** — right after you stand up a new
