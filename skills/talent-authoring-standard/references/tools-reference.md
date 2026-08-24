@@ -1561,7 +1561,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 ### `credential_status` — Check a connected account
 
-*first-party tool · request via `tools.required` · status **coming** · cost Included*
+*first-party tool · request via `tools.required` · status **live** · cost Included*
 
 > Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` (none/pending/submitted/delivered) is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. If `process_ready` is true, just use the secret — do not mint. If `odoo_state` is pending or submitted, a link is already with the owner: send them that same one and wait. Mint only when `odoo_state` is none, or the owner asked you to replace it.
 
