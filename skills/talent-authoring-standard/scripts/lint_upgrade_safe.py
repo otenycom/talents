@@ -103,6 +103,31 @@ spend):
      covering EVERY skill in the bundle escalates the whole Talent by another name → FAIL (use a
      ``model_tier`` floor for a bundle-wide need). (Needs PyYAML; CI installs it.)
 
+NAMED CONNECTIONS + THE READINESS GATE (every bundle — an infra default that declares
+``connections:`` sets the map for the WHOLE bot, so a silent skip there costs most):
+ 20. every ``connections:`` entry in ``agent-profile.yaml`` declares a ``kind`` the platform
+     can parse (``odoo`` / ``odoo_json2`` / ``portal`` / ``saas``) — an unknown kind is
+     SKIPPED IN SILENCE, so the Talent would ship, load and answer with a seam it never got.
+     A ``kind: saas`` entry (a third-party account the OWNER grants) additionally names a
+     ``provider:`` code and a non-empty ``env:`` map, and every binding in that map obeys
+     the rules the registry itself enforces at grant time: an ``UPPER_SNAKE_CASE`` variable
+     that is not a managed platform name (the ``OTENY_CONN_`` namespace is the one
+     carve-out), a lower-snake-case payload field, and NEVER ``refresh_token`` /
+     ``authorization_code`` / ``pkce_verifier`` (a box receives the access token and nothing
+     else). Two connections may not bind one variable — the registry holds one slot per
+     (tenant, variable) and refuses the second. ``required: true`` must be paired with a
+     ``kind: connection`` artifact in ``required_artifacts.yaml`` covering the same
+     variables, else the readiness gate never fires and the Talent reports READY with no
+     credential; the reverse drift (an artifact naming a connection nothing declares) fails
+     too. ``required: true`` on a ``delivery: baked`` bundle fails outright — a baked
+     bundle ships to EVERY box, so it would put the whole fleet NOT-READY on an account
+     nobody asked for. Finally, a delivered script that READS a credential-shaped variable
+     (``*_TOKEN`` / ``*_API_KEY`` / ``*_SECRET`` / ``*_PASSWORD`` / ``*_PAT`` /
+     ``*_CREDENTIAL``) must have some connection binding it —
+     an undeclared read reaches the tenant as an unset variable and a ``KeyError`` that
+     names no account. (Needs PyYAML; CI installs it.) Author guide:
+     ``references/connections.md``.
+
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
   Flash tier runs — a sold **Talent** OR a non-Talent **infra-default** skill it uses
@@ -972,6 +997,236 @@ def _is_comment_line(line: str) -> bool:
     return s.startswith("#") or s.startswith(">")
 
 
+# --------------------------------------------------------------------------- #
+# Check 20 — the declared `connections:` map, and the readiness gate it arms.   #
+# --------------------------------------------------------------------------- #
+#
+# A `connections:` entry the platform cannot parse is SKIPPED IN SILENCE, and that
+# is the failure this check exists for. The tenant then meets a Talent whose seam
+# simply is not there: no error at delivery, no error at load, and a bot that
+# answers as if it had a data plane. So every rule the registry enforces at write
+# time is mirrored here, where a violation is an author's red PR rather than a
+# customer's broken bot.
+#
+# The rules below are the registry's own, copied deliberately rather than
+# imported: this file has to run in a foreign repo's CI with no Oteny checkout.
+# The pair that must not drift is `_check_env_bindings` on the platform side and
+# `_ENV_BINDING_*` here. Each mirrored constant names its source.
+_CONNECTION_KINDS = {"odoo", "odoo_json2", "portal", "saas"}
+
+# Mirrors the platform's `_ENV_VAR_RE` (hh/models/credential.py).
+_ENV_VAR_RE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
+# Mirrors `_MANAGED_ENV_PREFIXES` + `_MANAGED_ENV_KEYS`: names the platform owns, so a
+# grant may never take one. The one carve-out is the `OTENY_CONN_` namespace, which a
+# connection legitimately binds.
+_MANAGED_ENV_PREFIXES = ("OTENY_", "TELEGRAM_")
+_MANAGED_ENV_KEYS = {
+    "BROWSER_INACTIVITY_TIMEOUT", "TZ", "HERMES_EPHEMERAL_SYSTEM_PROMPT",
+    "GATEWAY_ALLOW_ALL_USERS", "DISCUSS_ALLOW_ALL_USERS", "DISCUSS_HOME_CHANNEL",
+    "API_SERVER_KEY", "API_SERVER_HOST", "API_SERVER_PORT",
+}
+_CONNECTIONS_ENV_PREFIX = "OTENY_CONN_"
+# Mirrors `_is_payload_field`: lower snake case, starts with a letter, at most 64 chars.
+_PAYLOAD_FIELD_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+# Mirrors `_NEVER_BOUND_FIELDS`. A box receives the access token and nothing else; the
+# refresh token and the two exchange inputs never leave the control plane.
+_NEVER_BOUND_FIELDS = {"refresh_token", "pkce_verifier", "authorization_code"}
+# A provider row's `code` — a slug an operator types, so the shape is asserted and the
+# EXISTENCE is not. Only the live registry knows which providers are configured, and a
+# lint that guessed from a baked-in list would refuse a provider added last week.
+_PROVIDER_CODE_RE = re.compile(r"^[a-z][a-z0-9_-]{1,63}$")
+
+# An environment variable a bundle script reads that LOOKS like a credential. §7.1 says
+# a script that reads one must declare the connection that supplies it, so an undeclared
+# read is a Talent that will fail at run time with nothing to point the owner at.
+# A bare ``_KEY`` is deliberately NOT here. This check FAILS a build, and ``SORT_KEY`` /
+# ``CACHE_KEY`` / ``PRIMARY_KEY`` are ordinary non-credential names — a false FAIL is worse
+# than a missed declaration, which the registry catches later anyway.
+_CREDENTIAL_ENV_SUFFIXES = (
+    "_TOKEN", "_API_KEY", "_APIKEY", "_SECRET", "_PASSWORD", "_PAT", "_CREDENTIAL",
+)
+_ENV_READ_RE = re.compile(
+    r"""os\.(?:environ\.get|getenv)\(\s*["']([A-Z][A-Z0-9_]*)["']"""
+    r"""|os\.environ\[\s*["']([A-Z][A-Z0-9_]*)["']\s*\]"""
+)
+
+
+def _is_managed_env_var(name: str) -> bool:
+    n = (name or "").strip().upper()
+    return n in _MANAGED_ENV_KEYS or n.startswith(_MANAGED_ENV_PREFIXES)
+
+
+def _profile_data(bundle: Path) -> dict:
+    """agent-profile.yaml as a dict ({} if absent / unparseable / no PyYAML)."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return {}
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _declared_connections(bundle: Path) -> dict:
+    """The raw `connections:` mapping from agent-profile.yaml ({} if none / no PyYAML)."""
+    conns = _profile_data(bundle).get("connections")
+    return conns if isinstance(conns, dict) else {}
+
+
+def _connection_artifacts(bundle: Path) -> list[dict]:
+    """The `kind: connection` artifacts declared in required_artifacts.yaml."""
+    man = bundle / "required_artifacts.yaml"
+    if yaml is None or not man.is_file():
+        return []
+    try:
+        data = yaml.safe_load(man.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    return [
+        a for a in (data.get("artifacts") or [])
+        if isinstance(a, dict) and a.get("kind") == "connection"
+    ]
+
+
+def _saas_env_findings(name: str, env: dict) -> list[str]:
+    """Every binding rule the registry would refuse at write time, checked here first."""
+    out: list[str] = []
+    for var, field in env.items():
+        var, field = str(var or "").strip(), str(field or "").strip()
+        if not _ENV_VAR_RE.match(var):
+            out.append(f"connection '{name}': env var {var!r} is invalid — UPPER_SNAKE_CASE "
+                       "letters, digits and underscores, 3-64 chars, starting with a letter")
+            continue
+        if _is_managed_env_var(var) and not var.startswith(_CONNECTIONS_ENV_PREFIX):
+            out.append(f"connection '{name}': env var {var!r} is reserved for managed "
+                       "configuration — the registry refuses it; use a provider-specific "
+                       "name like BASECAMP_TOKEN")
+        if field in _NEVER_BOUND_FIELDS:
+            out.append(f"connection '{name}': binds {var} to {field!r}, which never leaves "
+                       "the control plane — a box receives the access token and nothing else")
+        elif not _PAYLOAD_FIELD_RE.match(field):
+            out.append(f"connection '{name}': binds {var} to payload field {field!r} — use "
+                       "lower snake case, e.g. access_token")
+    return out
+
+
+def _credential_env_reads(bundle: Path) -> dict[str, set[str]]:
+    """Map credential-shaped env var → the bundle files that read it. Tests excluded."""
+    out: dict[str, set[str]] = {}
+    for p in sorted(bundle.rglob("*.py")):
+        if _SKIP_DIRS & set(p.parts) or "tests" in p.parts:
+            continue
+        text = p.read_text(errors="ignore")
+        for m in _ENV_READ_RE.finditer(text):
+            var = m.group(1) or m.group(2) or ""
+            if not var.endswith(_CREDENTIAL_ENV_SUFFIXES) or _is_managed_env_var(var):
+                continue
+            out.setdefault(var, set()).add(str(p.relative_to(bundle)))
+    return out
+
+
+def _connection_findings(bundle: Path) -> list[str]:
+    """(20) The `connections:` declaration, and the readiness gate a required one arms."""
+    if yaml is None:
+        return []          # needs PyYAML to read the profile; CI installs it
+    raw = _declared_connections(bundle)
+    out: list[str] = []
+    claimed: dict[str, str] = {}     # ENV_VAR -> the connection that claimed it
+    declared_env: set[str] = set()
+    required_saas: set[str] = set()
+    saas_env: dict[str, set[str]] = {}
+    for name, spec in raw.items():
+        name = str(name or "").strip()
+        if not name:
+            out.append("connections: an entry has an empty name — the name is how a Talent, "
+                       "a tool call and the owner's console all address the grant")
+            continue
+        if not isinstance(spec, dict):
+            out.append(f"connection '{name}': the entry is not a mapping, so the platform "
+                       "skips it silently and the Talent ships with no seam")
+            continue
+        kind = str(spec.get("kind") or "").strip().lower()
+        if kind not in _CONNECTION_KINDS:
+            out.append(f"connection '{name}': kind {kind or '(unset)'!r} is not one of "
+                       f"{sorted(_CONNECTION_KINDS)} — the platform SKIPS an unknown kind "
+                       "in silence, so the Talent would ship with no seam and no error")
+            continue
+        if kind != "saas":
+            continue
+        provider = str(spec.get("provider") or "").strip()
+        if not provider:
+            out.append(f"connection '{name}': kind saas declares no `provider:` — the "
+                       "provider code says which registered OAuth client the grant is for")
+        elif not _PROVIDER_CODE_RE.match(provider):
+            out.append(f"connection '{name}': provider {provider!r} is not a provider code — "
+                       "use the registry's lower-case slug, e.g. basecamp")
+        env = spec.get("env")
+        if not isinstance(env, dict) or not env:
+            out.append(f"connection '{name}': kind saas declares no `env:` map — without one "
+                       "the grant binds nothing and no script can read the credential")
+            env = {}
+        out += _saas_env_findings(name, env)
+        for var in env:
+            var = str(var or "").strip()
+            declared_env.add(var)
+            saas_env.setdefault(name, set()).add(var)
+            if var in claimed and claimed[var] != name:
+                out.append(f"connections '{claimed[var]}' and '{name}' both bind {var} — the "
+                           "registry holds one (tenant, ENV_VAR) slot, so the second grant is "
+                           "refused; give one of them its own variable")
+            claimed[var] = name
+        scopes = spec.get("scopes")
+        if scopes is not None and not (
+            isinstance(scopes, list) and all(isinstance(sc, str) for sc in scopes)
+        ):
+            out.append(f"connection '{name}': `scopes:` must be a list of strings")
+        required = spec.get("required")
+        if required is not None and not isinstance(required, bool):
+            out.append(f"connection '{name}': `required:` must be true or false "
+                       f"(got {required!r})")
+        if required is True:
+            required_saas.add(name)
+            if str(_profile_data(bundle).get("delivery") or "").strip() == "baked":
+                out.append(
+                    f"connection '{name}': `required: true` on a `delivery: baked` "
+                    "bundle — a baked bundle ships to EVERY box, so this would put the "
+                    "whole fleet NOT-READY on an account nobody asked for. Ship the "
+                    "Talent as `delivery: purchased`, or drop `required:`")
+
+    # A required connection that arms no readiness gate is the silent half-work the gate
+    # exists to stop: the Talent loads, selfcheck says READY, and the first tool call fails
+    # with nothing to point the owner at.
+    artifacts = {str(a.get("name") or "").strip(): a for a in _connection_artifacts(bundle)}
+    for name in sorted(required_saas):
+        art = artifacts.get(name)
+        if art is None:
+            out.append(f"connection '{name}': declared `required: true` but "
+                       "required_artifacts.yaml has no `kind: connection` artifact for it — "
+                       "the readiness gate never fires, so the Talent reports READY with no "
+                       "credential")
+            continue
+        covered = {str(v).strip() for v in (art.get("env_vars") or []) if str(v or "").strip()}
+        short = sorted(saas_env.get(name, set()) - covered)
+        if short:
+            out.append(f"connection '{name}': the readiness artifact does not list "
+                       f"{short} under `env_vars:` — an unlisted variable is never checked")
+    for name in sorted(artifacts):
+        if name not in saas_env:
+            out.append(f"required_artifacts.yaml declares a `kind: connection` artifact for "
+                       f"'{name}' with no matching `kind: saas` entry under `connections:` "
+                       "(name drift — the gate judges a connection nothing declares)")
+
+    # §7.1: a script that reads a credential env var must declare the connection.
+    for var, files in sorted(_credential_env_reads(bundle).items()):
+        if var not in declared_env:
+            out.append(f"{sorted(files)[0]} reads {var} but no `connections:` entry binds it — "
+                       "declare the connection that supplies it (kind: saas), so the platform "
+                       "can gate readiness on the grant instead of the tenant meeting an "
+                       "unset variable")
+    return out
+
+
 def lint_bundle(bundle: Path) -> list[str]:
     """Return a list of build-time violations for one bundle dir ('' = clean)."""
     findings: list[str] = []
@@ -1006,6 +1261,11 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
         findings += _channel_role_findings(bundle)     # (19) declared Discuss role lanes
         findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
+
+    # (20) connections: + the readiness gate — EVERY bundle, not only a Talent. An infra
+    # default skill that declares `connections:` sets the map for the whole bot (the
+    # first-declaring-bundle rule), so a silent skip there is the most expensive one.
+    findings += _connection_findings(bundle)
 
     # (17) selector-manifest ↔ human-doc twin equality — self-gates on a manifest with a
     # declared doc_twin, so it runs on any bundle (a shared browser bundle may ship one).

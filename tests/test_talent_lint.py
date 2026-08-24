@@ -500,3 +500,182 @@ def test_yaml_only_import_does_not_require_uv_lock(tmp_path):
     scripts.mkdir()
     (scripts / "read.py").write_text("import yaml\nprint(yaml.safe_load('a: 1'))\n")
     assert not any("uv.lock" in f for f in lint.lint_bundle(b))
+
+
+# --------------------------------------------------------------------------- #
+# connections: + the readiness gate (check 20)                                 #
+# --------------------------------------------------------------------------- #
+#
+# The platform SKIPS a `connections:` entry it cannot parse, in silence. So every
+# rule the registry enforces when it writes a grant is mirrored in the lint, where
+# a violation is an author's red PR rather than a customer's bot with no seam.
+_SAAS = (
+    "connections:\n  basecamp:\n    kind: saas\n    provider: basecamp\n"
+    "    scopes: [projects]\n    env:\n      BASECAMP_TOKEN: access_token\n")
+_CONN_ARTIFACT = (
+    "artifacts:\n  - kind: connection\n    name: basecamp\n"
+    "    env_vars: [BASECAMP_TOKEN]\n")
+
+
+def _saas_talent(root, *, profile_extra=_SAAS, artifacts="artifacts: []", scripts=None):
+    b = _talent(root, artifacts=artifacts, profile_extra=profile_extra,
+                neutralize=("bot: oteny-x-talent\nsteps:\n  - id: 0001_check\n"
+                            "    kind: checklist\n    ref: references/neutralize.md\n"))
+    for name, body in (scripts or {}).items():
+        path = b / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body)
+    return b
+
+
+def _conn_findings(b):
+    return [f for f in lint.lint_bundle(b) if "connection" in f or "reads " in f]
+
+
+def test_a_well_formed_saas_declaration_is_clean(tmp_path):
+    assert _conn_findings(_saas_talent(tmp_path)) == []
+
+
+def test_an_unknown_kind_is_a_finding(tmp_path):
+    """The platform skips it silently, so the Talent would ship with no seam."""
+    b = _saas_talent(tmp_path, profile_extra="connections:\n  x:\n    kind: sass\n")
+    assert any("SKIPS an unknown kind" in f for f in lint.lint_bundle(b))
+
+
+def test_saas_without_a_provider_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=(
+        "connections:\n  basecamp:\n    kind: saas\n    env:\n"
+        "      BASECAMP_TOKEN: access_token\n"))
+    assert any("declares no `provider:`" in f for f in lint.lint_bundle(b))
+
+
+def test_an_upper_case_provider_code_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "provider: basecamp", "provider: Basecamp"))
+    assert any("is not a provider code" in f for f in lint.lint_bundle(b))
+
+
+def test_saas_without_an_env_map_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=(
+        "connections:\n  basecamp:\n    kind: saas\n    provider: basecamp\n"))
+    assert any("declares no `env:` map" in f for f in lint.lint_bundle(b))
+
+
+def test_a_lower_case_env_var_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "BASECAMP_TOKEN: access_token", "basecamp_token: access_token"))
+    assert any("is invalid" in f and "UPPER_SNAKE_CASE" in f for f in lint.lint_bundle(b))
+
+
+def test_a_managed_env_var_is_a_finding(tmp_path):
+    """The registry refuses it: an agent-minted grant may not clobber managed config."""
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "BASECAMP_TOKEN: access_token", "TELEGRAM_BOT_TOKEN: access_token"))
+    assert any("reserved for managed configuration" in f for f in lint.lint_bundle(b))
+
+
+def test_the_oteny_conn_namespace_is_the_one_carve_out(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "BASECAMP_TOKEN: access_token", "OTENY_CONN_BASECAMP_KEY: access_token"))
+    assert not any("reserved for managed" in f for f in lint.lint_bundle(b))
+
+
+def test_binding_the_refresh_token_is_a_finding(tmp_path):
+    """A box receives the access token and nothing else."""
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "access_token", "refresh_token"))
+    assert any("never leaves the control plane" in f for f in lint.lint_bundle(b))
+
+
+def test_an_upper_case_payload_field_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS.replace(
+        "BASECAMP_TOKEN: access_token", "BASECAMP_TOKEN: Access_Token"))
+    assert any("lower snake case" in f for f in lint.lint_bundle(b))
+
+
+def test_two_connections_binding_one_variable_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS + (
+        "  other:\n    kind: saas\n    provider: other\n    env:\n"
+        "      BASECAMP_TOKEN: access_token\n"))
+    assert any("both bind BASECAMP_TOKEN" in f for f in lint.lint_bundle(b))
+
+
+def test_a_non_bool_required_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS + "    required: yes please\n")
+    assert any("must be true or false" in f for f in lint.lint_bundle(b))
+
+
+def test_required_without_a_readiness_artifact_is_a_finding(tmp_path):
+    """The silent half-work the gate exists to stop: READY with no credential."""
+    b = _saas_talent(tmp_path, profile_extra=_SAAS + "    required: true\n")
+    assert any("the readiness gate never fires" in f for f in lint.lint_bundle(b))
+
+
+def test_required_with_a_readiness_artifact_is_clean(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra=_SAAS + "    required: true\n",
+                     artifacts=_CONN_ARTIFACT)
+    assert _conn_findings(b) == []
+
+
+def test_a_readiness_artifact_missing_a_variable_is_a_finding(tmp_path):
+    b = _saas_talent(
+        tmp_path,
+        profile_extra=_SAAS + "      BASECAMP_ACCOUNT: account_id\n    required: true\n",
+        artifacts=_CONN_ARTIFACT)
+    assert any("does not list ['BASECAMP_ACCOUNT']" in f for f in lint.lint_bundle(b))
+
+
+def test_a_readiness_artifact_naming_nothing_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra="", artifacts=_CONN_ARTIFACT)
+    assert any("name drift" in f for f in lint.lint_bundle(b))
+
+
+def test_a_script_reading_an_undeclared_credential_is_a_finding(tmp_path):
+    b = _saas_talent(tmp_path, profile_extra="", scripts={
+        "scripts/post.py": "import os\ntoken = os.environ['NOTION_API_KEY']\n"})
+    assert any("NOTION_API_KEY" in f and "no `connections:` entry binds it"
+               in f for f in lint.lint_bundle(b))
+
+
+def test_a_script_reading_a_declared_credential_is_clean(tmp_path):
+    b = _saas_talent(tmp_path, scripts={
+        "scripts/post.py": "import os\ntoken = os.getenv('BASECAMP_TOKEN')\n"})
+    assert _conn_findings(b) == []
+
+
+def test_a_test_file_reading_a_credential_is_exempt(tmp_path):
+    """A test invents its own variables; only shipped scripts state a real need."""
+    b = _saas_talent(tmp_path, profile_extra="", scripts={
+        "tests/unit/test_x.py": "import os\nos.environ['NOTION_API_KEY'] = 'x'\n"})
+    assert _conn_findings(b) == []
+
+
+def test_a_managed_variable_read_is_exempt(tmp_path):
+    """The platform delivers it, so no connection supplies it."""
+    b = _saas_talent(tmp_path, profile_extra="", scripts={
+        "scripts/x.py": "import os\nos.getenv('OTENY_METERING_TOKEN')\n"})
+    assert _conn_findings(b) == []
+
+
+def test_check_20_runs_on_a_non_talent_bundle_too(tmp_path):
+    """An infra default that declares `connections:` sets the map for the WHOLE bot,
+    so a silent skip there is the most expensive one."""
+    b = tmp_path / "infra-skill"
+    b.mkdir()
+    (b / "agent-profile.yaml").write_text(
+        "bot: infra-skill\nversion: 1.0.0\nconnections:\n  x:\n    kind: sass\n")
+    assert any("SKIPS an unknown kind" in f for f in lint.lint_bundle(b))
+
+
+def test_required_on_a_baked_bundle_is_a_finding(tmp_path):
+    """A baked bundle ships to EVERY box, so a required grant fleets the whole fleet."""
+    b = _saas_talent(tmp_path, profile_extra="delivery: baked\n" + _SAAS + "    required: true\n",
+                     artifacts=_CONN_ARTIFACT)
+    assert any("ships to EVERY box" in f for f in lint.lint_bundle(b))
+
+
+def test_required_on_a_purchased_bundle_is_clean(tmp_path):
+    b = _saas_talent(tmp_path,
+                     profile_extra="delivery: purchased\n" + _SAAS + "    required: true\n",
+                     artifacts=_CONN_ARTIFACT)
+    assert _conn_findings(b) == []
