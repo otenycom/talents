@@ -489,6 +489,21 @@ refuses a "filed" whose number isn't the right shape; and **`provision_barney.py
 (or launch **`barney-provision-local`**) commissions the bot, wires uplink + stub + broker tokens,
 and holds the local uplink tunnel.
 
+**A restored ERP database severs your rig — reprovision before the first hand-off.** Every piece
+of the bot binding lives *inside* the owner's ERP database: the adopted bot record, the uplink
+key, the broker seam tokens, and the stub bind. A restore (or a replaced DB) erases them all,
+while your launcher's local state file still names a bot that no longer matches. The failure is
+silent and looks like bot trouble: the first hand-off **claims** the work item into the bot-owned
+in-progress state and posts the dispatch into a channel **nothing polls**, so the owner's activity
+log shows *Working* forever. The DB tells are unambiguous — the run was never consumed (the
+run-started stamp stays empty) and the bot record carries no ref. Two rules compose: **re-run your
+tier provisioner after *any* ERP restore, before the first hand-off**, and **serve the ERP with a
+cron worker** — the dispatch re-post belt and the SLA reaper (§4h) are ordinary crons, and with
+them dead the stuck claim never recovers, while with them alive the reaper hands the item back
+within the state's SLA and you simply re-hand it. (Live case, 2026-08-24: a restored CrewRadar
+served by a cron-less debug config held a claim stuck for five hours; a cron worker + reprovision
+recovered it in one reaper tick, and the re-hand was consumed in seconds.)
+
 ## 4d. Make the double faithful — harvest the operator's walkthrough (page graph, not flat form)
 
 A flat "all the fields on one page" double proves plumbing, not the filing. Your bot's skill text
