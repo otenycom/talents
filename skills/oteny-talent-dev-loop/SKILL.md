@@ -104,6 +104,38 @@ graded runs use **`oteny test --bundle-dir …`** from this recipe — not herme
 The platform returns **`claim_dev_bot_client_ingress`** as a three-token bundle (login-gate,
 live-watch, replay-view); the provisioner writes those into the tier's broker seam every run.
 
+## Four things version independently — know which one moved
+
+Most "the bot is broken" reports are really "one of four things changed, and I assumed it was a
+different one". Separate them before you debug, and the answer usually falls out.
+
+| The thing | What it is | Who moves it | How it moves |
+| --- | --- | --- | --- |
+| **The box** | The container your bot runs in, and its memory/CPU/disk envelope | Oteny | A plan or size change; you ask for it |
+| **The platform** | The agent runtime, the mounted tools, the browser broker — Oteny's software inside the box | Oteny | Converges on Oteny's schedule; you cannot trigger or defer it |
+| **Your Talent** | Your instructions, skills, scenarios — files in **your** git repo | **You** | `oteny reload --ref <clone>` on a followed branch, or a release tag for a pinned bot |
+| **The system it talks to** | The customer's Odoo/API/portal your bot reads and writes | The customer's team | Their own deploy |
+
+Two consequences worth internalising:
+
+- **Only the Talent is yours to version.** A platform converge restarts the agent, so an
+  in-flight turn does not survive it and must be re-driven; your data and your delivered Talent
+  do survive. If you need a quiet window for a demo or an acceptance session, ask for one — you
+  cannot opt out of a converge yourself.
+- **A followed branch and a pinned tag are different promises.** A dev or staging clone that
+  follows a branch changes the moment you merge, which is what makes the loop fast. A production
+  bot pinned to a tag changes only when someone cuts the tag — so "it worked on staging" is only
+  meaningful if you tag the commit staging was actually running. Rollback is re-tagging the
+  previous good version.
+
+**Dev clones are deliberately temporary.** A clone left idle is reaped, and an account has a cap
+on live dev bots — at the cap the platform recycles your own least-recently-used clone to admit
+the new one, rather than refusing. So an unattended sixth clone quietly costs you the stalest
+one. What a reap destroys is what lived only in the box (working state, conversation memory, the
+delivered copy of the Talent). What survives is everything that never did: the customer's data,
+and your Talent in git. Re-running your provisioning with the **same slot name** gets a working
+bot back under the same identity.
+
 ## When to use
 
 - You changed a Talent (copy, a child skill, a tool request, a state-shape
