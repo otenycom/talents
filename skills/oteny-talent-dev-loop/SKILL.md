@@ -157,7 +157,7 @@ DM is Phase 2** (not in this package yet).
 | Clone | `oteny clone --source <ref> …` | Account-key clone **gate** (`request_clone`). Platform worker drains infra. |
 | Reload | `oteny reload --ref <clone>` | Ask Oteny to **pull** the pushed commit onto this bot. Push first. Wait for `last_status=delivered`. Do not reload mid-turn (`deferred_busy`). See [`how-delivery-works.md`](references/how-delivery-works.md). |
 | Test | `oteny test --ref <clone> --bundle <slug> --bundle-dir <path> [--scenario <glob>]…` | Run `tests/scenarios/*.yaml` LIVE; **`--bundle-dir` required** (local checkout — no deploy key). |
-| Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. |
+| Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. `page_snapshot` browser rows cover EVERY turn of a run, including the turns after a human login hand-off (donated sessions) and every follow-up turn — since 2026-08-25; a run before that date can show gaps there. |
 | Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
 | Selfcheck | `oteny selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the box via account-scoped shell. |
 | Migrate | `oteny migrate-talent --ref <clone> --bundle <slug>` | Drive `migrate.py` on the box. |
