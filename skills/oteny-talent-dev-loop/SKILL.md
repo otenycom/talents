@@ -545,6 +545,15 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   forbidden one did). `logs --ref <clone>` shows `tool <name> completed`; a missing
   toolset means the platform lock or a `check_fn` gate dropped it (a business bot mounts only
   its `toolset_contribution`).
+- **A browser click "succeeds" but the verify snapshot never changes (a radio stays
+  unchecked, an option stays unpicked)** — the target was probably **outside the viewport**.
+  The AX snapshot is viewport-independent, so a clipped control looks identical to a visible
+  one, and an executor that clicks at coordinates without scrolling reports success on a
+  no-op (this halted a real filing on a form's last radio group, 2026-08-25 — the platform
+  now pre-scrolls every ref-click, but the corrective is executor-independent). Teach the
+  Talent: scroll the control into view, **click AGAIN, then verify** — a scroll alone
+  changes nothing. The last fields of a long form are the usual victims, because the fill
+  pass auto-scrolls everything above them into view and leaves the bottom few clipped.
 - **The run looks "silent" — no reply, or a near-empty `()`** — not a lost run; a **silent
   failure**. Read `traces --ref <clone>` for the turn: the tell is tool calls whose results
   carried **no signal** (an ACL/403 error, an empty envelope) followed by a near-empty final

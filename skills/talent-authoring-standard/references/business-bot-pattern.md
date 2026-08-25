@@ -653,6 +653,18 @@ whole wizard. A later page may say *Summary* or *OK* where earlier pages said
 *Next*. Scroll that control into view **before** the native click. A control
 below the fold reads as a naming bug and costs a whole model turn.
 
+**A click can return success and change nothing — that usually means the target sat
+outside the viewport.** The snapshot is viewport-independent, so a clipped control looks
+exactly like a visible one, and some click executors dispatch at the target's coordinates
+without scrolling first (a below-fold click is then a silent no-op that still reports
+success — this halted a real filing on the last radio group of a form, 2026-08-25). The
+platform now scrolls every ref-click's target into view for you, but keep the corrective
+in the instruction because it is executor-independent: when the verify snapshot shows no
+state change after a "successful" click, scroll the control into view and **click AGAIN,
+then verify**. A scroll alone changes nothing, and one post-scroll click beats stopping at
+the harness's repeat warning. The controls most at risk are the LAST fields of a long
+form — everything the fill pass auto-scrolled past works, and the bottom few do not.
+
 That split is the reconciliation of "a Talent is a high-level work instruction" with the hard
 platform fact that the model **cannot read CSS selectors off a live page** (`browser_snapshot`
 exposes accessibility refs, never ids — see [`browser-authoring.md`](browser-authoring.md)): the
