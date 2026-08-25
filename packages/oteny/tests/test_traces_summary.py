@@ -1,0 +1,86 @@
+"""The author-facing `oteny traces` summary — parity with the platform's own verb.
+
+An author holding nothing but an account key has to be able to answer "what did my
+bot click, and did it stick" from this DTO alone. That is the dog-food bar, and it
+is what the 2026-08-25 off-viewport halt failed: the run reported success on a
+radio that never checked, and only an operator box shell could see it.
+"""
+
+from __future__ import annotations
+
+import json
+
+from oteny.traces import _enrich_browser_trace_row, build_traces_dto, harvest_trace_text
+
+
+class FakeClient:
+    """Returns canned rows per model, so the shaping is exercised offline."""
+
+    def __init__(self, rows):
+        self._rows = rows
+
+    def search_read(self, model, domain, fields=None, limit=None, order=None):
+        return self._rows.get(model, [])
+
+
+def _dto(browser_rows):
+    return build_traces_dto(FakeClient({"hh.browser.trace": browser_rows}), "hh00506")
+
+
+def test_summary_counts_native_action_rows():
+    dto = _dto([
+        {"kind": "click", "target_attempted": "@e50", "el_id": "informeren_ja",
+         "ok": True, "checked_state": 1},
+        {"kind": "type", "target_attempted": "@e9", "el_id": "bsn",
+         "ok": True, "checked_state": -1, "value_matched": 1},
+    ])
+    bs = dto["browser_summary"]
+    assert bs["actions"] == 2
+    assert bs["click_no_ops"] == 0
+    # a ref-click has no locator count — it must not be counted as a miss
+    assert bs["misses"] == 0 and bs["ambiguous"] == 0
+
+
+def test_summary_surfaces_the_click_that_reported_success_and_stuck_nothing():
+    dto = _dto([
+        {"kind": "click", "target_attempted": "@e51", "el_id": "informeren_nee",
+         "ok": True, "checked_state": 0},
+    ])
+    assert dto["browser_summary"]["click_no_ops"] == 1
+    assert dto["browser_summary"]["failed"] == 0  # the TOOL succeeded — that is the point
+    assert "click_no_ops=1" in harvest_trace_text(dto)
+
+
+def test_summary_reports_the_captured_inventory():
+    inv = [{"tag": "input", "type": "radio", "name": "informeren",
+            "label": "Nee", "checked": True},
+           {"tag": "input", "type": "text", "id": "bsn",
+            "value_len": 9, "value_sha": "deadbeefdeadbeef"}]
+    dto = _dto([{"kind": "page_snapshot", "page_url": "https://stub/type",
+                 "has_snapshot": True,
+                 "snapshot_pretty": json.dumps({"form_inventory": inv, "url": "u"})}])
+    bs = dto["browser_summary"]
+    assert bs["pages_captured"] == 1
+    assert bs["controls_captured"] == 2
+    # the inventory is promoted out of the zlib payload for the author to read
+    assert dto["browser_traces"][0]["form_inventory"] == inv
+    # and it answers "which radio is checked" without any box access
+    radio = dto["browser_traces"][0]["form_inventory"][0]
+    assert radio["checked"] is True
+    # no raw value ever appears — only the fingerprint
+    assert "value" not in dto["browser_traces"][0]["form_inventory"][1]
+
+
+def test_enrichment_is_inert_on_a_step_row_and_on_junk():
+    step = {"kind": "click", "target_attempted": "@e1"}
+    assert _enrich_browser_trace_row(step) == step
+    for raw in (None, "", "   ", "not json", json.dumps([1, 2])):
+        row = {"kind": "page_snapshot", "snapshot_pretty": raw}
+        assert "form_inventory" not in _enrich_browser_trace_row(row)
+
+
+def test_summary_is_all_zero_for_a_bot_that_never_browsed():
+    bs = _dto([])["browser_summary"]
+    assert bs == {"actions": 0, "misses": 0, "ambiguous": 0, "value_mismatches": 0,
+                  "click_no_ops": 0, "failed": 0, "pages_captured": 0,
+                  "controls_captured": 0}
