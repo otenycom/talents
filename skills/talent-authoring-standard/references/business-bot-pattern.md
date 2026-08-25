@@ -1903,6 +1903,49 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   box access, and submit-deny out of that table. Put author/dev loop docs in a
   different file from the operator manual.
 
+## 7b. A Talent coupled to a client ERP rides that ERP's branch
+
+Your Talent and the client's ERP module are **one deployable thing**, not two. A step that
+advances a named transition, or reads a named key off the DTO, only works against a database
+that has them. Ship them on two clocks and you get the two failure shapes that clock skew
+always gives you: the Talent behind the schema (a step that no longer matches the form), or
+the Talent ahead of it (a step naming a field the database has never heard of).
+
+**So pin each bot to the branch its own ERP deployment is built from.** If the client
+promotes through branches — dev, staging, production — the bot follows the same branch, and
+the two move together by construction.
+
+What that buys, beyond the obvious:
+
+- **No release tag.** The tag-and-remember-to-cut-it ritual disappears, and with it the
+  question "which bundle is this bot actually running?" — the tier answers it.
+- **The acceptance freeze becomes free.** A staging bot changes only when somebody promotes
+  to staging, so **the pipeline is the freeze.** No frozen branch to cut, and no un-freeze
+  to forget — and that un-freeze was a genuine silent-staleness trap, because a bot on a
+  stopped branch keeps serving the old bundle and looks perfectly healthy.
+- **The pin is derivable, not stored.** A reviewer answers "what is this bot running?" from
+  the tier, instead of from a state file that can drift.
+
+**Read the ref from the deployment map, never from the operator's checkout.** This is the
+trap, and it is easy to write by accident. A provisioning script that takes the ref from
+`git rev-parse --abbrev-ref HEAD` pins whatever branch the operator happens to be sitting
+on — so provisioning **production** from a laptop on the dev branch quietly commissions the
+production bot to follow **dev**, and every dev push then reaches the live bot. The map
+almost always already exists somewhere in the repo (a `servers.json`, a deploy config); read
+it, and fail loudly when a tier has no branch rather than falling back to the checkout.
+
+**Two residuals to name in your own docs, because neither has a gate:**
+
+1. **The bot clones the remote.** An unpushed commit cannot reach it, however green the
+   local tests are.
+2. **Delivery is usually a poll, and it does not know when the ERP finished deploying.**
+   Between a merge and a green build the Talent can be ahead of the schema. You can engineer
+   this away — have the bundle declare the module versions it needs and defer delivery until
+   the tier reports them — but weigh it: a delivery that defers and *stays* deferred is a
+   new silent-staleness failure of its own. If the client's releases land out of hours and
+   the build is quick, accepting the window and writing "promote before the session, not
+   during it" into the runbook is the honest trade.
+
 ## 8. A client's correction lands in four places at once
 
 When the customer corrects a business rule, the correction is **never** one edit. It lands in
@@ -1974,6 +2017,9 @@ latch onto whichever half suits the turn.
   with a reason, its suppressed-record count is measured on the customer's real data before
   it ships, and a negative domain leaf is tested against a record with a **missing** value.
   (PASS/FAIL)
+- **Deploy coupling** — a Talent that names a field, state or transition of a client
+  backend is pinned to the **branch that backend is built from**, and the ref is read from
+  the deployment map rather than the operator's checkout. (PASS/FAIL / N/A)
 - **Branching forms** — every branch the data plane can produce is rendered in the double,
   selected by its own fixture, and listed in the selector manifest. A branch nobody has walked
   is marked **UNMAPPED** in both twins, never left silently absent. (PASS/FAIL / N/A)

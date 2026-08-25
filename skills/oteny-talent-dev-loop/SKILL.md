@@ -127,20 +127,27 @@ Two consequences worth internalising:
   bot pinned to a tag changes only when someone cuts the tag — so "it worked on staging" is only
   meaningful if you tag the commit staging was actually running. Rollback is re-tagging the
   previous good version.
-- **Freeze a bot for a client demo — then UN-FREEZE it.** Follow mode re-delivers **under**
-  whoever is testing, so a bot on a followed branch can change mid-session. Before an
-  acceptance window, cut and push a `<talent>-uat-<date>` branch and provision the bot from
-  there. It then stops moving.
+- **When your Talent is coupled to a backend, pin it to that backend's branch.** A Talent
+  that names a field, a state or a transition only works against a deployment that has them.
+  If your backend is promoted through branches — a dev branch, a staging branch, a
+  production branch — then give each bot the branch **its own backend is built from**, and
+  let both move together. One clock instead of two, and no release tag to cut or forget.
 
-  The half everyone forgets is the second one. A frozen bot follows a branch that has stopped
-  moving, so **every later edit you make lands nowhere and nothing reports it** — the bot
-  keeps serving the frozen bundle and looks perfectly healthy. This is the same
-  silent-staleness class as an oversized `SKILL.md` body silently failing delivery, and it
-  has no gate either.
+  This also makes an acceptance freeze free. A staging bot on the staging branch changes
+  only when somebody promotes to it, so **the pipeline is the freeze** — there is no
+  `<talent>-uat-<date>` branch to cut, and no un-freeze to forget. That un-freeze was a
+  silent-staleness trap: a bot on a stopped branch keeps serving the frozen bundle, looks
+  perfectly healthy, and every later edit lands nowhere with nothing reporting it.
 
-  So when the window closes, re-provision the bot back onto your branch, or cut a fresh
-  release tag. And before you ever conclude that an edit "did not work", **read the bot's
-  `pin_mode` and `source_ref`** — a frozen bot is the first thing to rule out.
+  Two things still bite, whichever scheme you use:
+
+  - **The bot clones the remote.** An unpushed commit can never reach it, however green your
+    local tests are. Push before you test, and confirm what the box is actually running
+    (`oteny inspect --ref <ref>`) before you conclude an edit "did not work".
+  - **Delivery is a poll, and it does not know when your backend finished deploying.**
+    Between a merge and a green build the Talent can be ahead of the schema. Promote before
+    an acceptance session rather than during it, and when a bot misbehaves right after a
+    release, check the deploy finished before reading anything into its behaviour.
 
 **Dev clones are deliberately temporary.** A clone left idle is reaped, and an account has a cap
 on live dev bots — at the cap the platform recycles your own least-recently-used clone to admit
