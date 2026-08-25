@@ -606,6 +606,29 @@ the belt. Mid-turn (`linger_until == 0`) is not adoptable.
 Live cookie-carry on the real portal is a go-live eval. It is not
 a pre-go-live SMS walk.
 
+**A form that changes its questions by country needs a per-country branch — in the double
+AND in the selector manifest.** One happy path plus a hard halt for everything else is not a
+design; it is the narrowing of §5b wearing a different hat. When the operator says *"if you
+fill in not Netherlands but Luxembourg, then it changed down under the questions"*, that is a
+page graph with a branch in it, and an unwalked branch is an unknown, not an impossibility.
+
+Two honest ways to close it, and you must pick one out loud:
+
+- **Walk it.** An attended capture session with the operator, then encode the branch in the
+  double, the selector manifest and the doc twin.
+- **Let the bot walk it, in draft mode, and harvest the trace.** Give it the branch's data in
+  the DTO plus an explicit instruction to read the page and escalate on its own judgement,
+  and keep the run non-committing (save a draft, never submit). Its trace is then the capture
+  session, and it is a better one — you can diff it against the manifest.
+
+The second is cheaper and usually right. It only works if three things hold, and you should
+state them in the same breath: **non-committing** for the first runs, **every value still
+comes from the DTO** (no invented identifiers), and **the scope verdict stays out of the
+bot's hands**. If any of those slips, walk it instead.
+
+Either way, **mark the branch UNMAPPED rather than leaving it silently absent** in the
+manifest and the doc twin. An absent branch reads as "there is no branch".
+
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
 **Two layers — keep them apart.** A browser Talent is authored in **two** layers, and conflating
@@ -1041,6 +1064,43 @@ author, and never the bot.** The Talent author ships the *capability*; turning o
 deliberate operator act on one specific bot, logged, and reversible. A bot can no more graduate itself
 than it can rewrite its own Talent.
 
+## 4i. An identifier that exists in only one country is a country-scoped PAIR
+
+A national register number is not a field. It is a **(register, country, number)** triple, and
+a DTO that carries only the number has silently hard-coded one jurisdiction.
+
+The failure is quiet, because the identifier looks universal in the country you built for. A
+Dutch client is identified by a KvK number plus a vestigingsnummer, and both were flat
+required keys on the DTO — `severity: error` when empty. That was fine while every client was
+Dutch. The moment the scope widened it blocked **every** foreign filing on its own, because no
+foreign company has a Dutch KvK number: measured over the client's whole active fleet, 0 of 16
+non-Dutch operators carried one, while 10 of 16 carried their own country's register number in
+a field nothing read.
+
+So carry the register **kind** and its **country** beside the number:
+
+- A boolean-ish key that answers the form's own branching question (here: *"registered with
+  the Dutch chamber of commerce?"*), driven by the **data**, never by the country — a foreign
+  company **can** hold a domestic register number, and in this case the bot's own employer
+  does.
+- The domestic pair, required only on the domestic branch.
+- The foreign register number **plus its country**, required only on the other branch.
+- The identifier that crosses borders — here a VAT number — required on **both**.
+
+**The guard must not turn into a hole.** Exactly one branch always demands a number. And a
+domestic company with a *missing* domestic number is a **data gap, not a foreign company**:
+answering the form's branching question with "not registered" would be a false statement on a
+government record. Keep it blocked, and say so in the message.
+
+Two traps worth stating in the code:
+
+- **Never write a foreign number into the domestic field.** Register fields are often wired
+  into something else — this one feeds Peppol e-invoicing under a country-scoped scheme, so a
+  German number in the Dutch KvK field mints a wrong participant address.
+- **Emit free-text register fields verbatim, never parsed.** Odoo's stock `company_registry`
+  is free text and real databases hold values like `"KvK.nl 78219574 - Vestigings
+  000045864136"`. The bot types what the DTO says.
+
 ## 5. Testing — the live Discuss driver (check 14)
 
 A business bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C bot, but
@@ -1146,6 +1206,67 @@ real meldloket. Then the Oteny author CLI
 `test --ref <bot> --bundle <bundle> [--scenario <glob>]…` (see [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md))
 runs the graded scenarios against the live, side-effect-safe bot — account key only, not a
 private platform checkout.
+
+## 5b. Do not encode a jurisdiction assumption in the triage rule
+
+**The rule that raises the bot's work is a customer fact, not a design choice.** It decides
+which records ever reach a human queue at all. Get it wrong in the narrowing direction and
+the work does not appear late — it does not appear, and nothing reports the absence.
+
+The worked example cost a real client seven legally-owed government filings. A Dutch
+posted-worker notification is owed for a third-country worker who starts work on a ship that
+**sails** in the Netherlands. The author reasoned that a Dutch portal must be for Dutch
+companies, narrowed the triage rule to `operator_country = NL`, and shipped it. The client's
+own production system had been running the un-narrowed rule for over a year, and the
+narrowing would have suppressed seven cards worth about €8,000 of fine risk each.
+
+**Prefer fail-open triage plus an explicit opt-out transition.** Raise the card, and let a
+named human close it with a reason. An extra card in a queue costs a click. A missing
+regulatory filing costs a fine and a compliance finding, and no one finds out until the
+regulator does.
+
+Three rules follow:
+
+1. **Never answer the customer's domain question internally.** If a question was on a list
+   for the customer, ask the customer. The whole defect above traces to one line in a build
+   log: *"They answered the Ask-Kirsten list themselves."* Nine questions went on that list;
+   eight were closed without asking, and the ninth became a shipped belt.
+2. **Measure the narrowing before you ship it.** Count the records the rule would suppress,
+   on the customer's real data, and put the number in the commit message. "It would suppress
+   7 filings" is a decision. "It only applies to Dutch operators" is a belief.
+3. **Read the customer's live configuration before you change it.** In this case production
+   already held the answer: the live triage rule had three leaves and no country filter, and
+   non-Dutch records had always been raised. The repo disagreed with the customer's running
+   system, and the repo was wrong.
+
+### A negative domain leaf is a fail-open/fail-closed decision, not a spelling choice
+
+When a triage rule must exclude a class ("not an EEA national"), the exact leaf decides what
+happens to a record with a **missing** value — and that is almost always the case you care
+about, because missing data is common and silent.
+
+Five natural spellings of the same English sentence were measured against 445 records with no
+nationality. They gave **five different answers**, and four of them failed CLOSED:
+
+| Leaf | A record with no value |
+| --- | --- |
+| `("stored_code_on_the_record", "not in", [codes])` | **matches — fail-open** ✅ |
+| `("related_id.code", "not in", [codes])` | no match — fail-closed ⛔ |
+| `("related_id.group_ids", "not in", [group])` | no match — fail-closed ⛔ |
+| `("related_id.group_ids", "not any", …)` | no match — fail-closed ⛔ |
+| `("related_id", "not in", [<ids>])` | partial, and ids are database-specific ⛔ |
+
+Only the **stored scalar on the record itself** fails open, because Odoo emits the `OR IS
+NULL` for it. So: name the exact leaf in the code comment, say which way it fails, and write
+a test that asserts a record with a missing value still matches. Also beware a stock country
+group that looks right and is not — an EU-27 group silently omits Iceland, Liechtenstein,
+Norway and Switzerland, and a "Europe prefix" group silently *adds* the United Kingdom, whose
+nationals are third-country nationals since Brexit.
+
+**A rule that only ever CREATES needs its inputs in `@api.depends`.** Auto-add machinery
+typically creates a work item and never retries. So a field the domain reads must also be a
+dependency of the compute that fires it, or a value corrected the next day raises nothing at
+all. That is a second, quieter way for fail-closed triage to lose work.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 
@@ -1782,6 +1903,41 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   box access, and submit-deny out of that table. Put author/dev loop docs in a
   different file from the operator manual.
 
+## 8. A client's correction lands in four places at once
+
+When the customer corrects a business rule, the correction is **never** one edit. It lands in
+four places, and they are owned by different people on different clocks:
+
+| Place | What it holds | Clock |
+| --- | --- | --- |
+| **The rule** | the triage domain / auto-add that raises the work | module version |
+| **The DTO guard** | the `severity: error` set that gates the hand-off | module version |
+| **The Talent instructions** | what the bot is told to do on the page | Talent delivery |
+| **The human manual** | what the operator reads before clicking | doc repo, or the customer's own wiki |
+
+**Miss one and the bot and the humans disagree** about the same record — which is worse than
+either being wrong alone, because each side trusts the other.
+
+Two failure shapes to watch for:
+
+- **The rule changes and the manual does not.** The operator reads that a card only appears
+  for case A, sees one for case B, and closes it as a mistake. You have automated a wrong
+  answer into a human's habit.
+- **The manual changes and the Talent does not.** The bot keeps refusing work the operator has
+  been told to hand it, and the refusal message cites a reason that is no longer true.
+
+There is usually a **fifth** place, and it is the easiest to forget: a page in the customer's
+own knowledge base, which no lint of yours can reach. Name it explicitly in the change list
+and get the customer to apply the same edit there, or the two will drift on the next
+correction.
+
+**Sentences that do two jobs are where this breaks.** One instruction in the Talent read
+*"You never reason about countries."* It was doing two jobs: *never decide whether the filing
+is in scope* (still true, and load-bearing) and *never choose which dropdown option means this
+country* (now exactly the bot's job). Deleting it would license scope-guessing; keeping it
+would block the new behaviour. **Split the sentence and write both halves**, or a model will
+latch onto whichever half suits the turn.
+
 ## Grading deltas (run alongside the 14 checks)
 
 - **Routing** — `routing.channel: discuss`, a team-channel `channel_prompt`, no Telegram
@@ -1813,6 +1969,14 @@ external-bot analog of a native in-Odoo agent's logs. The bot writes each exchan
   into the bot's own channel, which the bot's existing poll runs as a fresh isolated turn (no
   external poller, no inbound webhook); the claim is idempotent, and a timeout reaper on the
   owner's Odoo backstops a dead run. (PASS/FAIL / N/A)
+- **Triage fail-open** — the rule that raises the bot's work carries **no unmeasured
+  jurisdiction or eligibility narrowing**. Every narrowing is an explicit human transition
+  with a reason, its suppressed-record count is measured on the customer's real data before
+  it ships, and a negative domain leaf is tested against a record with a **missing** value.
+  (PASS/FAIL)
+- **Branching forms** — every branch the data plane can produce is rendered in the double,
+  selected by its own fixture, and listed in the selector manifest. A branch nobody has walked
+  is marked **UNMAPPED** in both twins, never left silently absent. (PASS/FAIL / N/A)
 - **Owner-visibility** — the bot records each exchange as a session in the owner's Odoo over
   `/json/2/` (soft-linked to the record, idempotent bot identity, best-effort so a log
   failure can't fail the work); reviewable from a smart button on the record and from a

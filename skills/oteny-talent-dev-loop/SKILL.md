@@ -127,6 +127,20 @@ Two consequences worth internalising:
   bot pinned to a tag changes only when someone cuts the tag — so "it worked on staging" is only
   meaningful if you tag the commit staging was actually running. Rollback is re-tagging the
   previous good version.
+- **Freeze a bot for a client demo — then UN-FREEZE it.** Follow mode re-delivers **under**
+  whoever is testing, so a bot on a followed branch can change mid-session. Before an
+  acceptance window, cut and push a `<talent>-uat-<date>` branch and provision the bot from
+  there. It then stops moving.
+
+  The half everyone forgets is the second one. A frozen bot follows a branch that has stopped
+  moving, so **every later edit you make lands nowhere and nothing reports it** — the bot
+  keeps serving the frozen bundle and looks perfectly healthy. This is the same
+  silent-staleness class as an oversized `SKILL.md` body silently failing delivery, and it
+  has no gate either.
+
+  So when the window closes, re-provision the bot back onto your branch, or cut a fresh
+  release tag. And before you ever conclude that an edit "did not work", **read the bot's
+  `pin_mode` and `source_ref`** — a frozen bot is the first thing to rule out.
 
 **Dev clones are deliberately temporary.** A clone left idle is reaped, and an account has a cap
 on live dev bots — at the cap the platform recycles your own least-recently-used clone to admit
