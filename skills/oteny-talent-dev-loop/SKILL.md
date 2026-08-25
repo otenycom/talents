@@ -277,7 +277,7 @@ one you called — so you map a `403` straight to the missing grant (see the sil
 below).
 
 **Browser-driven bot?** `traces --ref <clone>` also returns a PII-free `browser_traces` list +
-`browser_summary` — per-step rows from native `browser_click` / `browser_type`
+`browser_summary` — one action row per native `browser_click` / `browser_type`,
 **and** `page_snapshot` form-control inventories from observe walks
 (`browser_snapshot` / `browser_navigate`).
 `browser_summary.pages_captured` / `controls_captured` tell you whether the walk left usable
@@ -286,6 +286,24 @@ An outside author cannot run them on Path B today. Until they land on
 `oteny`, harvest the accessible name from `traces` and put that name first.
 Pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
+
+**Grading a click: did it stick?** Since 2026-08-25 an action row carries more than
+"the tool returned success". It names the snapshot ref your bot acted on, what that ref
+resolved to on the page (`el_id` / `el_name` / `el_type`), and — for a radio or a
+checkbox — the **`checked_state` read back after the click**. Read that field before you
+believe a green step.
+
+The reason it exists is a whole class of silent failure. A click can report success and
+change nothing: the control was outside the viewport, or covered, or the handle was
+stale. The accessibility snapshot cannot show you that, and neither can the tool result,
+so a run walks on past a field it never set. `browser_summary.click_no_ops` counts
+exactly that case — **a click that reported success on a control that is still
+unchecked**. Treat any non-zero value as a failed step, whatever the transcript says.
+
+A typed value never appears in a trace. It rides as `value_len` plus a `value_sha`
+digest, and `value_matched` tells you whether the field ended up holding what your bot
+typed. The same fingerprint appears on each control in a `page_snapshot` inventory, so
+you can compare a page before and after without ever seeing a customer's data.
 The intended loop is **`traces` → `browser-diff`**, not shell → `state.db`: conversation/tool blobs are the
 wrong store for selector inventories. You already have box `shell` / `inspect` for Talent DBs,
 logs, and forensics (below) — a different job.

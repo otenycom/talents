@@ -885,9 +885,23 @@ These are your own bot's real browser interactions on your **account-key dog-foo
      text.
    - **NOT_EXERCISED** — the run never reached this field/page → your scenario didn't cover it.
 
+   A run driven by native `browser_click` / `browser_type` is graded differently, because its
+   rows target a snapshot ref (`@e50`) and a ref matches no selector. Such a row is matched to a
+   manifest field by the **identity** it resolved to (`el_id` / `el_name`), and it earns one of
+   three further verdicts:
+   - **CLICK_NO_OP** — the click reported success and the control is **still unchecked**. This is
+     the silent class: the target was outside the viewport, or covered, or the handle was stale.
+     Neither the tool result nor the accessibility snapshot can show it, so the run walks on past
+     a field it never set. Treat it as a failed step.
+   - **ACTION_FAILED** — the browser tool itself errored on that ref.
+   - **VALUE_MISMATCH** — the field does not hold the text that was typed (compared by digest, so
+     no value is ever read).
+
    Fixes are **proposed, never auto-applied** — you read them, decide, and edit **your own** skill's
    selector map + manifest. Read the raw rows yourself with `traces --ref <ref>` (author CLI — it
    returns a `browser_traces` list + a `browser_summary`) to tune the runbook by hand.
+   `browser_summary.click_no_ops` is the one number that surfaces the silent class across a whole
+   run, so check it before you call a green transcript green.
 
 **`manifest-check --manifest <file> --stub-url <base>` (Oteny author CLI) — the third verb: is my double
 faithful to my manifest?** `selector-audit` proves the ladders are *flexible* and `browser-diff`
