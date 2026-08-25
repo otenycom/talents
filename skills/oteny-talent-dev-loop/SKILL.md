@@ -90,7 +90,8 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Still staff-gated / partner-only today | Author substitute |
 | --- | --- |
 | Fleet admission / account mint for **arbitrary** outside authors (trusted partners already hold keys) | Offline lint + mock scenarios; Hand to Barney + Bot Activity when you have a bot but not the CLI key |
-| Telegram DM transport on `oteny test` | Discuss (business bots) or CLI/hermes oneshot transport; Telegram is Phase 2 |
+| Telegram DM transport on `oteny test` | Discuss (business bots); Telegram is Phase 2 |
+| **`oteny test --transport cli`** — the channel-free hermes oneshot. It exits **rc=127** with empty stderr: the command runs a bare `hermes`, and on the box that binary sits at `~/.local/bin/hermes` under uid **1001**, which the account-scoped shell does not resolve (verified 2026-08-25) | Use `--transport discuss` on a business bot. That needs the target Odoo's uplink key **as well as** your account key, and its failure is a bare `HTTP 401 from res.users/search_read` that names neither. Otherwise drive the bot by hand and read `oteny traces`. |
 | One-push CI drain (`request-staging-run` worker always-on) | Poll helpers exist on `oteny`; platform still drains the queue |
 | Prod-tier real external portals, submit-deny, SMS 2FA | Stub / neutralized doubles |
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
