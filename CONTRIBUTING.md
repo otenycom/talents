@@ -22,6 +22,12 @@ After that every `git commit` runs the gate and blocks on a failure. To run it o
 `pre-commit run --all-files`. In a genuine emergency `git commit --no-verify` bypasses it —
 CI still gates the push.
 
+**Stage your files, then commit — do not use `git commit -a`.** With `-a` the gate fails
+as `bundle-checks … Failed — files were modified by this hook`, repeatably, while every
+one of its four checks passes. The same change commits cleanly after `git add <paths>`
+followed by a bare `git commit`. Do not reach for `--no-verify` here: nothing is wrong
+with your change, and a bypass would hide the next real failure.
+
 ## Before you open a PR
 
 1. **Lint** — run the same gate Oteny runs at delivery, so there are no surprise rejections:
