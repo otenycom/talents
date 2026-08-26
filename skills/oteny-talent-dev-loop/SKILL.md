@@ -294,6 +294,11 @@ resolved to on the page (`el_id` / `el_name` / `el_type`), and — for a radio o
 checkbox — the **`checked_state` read back after the click**. Read that field before you
 believe a green step.
 
+One honest gap: the readback probes the element that holds focus right after the
+action. A click that navigated to a new page (or hit a non-focusable node) leaves
+nothing focused, so that row carries empty `el_*` fields and `checked_state: -1`. That
+means "unknown", never "failed" — judge such a step by the next page snapshot instead.
+
 The reason it exists is a whole class of silent failure. A click can report success and
 change nothing: the control was outside the viewport, or covered, or the handle was
 stale. The accessibility snapshot cannot show you that, and neither can the tool result,
