@@ -443,14 +443,13 @@ selectors after an observe walk — that is conversation/tool history, not struc
 
 **The contract you must honor:**
 - The window is **TTL-bounded and auto-reaped**. On expiry or when you `close_box_access(request_id=<id>)`,
-  the platform kills the tunnel, removes your key, and **rotates the box's model key** (you saw the
-  `.env` — it's treated disclosed). Don't leave a window open; close it when you're done.
-- **The reap restarts your bot's gateway** (the rotated key only loads on restart). The restart is
-  polite — a bot that is mid-turn defers the bounce, re-checked each reaper tick, for at most
-  **30 minutes past the TTL**; past that bound the platform restarts anyway (the disclosed key must
-  not outlive its window). So: **don't start a long live run with a shell window still open** — a
-  2-hour default TTL expiring mid-run means a forced restart no later than TTL + 30 min. Close the
-  window first (`close_box_access` / the CLI teardown), or size `ttl_minutes` past the run.
+  the platform kills the tunnel, removes your injected key, and destroys the pre-open snapshot.
+  Don't leave a window open; close it when you're done.
+- **The reap never touches your bot's gateway.** It restarts nothing and rotates nothing, so a
+  window that expires mid-run cannot cut a live turn. Closing it is hygiene, not a hazard: it
+  frees the account's inflight slot and ends the audit window. The box's model key is a
+  tenant-scoped, budget-capped virtual key on a non-public endpoint, and only your own account
+  can open a window on your own box — so the platform stopped rotating it on close.
 - Every open is an **append-only audit row** on your account.
 - **Prod etiquette:** a shell on a real customer's prod bot is snapshot-first (reversible) but it's
   their live bot — check no dispatch is mid-run before you mutate state, and prefer `inspect` unless
@@ -458,24 +457,21 @@ selectors after an observe walk — that is conversation/tool history, not struc
 
 `close_box_access(request_id=<id>)` tears a shell down early (don't wait for the TTL).
 The CLI verb does that for you, then polls until the request is **terminal**. Close only
-flags expiry — the row stays `active` until the drain reaps it, and that reap **restarts
-the gateway** (the disclosed model key is rotated). A second `oteny shell --cmd` that
-starts before that reap finishes races `runsc exec` on the bouncing box and used to
-raise `ended before active: ProcessError … exit status 128`.
+flags expiry — the row stays `active` until the drain reaps it. The reap tears the lane
+down and stamps the row closed; it leaves the gateway alone. A second `oteny shell --cmd`
+that starts before that reap finishes can still race `runsc exec` on the box and raise
+`ended before active: ProcessError … exit status 128`.
 
 The verb retries a *terminal* 128 inside `packages/oteny` (`AuthorBoxAccess.shell`).
 It does **not** open a second window while the first is still queued — that fills the
 account inflight cap and every later open 429s. A 429 waits one drain tick (~60 s)
 and retries `_open` only. Do not add a retry loop in a caller script.
 
-**Two costs to plan around, because the retry hides neither.** First, **every close restarts
-the gateway**, since the model key you saw is treated as disclosed and gets rotated. So a
-string of one-off `oteny shell --cmd` calls pays that restart each time — budget roughly three
-minutes per call, and prefer one `--cmd` that does the whole job, or one window you keep open
-and run several commands in. Second, **an abandoned window still counts against you.** If you
-Ctrl-C out without closing, the row stays inflight against the account cap (three by default)
-until its TTL expires or the drain reaps it, and every later open 429s in the meantime. If the
-CLI retries and still never gets a window, the failure is usually a node-hop `TimeoutError`.
+**One cost to plan around, because the retry hides it: an abandoned window still counts
+against you.** If you Ctrl-C out without closing, the row stays inflight against the account
+cap (three by default) until its TTL expires or the drain reaps it, and every later open 429s
+in the meantime. If the CLI retries and still never gets a window, the failure is usually a
+node-hop `TimeoutError`.
 That is a platform-side outage: the retry is correct but cannot fix it, so stop and report it
 rather than looping.
 
