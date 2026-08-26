@@ -34,9 +34,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import auth_dir, cli_path  # noqa: E402
 
-# The authorize link the tool prints. Kept broad on purpose (the sign-in host has moved
-# before); it is only ever matched against the tool's own output.
-_URL_RE = re.compile(r"https://\S*/authorization/new\S*")
+# The authorize link the tool prints. The host is left loose on purpose (the sign-in host
+# has moved before); it is only ever matched against the tool's own output. But the shape
+# is now pinned at both ends, because a loose pattern produced an unusable link on every
+# box, in two different ways (hh00452, 2026-08-25):
+#
+#   * The banner NAMES the endpoint before the real link streams, in a form with no query
+#     string — `Remote authentication (https://launchpad.37signals.com/authorization/new)`.
+#     `\S*` matched that, closing bracket and all, and latched it as the answer. Requiring
+#     `?` after the path is what skips it.
+#
+#   * A 4096-byte read has no idea where a URL ends, so a link split across two reads left
+#     its first half at the end of the buffer — and a greedy `\S*` matched that half quite
+#     happily. Requiring a TERMINATOR after the query string is what waits for the rest.
+#     There is deliberately no `|$` alternative in that lookahead: end-of-buffer is exactly
+#     the case being excluded.
+_URL_RE = re.compile(r"(https://[^\s)\"']+/authorization/new\?[^\s)\"']+)[\s)\"']")
 _URL_WAIT = 45          # seconds to wait for the link to appear after starting
 _FINISH_WAIT = 90       # seconds to wait for the sign-in to complete after the paste
 _FLOW_TTL = 900         # a sign-in nobody finishes is abandoned after 15 minutes
@@ -119,7 +132,7 @@ def _supervise() -> int:
                     match = _URL_RE.search(text)
                     if match:
                         url_seen = True
-                        _write_private(p["url"], match.group(0))
+                        _write_private(p["url"], match.group(1))
                 continue
             if proc.poll() is not None:
                 break
@@ -236,11 +249,29 @@ def cmd_finish(callback: str) -> int:
 
 
 def cmd_status() -> int:
-    p = _paths()
-    from _common import authenticated
+    """The single truth verb: what this box holds, and whether it actually works.
 
-    state = authenticated()
+    Three lines, and the third is the one that cannot be faked. ``auth status``
+    reports ``authenticated: yes`` for ANY value of ``BASECAMP_TOKEN``, so a
+    readiness answer built on it alone would call a revoked token a connected
+    board. ``WORKS`` pays for one real API call and says what the provider thinks.
+
+    That gap is the whole reason this verb exists. On hh00452 (2026-08-25) every
+    surface reported success while nothing was connected, and the only honest
+    signal anywhere was a call that actually reached the provider.
+    """
+    p = _paths()
+    from _common import TOKEN_ENV, auth_status, probe_account
+
+    state, source = auth_status()
     print("SIGNED_IN: " + {True: "yes", False: "no", None: "unknown"}[state])
+    print("SOURCE: " + ("oteny" if source == TOKEN_ENV else (source or "unknown")))
+    if state is True:
+        works = probe_account()
+        print("WORKS: " + {True: "yes", False: "no", None: "unknown"}[works])
+        if works is False:
+            print("NOTE the token this box holds is refused by Basecamp — it was "
+                  "revoked, or it expired. Reconnect the account.")
     if p["result"].is_file():
         print("FLOW: finished")
     elif p["url"].is_file():

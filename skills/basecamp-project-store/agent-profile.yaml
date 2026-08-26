@@ -15,7 +15,20 @@ bot: basecamp-project-store
 display_name: Project store
 tagline: "Run a project from its Basecamp board — read the brief, work the list, report back."
 
-version: 1.2.0   # bundle semver — a label over the delivered commit; bump on every change.
+version: 1.3.0   # bundle semver — a label over the delivered commit; bump on every change.
+                 # 1.3.0: connect through the platform's OAuth link (`oauth_connect`) rather
+                 # than the tool's own paste-the-address flow. That flow could not work here:
+                 # the tool holds the sign-in open in a process on THIS box for about five
+                 # minutes, and a secure paste costs the owner longer than that — so the
+                 # waiter was always dead before the address arrived (hh00452, 2026-08-25).
+                 # With an Oteny link the control plane takes the redirect, and the access
+                 # token is leased into BASECAMP_TOKEN, which the tool reads natively. The
+                 # old flow stays documented as a fallback for a deployment with no Basecamp
+                 # app registered. Two link-extraction bugs are fixed with it: the banner
+                 # names the endpoint before the real link streams, and a link split across
+                 # two reads was handed over half-written. `status` is now the single truth
+                 # verb — `auth status` reports success for ANY token value, so it also
+                 # probes the API.
                  # 1.2.0: stop carrying a command-line manual the tool ships itself. The
                  # install now PINS the CLI version (it was tracking `latest`, which silently
                  # moved behaviour under fixed prose) and has the tool write its own

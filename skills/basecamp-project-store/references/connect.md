@@ -17,7 +17,7 @@ Ask short, one or two messages, until you have:
 3. **Which lists you must read before finishing** — the open-questions list, if there is one.
 4. **Which messages are the brief** — the post(s) that hold the rules and the literal copy.
 
-You can offer to find 2–4 yourself once you are signed in (step 4 below) and read the names
+You can offer to find 2–4 yourself once you are connected (step 3 below) and read the names
 back for a yes; that is usually faster than making them look them up.
 
 **Say this before you ask them to sign in, in your own words:**
@@ -47,34 +47,33 @@ in `~/.local/bin`, and has the tool write its own version-matched manual to
 spell out. It is idempotent — a re-run on an already-installed box just prints the version. If
 it fails, report the error and stop; do not improvise another install.
 
-### 2. Start the sign-in and relay the link
+### 2. Ask Oteny for a sign-in link — one link, nothing to paste
 
-The sign-in is a browser flow, and the box has no browser — so it runs in two turns.
+Call the tool:
 
 ```
-python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py start
+oauth_connect(provider="basecamp")
 ```
 
-It prints `AUTH_URL <link>`. Send that link to the owner with these three lines:
+Send the owner the `url` it returns, with these two lines:
 
 > 1. Open this link and sign in to Basecamp.
-> 2. Your browser will land on a page that says it cannot connect — that is expected.
-> 3. Copy the whole address from the address bar and paste it back to me.
+> 2. That is all — I will tell you as soon as I am connected.
 
-**Never** post that link, or the address they paste back, anywhere else — not into the board,
-not into a group. Both are one-time.
+Then **end your turn.** The owner signs in, Basecamp redirects to Oteny, and Oteny completes
+the exchange and hands you the access token. You are messaged when it lands. Do not poll, and
+do not ask them for anything from their address bar — with this link there is nothing there
+for you to want.
 
-### 3. Finish the sign-in with what they pasted
+**Never post that link anywhere else** — not into the board, not into a group. It is
+one-time and it is theirs.
 
-```
-python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py finish --callback "<what they pasted>"
-```
+**If `oauth_connect` refuses with an unknown provider**, Oteny has not registered a Basecamp
+app on this deployment yet. Say so plainly — "I can't connect to Basecamp yet on this bot;
+I've flagged it" — and stop. Then read the fallback below, and use it only if the owner asks
+you to try anyway.
 
-Expect `AUTH_OK`. If it prints `AUTH_FAILED`, the link expired or the paste was partial —
-run `connect_auth.py cancel`, then start again from step 2. Do not retry more than twice
-without telling the owner what went wrong.
-
-### 4. Learn the board
+### 3. Learn the board
 
 Reading the board's shape is the command-line tool's own job — ask it directly:
 
@@ -88,7 +87,7 @@ That gives every to-do list and message on the board with its id and name. Read 
 to the owner and let them say which is the work queue, which are read-only, and which messages
 are the brief.
 
-### 5. Save the profile
+### 4. Save the profile
 
 Write `~/.hermes/data/basecamp-project-store/profile.yaml` from
 `profile/profile.yaml.template`, filling:
@@ -105,7 +104,7 @@ Write `~/.hermes/data/basecamp-project-store/profile.yaml` from
 **Do not write anything into `~/.hermes/memories/USER.md`.** That file is the bot's shared
 identity and belongs to whatever else the owner runs on this bot; this skill never touches it.
 
-### 6. Re-check, then start
+### 5. Re-check, then start
 
 ```
 python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/preflight.py
@@ -114,8 +113,45 @@ python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/preflight.py
 When it prints `READY: yes`, tell the owner in one line which board you are on and which list
 is yours, then read the brief (`project_store.py brief`) and begin.
 
-If `READY: no` persists:
+If `READY: no` persists, or a call is refused although you appear signed in:
 
 ```
-python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/selfcheck.py
+python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py status
 ```
+
+That is the only verb that tells you the truth. `SIGNED_IN` says whether a credential is
+configured, `SOURCE` says where it came from (`oteny` = leased by the platform), and `WORKS`
+is a real call to Basecamp. `SIGNED_IN: yes` with `WORKS: no` means the token was revoked or
+expired — go back to step 2 and connect again.
+
+---
+
+## Fallback — the tool's own sign-in, only when Oteny has no Basecamp app
+
+Use this **only** after `oauth_connect` refused with an unknown provider, and only if the
+owner asks you to try anyway. Tell them the cost first, in your own words:
+
+> There's a rougher way in: you'd sign in, land on a page that can't connect, and copy the
+> whole address back to me here in chat. That address is a one-time key, so it would sit in
+> our conversation. I'd rather wait until Oteny finishes the proper connection — your call.
+
+If they say go ahead:
+
+```
+python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py start
+```
+
+It prints `AUTH_URL <link>`. Send the link and tell them to open it, sign in, and copy the
+whole address bar back. Then, **in the same sitting** — the tool holds the sign-in open for
+about five minutes and no longer:
+
+```
+python3 ~/.hermes/skills/talents/basecamp-project-store/scripts/connect_auth.py finish --callback "<what they pasted>"
+```
+
+Expect `AUTH_OK`. On `AUTH_FAILED` the five minutes ran out or the paste was partial: run
+`connect_auth.py cancel`, then start again from the top of this section. Do not retry more
+than twice without telling the owner what went wrong.
+
+Never post the link, or the address they paste back, anywhere else. Both are one-time, and
+both are secrets for as long as they live.

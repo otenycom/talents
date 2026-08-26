@@ -25,7 +25,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _common import authenticated, cli_path, id_list, read_profile, run_cli  # noqa: E402
+from _common import (  # noqa: E402
+    TOKEN_ENV, auth_status, cli_path, id_list, read_profile, run_cli,
+)
 
 _REQUIRED_FIELDS = ("account_id", "project_id", "work_todolist_id")
 
@@ -44,7 +46,7 @@ def _cli_version() -> str | None:
 def main() -> int:
     profile = read_profile()
     version = _cli_version()
-    auth = authenticated() if version else None
+    auth, source = auth_status() if version else (None, "")
 
     missing: list[str] = []
     if not version:
@@ -60,7 +62,14 @@ def main() -> int:
     # a login shell's PATH but not on a plain one — so a bare `basecamp …` fails on exactly the
     # box where it is installed. The skill calls it by this path.
     print("CLI: " + (f"installed {version} at {cli_path()}" if version else "missing"))
-    print("AUTH: " + {True: "yes", False: "no", None: "unknown"}[auth])
+    # The SOURCE matters as much as the answer. `oteny` means Oteny leased the
+    # access token into this box's environment (the lane-1 connect: one sign-in,
+    # nothing pasted). `stored` means the tool holds its own credentials. And the
+    # tool reports `authenticated: yes` for ANY value of the environment variable,
+    # so this line is a claim about configuration, never about a token that works
+    # — `connect_auth.py status` is the verb that pays for the real check.
+    print("AUTH: " + {True: "yes", False: "no", None: "unknown"}[auth]
+          + (f" via={'oteny' if source == TOKEN_ENV else source}" if source else ""))
     print("BOARD: "
           f"account={profile.get('account_id') or '-'} "
           f"project={profile.get('project_id') or '-'} "

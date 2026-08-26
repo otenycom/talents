@@ -91,6 +91,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | Request name | Request via | Skill to compose | Status | Cost | What it does |
 |---|---|---|---|---|---|
 | `connect_account` | `tools.required` | oteny-connect-credential | live | Included | 🔑 A secure one-time link to hand your bot an API key or OAuth account — never in chat. |
+| `oauth_connect` | `tools.required` | oteny-connect-credential | live | Included | 🔗 Sign in at the provider once; your bot gets the access it needs, with nothing to paste. |
 | `credential_status` | `tools.required` | oteny-connect-credential | live | Included | 🔎 Ask your bot whether it already holds a key, before it sends you another link. |
 | `connect_login` | `tools.required` | oteny-remember-login | live | Included | 🔐 Save a website login once; your bot signs in by itself next time (2FA too). |
 | `list_logins` | `tools.required` | oteny-remember-login | live | Included | 🔐 See which site logins you've saved. |

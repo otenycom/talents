@@ -1557,13 +1557,64 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Authoring notes** — NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login. Call credential_status FIRST: one variable gets ONE link, and asking twice returns the same link with reused: true rather than a second one. A variable already delivered refuses with reason: already_delivered — ask the owner, then retry with rotate: true.
+**Authoring notes** — NEVER ask for an API key in chat — mint the link instead. Free. A website LOGIN (username + password) goes through connect_login. Call credential_status FIRST: one variable gets ONE link, and asking twice returns the same link with reused: true rather than a second one. A variable already delivered refuses with reason: already_delivered, and one the owner has already granted refuses with reason: already_connected — ask the owner, then retry with rotate: true.
+
+### `oauth_connect` — Connect an account (sign in)
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Ask the owner to connect a third-party account by SIGNING IN at that provider — one link, one sign-in, nothing to paste back. Use this FIRST for any provider Oteny has registered; `connect_account` is for a raw API key the owner copies from a settings page. Pass the provider `code` (e.g. `basecamp`, `google`). Send the owner the `url` it returns and then END YOUR TURN: they sign in, the platform completes the exchange, and it messages them — and you — when the account is live. Never ask the owner to copy an address bar back into chat. If it refuses with an unknown provider, that provider has no OAuth app registered: fall back to the sign-in the skill documents, and say so.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "description": "Registered provider code, lower-case, e.g. basecamp."
+    }
+  },
+  "required": [
+    "provider"
+  ]
+}
+```
+
+**Result** — {ok: true, url, name, provider, env_var, account_wide_only, expires_minutes} — a start link the owner opens to SIGN IN at the provider. The control plane takes the redirect and exchanges the code, so nothing on the box has to stay alive across the owner's browser trip. The access token is then leased to the box under `env_var`.
+
+**Errors / edges** — {ok: false, reason} for: an unknown provider (nobody has registered an OAuth app for it — fall back to the sign-in the skill documents) · a provider that is not oauth2_code · a missing client_id · a connection name that is revoked or purged (connect under a fresh name). Plus the shared platform set.
+
+**Example**
+
+```json
+{
+  "provider": "basecamp"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "url": "https://oteny.com/oauth/start/eyJ0eXAi",
+  "name": "basecamp",
+  "provider": "basecamp",
+  "env_var": "BASECAMP_ACCESS_TOKEN",
+  "account_wide_only": true,
+  "expires_minutes": 30
+}
+```
+
+**Authoring notes** — Free. This is the FIRST offer for any registered provider — prefer it over connect_account, and never over a paste of the provider's redirect URL. Send the url and END THE TURN: the owner signs in, the platform finishes, and it messages them when the account is live. account_wide_only true means the grant covers the owner's whole account at that provider, not one project — say so before they sign in.
 
 ### `credential_status` — Check a connected account
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` (none/pending/submitted/delivered) is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. If `process_ready` is true, just use the secret — do not mint. If `odoo_state` is pending or submitted, a link is already with the owner: send them that same one and wait. Mint only when `odoo_state` is none, or the owner asked you to replace it.
+> Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. `odoo_state` is one of: `none` (nothing exists — mint a link), `pending` (a link is with the owner, unfilled), `submitted` (they filled it; the platform is delivering), `leased` (THE PLATFORM HOLDS THEIR SECRET AND THIS BOX DOES NOT YET), `delivered` (this box has it). What to do with each: `process_ready` true — just use the secret, do not mint. `pending` or `submitted` — the owner already has a link; send that same one and wait. `leased` with `local_ready` false — say ONE sentence to the owner ('your key is stored; I pick it up within about two minutes and will confirm') and END YOUR TURN. Do not poll, do not mint a second link, and do not tell the owner the link expired. Mint only when `odoo_state` is `none`, or the owner asked you to replace a credential that works.
 
 **Parameters**
 
@@ -1582,7 +1633,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Result** — {ok: true, env_var, odoo_state: none|pending|submitted|delivered, local_ready, process_ready, credential_id} — metadata only, NEVER the value. odoo_state is what the platform records; local_ready is whether this bot was handed the credential; process_ready is whether it is loaded in the running process right now. A revoked grant also reports connection + connection_state.
+**Result** — {ok: true, env_var, odoo_state: none|pending|submitted|leased|delivered, box_resolved, local_ready, process_ready, credential_id} — metadata only, NEVER the value. odoo_state is what the platform records, and delivered means THIS BOX HAS IT; leased means the platform holds the owner's secret and this box has not picked it up yet. local_ready is whether this bot was handed the credential; process_ready is whether it is loaded in the running process right now. A revoked grant also reports connection + connection_state.
 
 **Errors / edges** — {ok: false, reason} for a missing env_var. Plus the shared platform set.
 
@@ -1607,7 +1658,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Authoring notes** — Free, and side-effect-free. Call it BEFORE connect_account. process_ready true means just use the secret. pending or submitted means a link is already with the owner — send that one and wait.
+**Authoring notes** — Free, and side-effect-free. Call it BEFORE connect_account. process_ready true means just use the secret. pending or submitted means a link is already with the owner — send that one and wait. leased with local_ready false means the owner has done their part and the box has not caught up: say one sentence and END THE TURN. Polling it, or minting a second link, is the hh00452 failure.
 
 ### `connect_login` — Remember a website login
 

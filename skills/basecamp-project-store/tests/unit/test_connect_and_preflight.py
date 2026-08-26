@@ -59,6 +59,80 @@ def _fake_cli(tmp_path: Path, *, authed_marker: Path) -> Path:
     return script
 
 
+def _leased_cli(tmp_path: Path, *, authed_marker: Path, monkeypatch, works: bool):
+    """A stand-in for the tool when Oteny has LEASED the access token.
+
+    Modelled on the real binary, including the detail that matters: with
+    ``BASECAMP_TOKEN`` set it answers ``authenticated: true`` whatever the value
+    is, and only a call that reaches the provider can tell a live token from a
+    dead one.
+    """
+    script = tmp_path / "basecamp-leased"
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, sys\n"
+        "argv = sys.argv[1:]\n"
+        "if argv[:1] == ['--version']:\n"
+        "    print('basecamp version 0.7.2'); raise SystemExit(0)\n"
+        "if argv[:2] == ['auth', 'status']:\n"
+        "    print(json.dumps({'ok': True, 'data': {'authenticated': True,\n"
+        "                                           'source': 'BASECAMP_TOKEN'}}))\n"
+        "    raise SystemExit(0)\n"
+        "if argv[:2] == ['accounts', 'list']:\n"
+        f"    ok = {works!r}\n"
+        "    print(json.dumps({'ok': ok} if ok else\n"
+        "                     {'ok': False, 'error': 'Authorization failed: invalid "
+        "or expired token'}))\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit('unexpected: %s' % argv)\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    monkeypatch.setenv("BASECAMP_CLI", str(script))
+    return script
+
+
+def _banner_cli(tmp_path: Path, *, authed_marker: Path, monkeypatch, chunked: bool = False):
+    """A stand-in that prints the REAL tool's banner shape.
+
+    Two details matter and both come from the tool's own output. It names the
+    sign-in endpoint, with no query string, before the usable link. And with
+    ``chunked`` it flushes the link in two pieces, which is what a read boundary
+    looks like from the extractor's side.
+    """
+    script = tmp_path / "basecamp-banner"
+    head, tail = _AUTH_URL[:60], _AUTH_URL[60:]
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, sys, time, pathlib\n"
+        f"MARK = pathlib.Path({str(authed_marker)!r})\n"
+        "argv = sys.argv[1:]\n"
+        "if argv[:2] == ['auth', 'status']:\n"
+        "    print(json.dumps({'ok': True, 'data': {'authenticated': MARK.exists()}}))\n"
+        "    raise SystemExit(0)\n"
+        "if argv[:2] == ['auth', 'login']:\n"
+        "    sys.stdout.write('Remote authentication "
+        "(https://launchpad.37signals.com/authorization/new)\\n')\n"
+        "    sys.stdout.write('  1. Open this URL in a browser on any device:\\n     ')\n"
+        "    sys.stdout.flush()\n"
+        f"    sys.stdout.write({head!r})\n"
+        + ("    sys.stdout.flush()\n    time.sleep(0.4)\n" if chunked else "")
+        + f"    sys.stdout.write({tail!r} + '\\n')\n"
+        "    sys.stdout.write('Paste the callback URL: ')\n"
+        "    sys.stdout.flush()\n"
+        "    pasted = sys.stdin.readline().strip()\n"
+        "    if 'code=' in pasted:\n"
+        "        MARK.write_text('ok')\n"
+        "        print('\\nAuthenticated'); raise SystemExit(0)\n"
+        "    print('\\nno input received'); raise SystemExit(1)\n"
+        "raise SystemExit('unexpected: %s' % argv)\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    monkeypatch.setenv("BASECAMP_CLI", str(script))
+    return script
+
+
 def _sandbox(tmp_path, monkeypatch, *, authed: bool = False):
     marker = tmp_path / "authed"
     if authed:
@@ -158,6 +232,88 @@ def test_sign_in_relays_the_link_then_completes_on_the_pasted_address(tmp_path, 
     # the one-time credentials are gone once the flow ends
     assert not (tmp_path / "store" / "auth" / "url.txt").exists()
     assert not (tmp_path / "store" / "auth" / "callback.txt").exists()
+
+
+def test_status_reports_the_leased_token_and_probes_that_it_works(tmp_path, monkeypatch, capsys):
+    """The lane-1 shape: Oteny leases the access token, no sign-in flow at all.
+
+    ``auth status`` answers ``authenticated: yes`` for ANY value of the variable,
+    so a readiness verdict built on it alone calls a revoked token a live board.
+    ``status`` pays for one real API call and says what the provider thinks.
+    """
+    marker = _sandbox(tmp_path, monkeypatch, authed=True)
+    _leased_cli(tmp_path, authed_marker=marker, monkeypatch=monkeypatch, works=True)
+
+    connect.cmd_status()
+
+    out = capsys.readouterr().out
+    assert "SIGNED_IN: yes" in out
+    assert "SOURCE: oteny" in out
+    assert "WORKS: yes" in out
+    assert "FLOW: none" in out
+
+
+def test_status_calls_a_dead_leased_token_dead(tmp_path, monkeypatch, capsys):
+    marker = _sandbox(tmp_path, monkeypatch, authed=True)
+    _leased_cli(tmp_path, authed_marker=marker, monkeypatch=monkeypatch, works=False)
+
+    connect.cmd_status()
+
+    out = capsys.readouterr().out
+    assert "SIGNED_IN: yes" in out
+    assert "WORKS: no" in out
+    assert "Reconnect" in out
+
+
+def test_preflight_names_where_the_credential_came_from(tmp_path, monkeypatch, capsys):
+    """Support has to be able to tell a leased token from a CLI sign-in."""
+    marker = _sandbox(tmp_path, monkeypatch, authed=True)
+    _leased_cli(tmp_path, authed_marker=marker, monkeypatch=monkeypatch, works=True)
+    _write_profile(tmp_path, account_id=1, project_id=2, work_todolist_id=3)
+
+    preflight.main()
+
+    out = capsys.readouterr().out
+    assert "READY: yes" in out
+    assert "AUTH: yes via=oteny" in out
+
+
+def test_the_link_is_read_past_the_banner_that_names_the_endpoint(tmp_path, monkeypatch, capsys):
+    """The banner names the sign-in endpoint before the real link streams.
+
+    On hh00452 (2026-08-25) the extractor matched that bare mention — closing
+    bracket and all — and handed the owner a link that cannot sign anyone in. It
+    happened on every box, in both of that conversation's sign-in attempts, and
+    the bot worked around it by hand each time.
+    """
+    marker = _sandbox(tmp_path, monkeypatch, authed=False)
+    _banner_cli(tmp_path, authed_marker=marker, monkeypatch=monkeypatch)
+
+    connect.cmd_start()
+
+    out = capsys.readouterr().out
+    assert out.startswith("AUTH_URL ")
+    assert out.split(" ", 1)[1].strip() == _AUTH_URL
+    connect.cmd_cancel()
+
+
+def test_a_link_split_across_two_reads_is_not_handed_over_half_written(
+        tmp_path, monkeypatch, capsys):
+    """A 4096-byte read has no idea where a URL ends.
+
+    The old pattern matched whatever had arrived, so a link cut by a read boundary
+    latched as the answer — the second way one connect produced an unusable link.
+    The extractor now waits for the character that ends the URL.
+    """
+    marker = _sandbox(tmp_path, monkeypatch, authed=False)
+    _banner_cli(tmp_path, authed_marker=marker, monkeypatch=monkeypatch, chunked=True)
+
+    connect.cmd_start()
+
+    out = capsys.readouterr().out
+    assert out.startswith("AUTH_URL ")
+    assert out.split(" ", 1)[1].strip() == _AUTH_URL
+    connect.cmd_cancel()
 
 
 def test_a_paste_without_a_code_is_refused_before_it_reaches_the_tool(tmp_path, monkeypatch, capsys):

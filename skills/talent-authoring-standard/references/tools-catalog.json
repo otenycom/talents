@@ -263,6 +263,15 @@
       "cost": "free"
     },
     {
+      "name": "oauth_connect",
+      "requestable_name": "oauth_connect",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "credential_status",
       "requestable_name": "credential_status",
       "request_via": "tools.required",

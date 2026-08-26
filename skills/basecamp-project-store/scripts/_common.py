@@ -96,18 +96,62 @@ def run_cli(args: list[str], *, timeout: int = 60) -> subprocess.CompletedProces
     )
 
 
-def authenticated() -> bool | None:
-    """True/False when the tool could be asked; None when it is not installed or did not answer."""
+TOKEN_ENV = "BASECAMP_TOKEN"
+
+
+def auth_status() -> tuple[bool | None, str]:
+    """``(signed_in, source)`` from the tool's own cheap check. No network.
+
+    ``source`` is ``BASECAMP_TOKEN`` when the tool is reading the environment
+    variable Oteny leases the access token into, ``stored`` when it is reading its
+    own saved credentials, and ``""`` when it could not be asked.
+
+    Cheap on purpose: this runs on every turn through ``preflight``. Its answer is
+    a claim about CONFIGURATION, not about whether the token still works — see
+    ``probe_account`` for that difference, which is load-bearing.
+    """
     import json
 
     try:
         proc = run_cli(["auth", "status", "--json"], timeout=30)
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return None, ""
+    try:
+        payload = json.loads(proc.stdout or "{}")
+    except ValueError:
+        return None, ""
+    if not payload.get("ok"):
+        return False, ""
+    data = payload.get("data") or {}
+    return bool(data.get("authenticated")), str(data.get("source") or "stored")
+
+
+def authenticated() -> bool | None:
+    """True/False when the tool could be asked; None when it is not installed or did not answer."""
+    return auth_status()[0]
+
+
+def probe_account() -> bool | None:
+    """Does the token this box holds actually work? One real API call.
+
+    ``auth status`` cannot answer this, and it does not pretend to — with
+    ``BASECAMP_TOKEN`` set it reports ``authenticated: true`` for ANY value,
+    including a revoked or misspelt one. So a readiness check built on it alone
+    would report a connected board over a dead credential, which is the exact
+    class of lie that cost hh00452 its connect.
+
+    Kept OFF the per-turn path for that one API call's sake: ``preflight`` stays
+    cheap, and the truth verb (``connect_auth.py status``) pays for the probe.
+    Returns None when the tool is absent or did not answer.
+    """
+    import json
+
+    try:
+        proc = run_cli(["accounts", "list", "--json"], timeout=30)
     except (FileNotFoundError, subprocess.SubprocessError, OSError):
         return None
     try:
         payload = json.loads(proc.stdout or "{}")
     except ValueError:
         return None
-    if not payload.get("ok"):
-        return False
-    return bool((payload.get("data") or {}).get("authenticated"))
+    return bool(payload.get("ok"))
