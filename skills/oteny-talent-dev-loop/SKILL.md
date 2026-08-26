@@ -445,6 +445,12 @@ selectors after an observe walk — that is conversation/tool history, not struc
 - The window is **TTL-bounded and auto-reaped**. On expiry or when you `close_box_access(request_id=<id>)`,
   the platform kills the tunnel, removes your key, and **rotates the box's model key** (you saw the
   `.env` — it's treated disclosed). Don't leave a window open; close it when you're done.
+- **The reap restarts your bot's gateway** (the rotated key only loads on restart). The restart is
+  polite — a bot that is mid-turn defers the bounce, re-checked each reaper tick, for at most
+  **30 minutes past the TTL**; past that bound the platform restarts anyway (the disclosed key must
+  not outlive its window). So: **don't start a long live run with a shell window still open** — a
+  2-hour default TTL expiring mid-run means a forced restart no later than TTL + 30 min. Close the
+  window first (`close_box_access` / the CLI teardown), or size `ttl_minutes` past the run.
 - Every open is an **append-only audit row** on your account.
 - **Prod etiquette:** a shell on a real customer's prod bot is snapshot-first (reversible) but it's
   their live bot — check no dispatch is mid-run before you mutate state, and prefer `inspect` unless
