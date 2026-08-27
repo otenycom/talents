@@ -561,7 +561,29 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
 
    **The product path is the live accessible name, never a stub shortcut.** The Talent must
    be fastest on the live site. The double exists so the same `role+name` click works on
-   both. Hidden inputs, stub `#id`s, and CDP `element.value` writes are POST / debug
+   both. Pass that selector **without an `@` prefix**. `@e5` is a snapshot ref. A named
+   selector that carries `@` matches nothing.
+
+   The host strips a stray `@` before the browser daemon sees the click, so a clean
+   `role=…[name="…"]` now reaches the page.
+
+   A `browser_type` that cannot prove the text stuck reports **failure**, not
+   success. Believe that error. Do not walk on. The host reads the field the
+   selector names. An empty field after type is a failed write.
+
+   **State one legal click method. Do not ban both.** The legal method is
+   `browser_click` / `browser_type` with a named selector
+   (`role=…[name="…"]`), with no `@` prefix. Do not hand-drive the raw
+   browser protocol for an ordinary click. A snapshot ref goes stale after
+   a mutation, so do not prefer it. A runbook that forbids refs *and*
+   forbids the raw protocol, while the click tool only accepted a ref,
+   left no legal path. The host now delivers a named selector. Keep that
+   one method in the skill. Ship the skill edit in the **same release** as
+   the host wrap. An isolated transition turn does not keep a lesson.
+   Keep trail output in a gitignored pack. Do not paste page quotes into
+   the repo.
+
+   Hidden inputs, stub `#id`s, and CDP `element.value` writes are POST / debug
    affordances — they are **not** the fill recipe. A wrapper the HTML parser closes before
    the listbox (`<p>` around a `<ul>`), or a radio group wrapped so a centre-click hits the
    question text, trains the bot to cheat on the double and miss on the live page. Render a

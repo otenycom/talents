@@ -97,7 +97,8 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 | A **private git repo you own** that Oteny has never seen | A repo admin adds Oteny's read-only Deploy Key once. Public repos and Oteny-owned private repos (`otenycom/radar`) already work. See [`how-delivery-works.md`](references/how-delivery-works.md). |
-| **`selector-audit` / `browser-diff`** (those verbs still live in hermeshost) | Harvest the accessible name from `oteny traces`. Put the observed name first. Do not copy a stub label. Promote the two verbs onto `oteny` so Path B can score a map without staff. |
+| **`selector-audit` / `browser-diff` / `manifest-check`** (those verbs still live in hermeshost) | Harvest the accessible name from `oteny traces`. Put the observed name first. Do not copy a stub label. Promote the verbs onto `oteny` so Path B can score a map without staff. |
+| **Thought-trail reader** (staff; hermeshost `scripts/read_thought_trail.py`) | The host already stores reasoning deltas in the metered payload. Ask staff for a `--mode themes` count. Keep the output out of git. A string-search miss is not proof that capture is off. |
 
 *Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
 **`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
