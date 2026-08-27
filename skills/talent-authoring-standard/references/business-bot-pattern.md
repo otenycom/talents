@@ -583,6 +583,12 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    Keep trail output in a gitignored pack. Do not paste page quotes into
    the repo.
 
+   The host halts a second identical `Unknown ref` on the same session
+   and target. The first miss still tells you to snapshot and use a
+   named selector. The second miss returns `halt: true` and does not
+   call the browser again. Do not `browser_navigate`. Do not fall
+   through to `browser_cdp`. Escalate to the operator.
+
    Hidden inputs, stub `#id`s, and CDP `element.value` writes are POST / debug
    affordances — they are **not** the fill recipe. A wrapper the HTML parser closes before
    the listbox (`<p>` around a `<ul>`), or a radio group wrapped so a centre-click hits the
