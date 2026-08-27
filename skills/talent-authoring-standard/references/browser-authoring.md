@@ -121,6 +121,53 @@ escalate per your workflow, stop. Never let the bot construct a "plausible" valu
 don't exist. The full pattern (write-ahead intent, proof-from-the-page, the
 idempotency fences): [`business-bot-pattern.md`](business-bot-pattern.md) §4.
 
+## What sits under the browser tools — the `hh-browser` platform plugin
+
+The browser tools are not part of your Talent. Oteny delivers them as a platform plugin,
+`hh-browser`, versioned and shipped independently of anything you write. That matters to you
+in three places, because each one looks like a bug in your skill and is not.
+
+**A slow browser call is usually not a slow site.** Every raw-CDP call runs a
+private-page safety probe first, and that probe has its own timeout. When it fires, one
+click can cost five seconds while the site itself answered instantly. Before you tune your
+skill for a "slow portal", ask Oteny to split the calls on that probe. Tuning against the
+wrong cause is how a skill grows waits it never needed.
+
+**A field readback can be masked.** Browser output passes a secret redactor before the bot
+sees it, and a long unbroken digit run after a `+` looks like a secret. So a phone number
+typed as `+35226310828` reads back as `+352****0828`, while `+352 26310828` comes back
+whole. Never have your skill re-type a value because the readback "looks wrong". Verify from
+the snapshot's validity state instead.
+
+**Prefer the named selector, and pass it without an `@`.** The `@` form means a snapshot
+ref. A named selector carrying one resolves to nothing. Your skill should state **one**
+click method rather than banning several, because a rule that forbids every available path
+pushes the bot onto the raw-CDP escape hatch the rule was written to prevent.
+
+## When the bot is right and the page disagrees — read the recording
+
+A snapshot records what the bot asked for, and a trace records what the tool did. Neither
+records a tooltip, a validation banner, or a modal the bot never read into its context. So
+when your skill looks correct and the portal still refuses, the session recording is the
+only witness.
+
+Oteny keeps a video of every cloud-browser session and pulls it with
+`hermeshost/scripts/steel_sessions.py`, which lists sessions for a day and extracts frames
+for a chosen window. Ask for the window around the failing timestamp rather than the whole
+session. There is no structured event stream, so the answer comes from reading frames.
+
+It settles the question authors get wrong most often, which is whether a rejection is bad
+client data or bad formatting. On the Barney MFNL filing the portal refused
+`+35226310828` and accepted `+352 26310828`. Those are the same eleven digits, and the only
+difference is one space. The record had said "client data, the bot cannot fix this", and the
+frames showed a formatting rule the skill can normalise for. So when a case blames the
+customer's data, check the recording before you write that into a skill.
+
+**Do not infer a validation rule from `value_len` alone.** A snapshot that records a
+length is not a rejection. A stub double that rejects a value the real site accepted is
+a false red: a skill change that matches production then fails the stub. Copy the
+observed accept and reject strings, and leave the double until those strings are known.
+
 ## Verifying your assumptions on a live box
 
 After you declare the browser tools in `agent-profile.yaml` and commission a dev
