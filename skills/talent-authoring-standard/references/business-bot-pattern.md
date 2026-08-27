@@ -541,6 +541,24 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    the same `id`/`name` if the double still needs a plain form post to work. Declare the same
    shape in the runbook (§4e, "The real page is not your stub") so the two never drift.
 
+   **A stub that cannot fail the way production fails is a false-green machine.** Write one
+   red test per fidelity gap **before** you make the double more faithful. Cite the measured
+   case in the test name or docstring. Run those tests against the **current** double and
+   leave them red. A later session implements the double so the tests go green. A session
+   that both writes the trap and springs it cannot tell you the trap works. Keep the
+   existing happy-path stub suite on its own tag so a full green run does not hide the
+   traps.
+
+   **Honour injectable fidelity knobs. Do not turn them on by default.** A later
+   session that makes the double faithful should generalise delay, mutation, and
+   login-origin knobs the happy-path suite already uses. Sleep only when a
+   millisecond param is set, so the existing suite stays fast. After a radio or
+   checkbox POST, rotate element ids so a prior snapshot id is gone. Keep the
+   first-load semantic ids the happy-path tests already look up. Put the login
+   hop on a second origin (a localhost path or host that embeds the real IdP
+   name is enough). Do not call the live identity provider. A cookie on the
+   portal path must not authenticate that hop.
+
    **The product path is the live accessible name, never a stub shortcut.** The Talent must
    be fastest on the live site. The double exists so the same `role+name` click works on
    both. Hidden inputs, stub `#id`s, and CDP `element.value` writes are POST / debug
