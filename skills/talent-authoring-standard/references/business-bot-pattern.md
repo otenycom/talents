@@ -884,8 +884,9 @@ finalizing, wait a minute and retry. Both need that uplink tier claimed with `li
 **No browser used** while Discuss shows an active filing, redeliver/converge the bot (stale
 discuss plugin) or ask Oteny to wire the purpose tokens.
 
-A run that **adopts** a human-login session (the owner clicked *Refresh portal login*, so
-the bot inherited that browser) is watchable like any other run. The one window that is
+A run that **adopts** a human-login session (the owner signed in from the
+start transition, so the bot inherited that browser) is watchable like any
+other run. The one window that is
 never watchable is the human sign-in itself: while the owner still has the login tab open,
 Watch refuses. The live view is a bearer link, so possession is control, and the platform
 will not hand out the tab where a person is typing an identity-provider password. Watching
@@ -1402,12 +1403,13 @@ to at all (see §4b fail-closed and §7 owner visibility).
   bot-drivable just by flagging its states.
 - **Transition buttons name the action, not the result.** In the client's Odoo workflow, the
   transition `name` is the form-header button people click. Name **what the clicker does**
-  (imperative: `Manually log in`, `Approve & submit`), never the destination state or a
+  (imperative: `Continue after login`, `Approve & submit`), never the destination state or a
   completed result (`Needs login`, `Login complete — continue`, bare `Confirmed`). States may
   still describe the situation (`Needs Login`). Bot-driven transitions (`bot_role` claim /
   work / escalate, or only the bot takes them) prefix the bot's display name
-  (`Barney: ask HR to log in`, `Barney: mark filed`) so a human scanning the strip never
-  confuses a harness exit for their own next step. Lowest sequence = primary button — put the
+  (`<Bot>: ask HR to log in`, `<Bot>: mark filed`) so a human scanning the strip never
+  confuses a harness exit for their own next step. Humans do not see `bot_role`
+  `claim` / `work` buttons. Lowest sequence = primary button — put the
   state's **owner's** intended next action first.
 - **The escalate hand-back.** When the agent cannot finish (a rejection, an unexpected
   state), it takes the **escalate** transition — the bot's own failure hand-back to a human.
@@ -1667,8 +1669,10 @@ the next run reuses:
   first turn has posted `/linger`. Mid-turn is not adoptable. After 5
   minutes idle, a new login is normal. If a resume still hits the wall after
   a completed human login, that is belt-2 escalate once (§ below), not a
-  second SMS. A proactive **Refresh portal login** still renews a session
-  before it expires. Do not Refresh while linger is live.
+  second SMS. Login lives **inside** the human start transition. Do not ship
+  a side header that mints a session and does not advance the record. After
+  the owner saves a login, a later run that still hits a wall is a
+  **platform** bug. Do not tell the author to clear a browser profile.
 - **Newest Open wins; two ceilings.** A second **Open login browser** closes the
   first tab. The owner must sign in in the **latest** window — Save donates that
   tab only. Portal OTP budgets stay a **human** rule (e.g. ≤3 SMS/day on some
