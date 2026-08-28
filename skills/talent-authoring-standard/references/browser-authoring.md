@@ -144,6 +144,18 @@ ref. A named selector carrying one resolves to nothing. Your skill should state 
 click method rather than banning several, because a rule that forbids every available path
 pushes the bot onto the raw-CDP escape hatch the rule was written to prevent.
 
+**That advice only became true on 2026-08-28, and the history is worth knowing.** A
+`role=…` or `text=…` selector used to fail on the host, whatever the Talent said. The
+browser CLI's resolver has two branches only, an `xpath=` prefix and
+`document.querySelector`, so a Playwright engine prefix arrived at `querySelector` as
+literal text and matched nothing. It returned `Element not found` every time.
+
+On a real production filing that pushed the bot onto raw mouse events at three model round
+trips per click. `hh-browser` 1.9.4 now translates a named selector into the `xpath=` form
+the daemon does resolve, inside the same call, and it tries an exact match before a
+substring match. So a named selector is now one round trip and it works. CSS and `xpath=`
+always worked, if you need to reach past a name.
+
 ## When the bot is right and the page disagrees — read the recording
 
 A snapshot records what the bot asked for, and a trace records what the tool did. Neither
