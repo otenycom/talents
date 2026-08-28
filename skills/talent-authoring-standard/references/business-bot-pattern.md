@@ -647,8 +647,11 @@ flag that shortens every filing. Branch on a fixture flag the DTO
 already carries. Barney's stub does this at `/mfnl-stub/dummy-file`
 when `mfnl_json.thin_file` is true (Thinpath / Thinpeer).
 Score the broker log, not wizard completeness. Drain the next card
-in the occupant's own write (`_bot_drain_peers`). The 3-min cron is
-the belt. Mid-turn (`linger_until == 0`) is not adoptable.
+in the occupant's own write (`_bot_drain_peers`). A queued sibling
+wins. If none waits, drain resumes one fresh SLA-less login park
+(`_bot_resume_login_park`). The 3-min cron is the belt for queue.
+It does not promote parks. Mid-turn (`linger_until == 0`) is not
+adoptable.
 Live cookie-carry on the real portal is a go-live eval. It is not
 a pre-go-live SMS walk.
 
