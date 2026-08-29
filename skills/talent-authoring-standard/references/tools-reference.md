@@ -1003,6 +1003,87 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Authoring notes** — The isolated-run twin of browser_request_human: it opens NO live view and messages no one — a fresh, owner-driven login session is minted out of band. Check whether a saved login already carried you through before calling it, and call it at most ONCE per wall, then stop — never re-drive sign-in or re-request a code.
 
+### `browser_list_profile` — Check saved browser sign-in
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Check whether this bot already has a saved browser sign-in (cookie jar). Returns exists true or false. Never prints a profile id. Website passwords are a different store — use list_logins for those. If the site asks you to log in again after two failures, wait five minutes, then ten, then ask the owner. Do not retry a busy (409) error as a blip.
+
+**Result** — {exists: true|false} — whether this bot already has a saved browser cookie snapshot. Never includes a profile id.
+
+**Errors / edges** — A platform error returns {status:'error', message}. A busy window returns a cannot-retry notice — wait, then ask the owner. Do not treat that as a blip.
+
+**Example**
+
+```json
+{}
+```
+
+→
+
+```json
+{
+  "exists": true
+}
+```
+
+**Authoring notes** — This is the cookie snapshot, not website passwords. Use list_logins for the password store. If the site still asks you to log in after two failures, wait five minutes, then ten, then ask the owner.
+
+### `browser_save_profile` — Save browser sign-in on close
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Mark this signed-in window so the cookie jar saves when the window closes. Does not save now. Other sessions still see the last snapshot until then. A persist-false window cannot save — open a signed-in window first.
+
+**Result** — {ok: true, saved: false, when:'on_close'} — the window is marked so the cookie snapshot writes when it closes. It does not save now.
+
+**Errors / edges** — {ok:false, error:'no_session'} → open a signed-in window first. {ok:false, error:'cannot_persist'} → this window is persist-false; open a signed-in persist window. Plus a platform {status:'error'}.
+
+**Example**
+
+```json
+{}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "saved": false,
+  "when": "on_close"
+}
+```
+
+**Authoring notes** — Call after a verified human login. Other sessions still see the last snapshot until this window closes.
+
+### `browser_clear_profile` — Forget saved browser sign-in
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Forget this bot's saved browser sign-in (the whole cookie snapshot). This is not disconnect_login (website passwords). After clear, the next window starts signed out. Never print a profile id.
+
+**Result** — {ok: true, exists: false} — the saved cookie snapshot is gone. Website passwords stay.
+
+**Errors / edges** — A platform error returns {status:'error', message}.
+
+**Example**
+
+```json
+{}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "exists": false
+}
+```
+
+**Authoring notes** — This is not disconnect_login. After clear, the next window starts signed out. Never print a profile id. The owner can also Clear on OtenyBot Details.
+
 ## Host a website
 
 ### `host_website` — Host a website

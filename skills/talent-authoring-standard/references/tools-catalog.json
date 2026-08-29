@@ -164,6 +164,33 @@
       "cost": "free"
     },
     {
+      "name": "browser_list_profile",
+      "requestable_name": "browser_list_profile",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "browser_save_profile",
+      "requestable_name": "browser_save_profile",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "browser_clear_profile",
+      "requestable_name": "browser_clear_profile",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "host_website",
       "requestable_name": "host_website",
       "request_via": "tools.required",

@@ -1667,15 +1667,22 @@ the next run reuses:
   a signing-in label on the state that runs after login is finished.
 - **After Save, a dead browser player is a platform bug.** Do not tell the author
   to clear a Steel / browser profile. The broker donates the live login session
-  and the next agent create adopts it. Authors do **not** invent client-side
+  and the next persist-true create adopts it. Authors do **not** invent client-side
   sleeps. A later queued create adopts the linger sibling only after the
-  first turn has posted `/linger`. Mid-turn is not adoptable. After 5
-  minutes idle, a new login is normal. If a resume still hits the wall after
-  a completed human login, that is belt-2 escalate once (§ below), not a
-  second SMS. Login lives **inside** the human start transition. Do not ship
-  a side header that mints a session and does not advance the record. After
-  the owner saves a login, a later run that still hits a wall is a
-  **platform** bug. Do not tell the author to clear a browser profile.
+  first turn has posted `/linger`. Mid-turn (`in_turn`) is not adoptable.
+  After 10 minutes idle (default inactivity), a new login is normal. If a
+  resume still hits the wall after a completed human login, that is belt-2
+  escalate once (§ below), not a second SMS. Login lives **inside** the
+  human start transition. Do not ship a side header that mints a session
+  and does not advance the record.
+- **Two stores.** `list_logins` / `connect_login` / `disconnect_login` are
+  website passwords. `browser_list_profile` / `browser_save_profile` /
+  `browser_clear_profile` are the cookie snapshot. Forget a password with
+  `disconnect_login`. Clear the jar with `browser_clear_profile` or the
+  owner portal Clear on OtenyBot Details. Never print a profile id.
+  After the owner saves a login, a later run that still hits a wall is a
+  **platform** bug. Do not tell the author to clear a browser profile
+  unless the owner asked to start signed out.
 - **Newest Open wins; two ceilings.** A second **Open login browser** closes the
   first tab. The owner must sign in in the **latest** window — Save donates that
   tab only. Portal OTP budgets stay a **human** rule (e.g. ≤3 SMS/day on some
