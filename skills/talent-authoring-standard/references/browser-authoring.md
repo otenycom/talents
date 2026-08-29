@@ -14,8 +14,11 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
 
 1. **The browser is remote.** Your bot drives a real browser running in the cloud,
    not on its own machine. A file the browser downloads is *not* on the bot's disk
-   (`browser_download` retrieves it); a login persists in the cloud session across
-   turns and days (check "am I already signed in?" before routing a login).
+   (`browser_download` retrieves it). Two stores keep a sign-in: website
+   passwords (`connect_login` / `list_logins` / `disconnect_login`) and the
+   cookie snapshot (`browser_list_profile` / `browser_save_profile` /
+   `browser_clear_profile`). Check "am I already signed in?" before routing a
+   login. Never print a profile id.
 2. **The bot sees pages as accessibility trees, not DOM.** `browser_snapshot`
    returns elements as `[ref=eN]` reference ids with roles and visible labels —
    **never CSS ids or classes**. Native `browser_click`/`browser_type` take those
@@ -36,6 +39,9 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
 | See the page | `browser_snapshot(full?)` | The accessibility tree with `[ref=eN]` ids. Over ~8000 chars it is truncated/summarized — prefer one snapshot per page, at the page boundary. |
 | Fill a form page | `browser_click(ref)` / `browser_type(ref, text)` | One native action at a time. Snapshot, act, verify. Prefer `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`. There is no batch fill tool. |
 | A login / 2FA wall | `browser_request_human(reason)` — or better, a stored login via `connect_login` | Hand off **once**, then wait. Never type a password from chat; never re-click sign-in on a 2FA/rate-limit wall. |
+| Check the cookie snapshot | `browser_list_profile` | Returns `{exists}` only. Website passwords are `list_logins`. |
+| Save the cookie snapshot | `browser_save_profile` | Marks save-on-close. Result is `{ok, saved:false, when:"on_close"}`. A persist-false window cannot save. |
+| Forget the cookie snapshot | `browser_clear_profile` | Drops the jar. Passwords stay. The owner can also Clear on OtenyBot Details. |
 | Get a downloaded file | `browser_download(path?)` | The file is in the cloud, not on the box. Never `ls ~/Downloads`, never cookie-plus-curl. |
 | Read a picture-only page | `browser_vision(question)` | The slowest browser tool — reserve it for what the DOM genuinely cannot tell you. A DOM snapshot answers almost everything. |
 
@@ -101,15 +107,29 @@ take a fresh full snapshot and click that explicitly. Full rationale:
 
 ## Logins and credentials
 
-Your skill never handles a password. Route logins:
+Your skill never handles a password. Two stores stay separate. Route logins:
 
-- **Recurring login** → the owner saves it once via `connect_login` (a secure
-  link — the credential never transits chat); the browser auto-signs-in on that
-  site from then on, even on a schedule.
+- **Website passwords** → the owner saves them once via `connect_login` (a
+  secure link — the credential never transits chat). List with `list_logins`.
+  Forget with `disconnect_login`.
+- **Cookie snapshot** → `browser_list_profile` (`{exists}` only),
+  `browser_save_profile` (save on close, not now), `browser_clear_profile`
+  (whole jar). Never print a profile id.
 - **One-off login / 2FA / captcha the solver missed** → `browser_request_human`,
   exactly once, then wait for the owner's "done". The session resumes logged in.
 - Write the pre-check into your skill: navigate first and *check whether you are
-  already signed in* (logins persist) before routing anything.
+  already signed in* before routing anything.
+
+The platform sets persist and attach. A signed-in / live-view window is
+persist-true and attaches the snapshot. A scheduled or isolated window is
+persist-false and still attaches. A page-read (`web_extract`) is persist-false
+and attach-false. At most one persist-true window is live. A second persist-true
+window adopts it. Persist-false plus attach while a writer is live returns HTTP
+409 `session_jar_in_use`. A sixth new window returns HTTP 409 `session_cap`.
+Do not retry 409. The per-bot new-window cap is 5. A fleet idle ceiling of 4
+closes the oldest idle window. That idle close is not a 409, and it is not
+"max 1 browser". One live isolated turn per bot is a workflow rule — see
+[`business-bot-pattern.md`](business-bot-pattern.md).
 
 ## Fail-closed wiring (what your skill must say)
 

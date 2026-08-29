@@ -1683,6 +1683,20 @@ the next run reuses:
   After the owner saves a login, a later run that still hits a wall is a
   **platform** bug. Do not tell the author to clear a browser profile
   unless the owner asked to start signed out.
+- **Persist, attach, and 409.** The platform sets persist and attach. You
+  do not pass those flags. A signed-in / live-view window is persist-true
+  and attaches the snapshot. A scheduled or isolated window is
+  persist-false and still attaches. A page-read (`web_extract`) is
+  persist-false and attach-false, and it may sit beside a writer. At most
+  one persist-true window is live. A second persist-true window **adopts**
+  that live window. Persist-false plus attach while a writer is live
+  returns HTTP 409 `session_jar_in_use`. A sixth new window returns HTTP
+  409 `session_cap`. The plugin does not retry 409. Treat 409 as a stop,
+  then wait or ask the owner.
+- **Two ceilings, not “max 1 browser”.** The per-bot new-window cap is 5
+  (`session_cap`). A separate fleet idle ceiling of 4 closes the oldest
+  idle window. That idle close is not a 409. One live isolated turn per
+  bot is a **workflow** rule (this section below), not a browser cap of 1.
 - **Newest Open wins; two ceilings.** A second **Open login browser** closes the
   first tab. The owner must sign in in the **latest** window — Save donates that
   tab only. Portal OTP budgets stay a **human** rule (e.g. ≤3 SMS/day on some

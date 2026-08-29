@@ -162,6 +162,43 @@ If a second, unrelated Talent existed tomorrow, it would go through this exact p
 none of your specifics — that is the point. The mechanism is generic; your bundle is the
 only thing that is yours.
 
+## Tools your Talent can request
+
+The live toolbox is
+[`tools-catalog.md`](../../talent-authoring-standard/references/tools-catalog.md).
+Exact call contracts (parameters, result shapes, worked examples) live in
+[`tools-reference.md`](../../talent-authoring-standard/references/tools-reference.md).
+Customer cards on [oteny.com/talents/tools](https://oteny.com/talents/tools) come from
+that same catalog. Some tools are for the bot only and do not get a public card.
+
+Two stores stay separate. Website passwords are `connect_login`, `list_logins`, and
+`disconnect_login`. The cookie snapshot is `browser_list_profile`,
+`browser_save_profile`, and `browser_clear_profile`.
+
+- `browser_list_profile` returns `{exists}` only. Never print a profile id.
+- `browser_save_profile` returns `{ok, saved:false, when:"on_close"}`. It marks
+  save-on-close. It does not save now. A persist-false window cannot save.
+- `browser_clear_profile` drops the cookie snapshot. Passwords stay.
+
+The platform sets persist and attach. You do not pass those flags.
+
+- A signed-in or live-view window is persist-true and attaches the snapshot.
+- A scheduled or isolated window is persist-false and still attaches.
+- A page-read (`web_extract`) is persist-false and attach-false. It may sit beside
+  a writer.
+
+At most one persist-true window is live. A second persist-true window adopts that
+live window. Persist-false plus attach while a writer is live returns HTTP 409
+`session_jar_in_use`. A sixth new window returns HTTP 409 `session_cap`. Do not
+retry 409. Treat 409 as a stop, then wait or ask the owner.
+
+The per-bot new-window cap is 5. A separate fleet idle ceiling of 4 closes the
+oldest idle window. That idle close is not a 409, and it is not "max 1 browser".
+One live isolated turn per bot is a workflow rule, not a browser cap of 1. See
+[`business-bot-pattern.md`](../../talent-authoring-standard/references/business-bot-pattern.md)
+and
+[`browser-authoring.md`](../../talent-authoring-standard/references/browser-authoring.md).
+
 ## Where to go next
 
 - **The standard** — what a bundle must meet (the rubric the lint enforces):
@@ -169,6 +206,10 @@ only thing that is yours.
 - **The how-to** — create, edit, package, publish, health-check, export/import:
   [`oteny-talent-authoring`](../SKILL.md) and
   [`export-import.md`](./export-import.md).
+- **The toolbox** — every requestable tool, then the exact call contracts:
+  [`tools-catalog.md`](../../talent-authoring-standard/references/tools-catalog.md)
+  and
+  [`tools-reference.md`](../../talent-authoring-standard/references/tools-reference.md).
 - **Store presentation** — the icon + teaser assets your landing page renders from:
   [`store-presentation.md`](../../talent-authoring-standard/references/store-presentation.md).
 - **The safety gate up close** — the scope and red-team checks a business bot is graded
