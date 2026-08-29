@@ -1687,7 +1687,8 @@ the next run reuses:
   opens the attended start / confirm form, start one persist-true window
   first (restore when a jar exists). Classify with the platform session
   status (`logged_in` / `login_wall` / `busy`). Then paint: signed-in
-  confirms and files; a wall keeps **Open login browser**; busy waits.
+  confirms in the mode the form asked (a draft path does not submit);
+  a wall keeps **Open login browser**; busy waits.
   **Open login browser** attaches the live viewer to that same persist-true
   writer. Do not mint a second persist-true window while the first is live.
 - **Persist, attach, and 409.** The platform sets persist and attach. You
