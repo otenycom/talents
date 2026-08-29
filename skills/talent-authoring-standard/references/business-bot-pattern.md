@@ -1683,6 +1683,13 @@ the next run reuses:
   After the owner saves a login, a later run that still hits a wall is a
   **platform** bug. Do not tell the author to clear a browser profile
   unless the owner asked to start signed out.
+- **Ask preflight: start the window, classify, then paint.** When a human
+  opens the attended start / confirm form, start one persist-true window
+  first (restore when a jar exists). Classify with the platform session
+  status (`logged_in` / `login_wall` / `busy`). Then paint: signed-in
+  confirms and files; a wall keeps **Open login browser**; busy waits.
+  **Open login browser** attaches the live viewer to that same persist-true
+  writer. Do not mint a second persist-true window while the first is live.
 - **Persist, attach, and 409.** The platform sets persist and attach. You
   do not pass those flags. A signed-in / live-view window is persist-true
   and attaches the snapshot. A scheduled or isolated window is
