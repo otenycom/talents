@@ -1059,6 +1059,8 @@ shares.
 `browser_fill_form` is gone from the control plane. Fill a page with
 `browser_snapshot`, `browser_click`, and `browser_type`. Prefer
 `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
+A valid aim is a same-generation `@eN` or a named selector.
+Snapshot when `generation` or `tree` moved, not after every field.
 Do not write a form value through CDP or `Runtime.evaluate`.
 Do not request the removed tool in `tools.required`.
 
