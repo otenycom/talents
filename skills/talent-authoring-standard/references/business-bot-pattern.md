@@ -1057,12 +1057,17 @@ shares.
 ## 4g. There is no batch fill tool
 
 `browser_fill_form` is gone from the control plane. Fill a page with
-`browser_snapshot`, `browser_click`, and `browser_type`. Prefer
+`browser_click` and `browser_type`. Prefer
 `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
 A valid aim is a same-generation `@eN` or a named selector.
-Snapshot when `generation` or `tree` moved, not after every field.
-Do not write a form value through CDP or `Runtime.evaluate`.
-Do not request the removed tool in `tools.required`.
+After type or click the wrap echoes `generation` and `tree`. Same
+hash: tiny — do not call `browser_snapshot`. Hash changed: that
+result already has the tree (`this-snapshot`). Call
+`browser_snapshot` only when there is no tree yet. First look is
+navigate or the first attached result. `browser_scroll` has no peek.
+`value_matched` is not on the model type JSON. Do not write a form
+value through CDP or `Runtime.evaluate`. Do not request the removed
+tool in `tools.required`.
 
 **Draft-only is a rung on the ladder, not a permanent product lock.**
 The government submit rides `browser_click`.

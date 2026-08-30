@@ -165,6 +165,15 @@ Talent alike.
    the site's 2FA seed via `connect_login`; otherwise expect a one-time human handoff each
    run.
 
+9. **A Talent that fills a page uses the tree the wrap already attached.** After
+   `browser_type` / `browser_click` the result echoes `generation` and `tree`.
+   Same hash: tiny — do not call `browser_snapshot`. Hash changed: that result
+   already has the tree. First look is navigate or the first attached result.
+   Write Hands that way. The how-to is
+   [`browser-authoring.md`](../talent-authoring-standard/references/browser-authoring.md).
+   `TOOLS.md` is generated from the platform catalog — do not hand-edit it. The
+   bot-facing contract (no Talent loaded) lives on the `hh-browser` schemas.
+
 ## Worked example — turning a good skill into a Talent
 
 A real grocery-tracker built on a tenant box was **good**: a tidy ~100-line `SKILL.md`,
@@ -256,6 +265,10 @@ passes, defence in depth.
 7. **A login Talent that lets the model click sign-in repeatedly.** On a 2FA / "too many
    attempts" wall it must hand off **once** via `browser_request_human` and stop — repeated
    clicks trip the site's rate-limit and email the owner a security alert (rule 8).
+8. **A fill Talent that snapshots after every field.** After type or click the wrap
+   already echoes `generation` and `tree`. Same hash: keep last `@eN`. Hash
+   changed: use the attached tree. Call `browser_snapshot` only when there is
+   no tree yet (rule 9).
 
 ## Verification Checklist
 
@@ -273,3 +286,5 @@ passes, defence in depth.
 - [ ] (Browser-login Talent) login is a decision-table checklist composing
       `oteny-web-operator`/`oteny-remember-login`; any 2FA/blocked wall → one
       `browser_request_human` handoff then stop; no repeated sign-in clicks (rule 8).
+- [ ] (Browser-fill Talent) Hands reuse the last aim `generation` / `tree`; they
+      do not snapshot when the last result already has the tree (rule 9).

@@ -19,25 +19,33 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
    cookie snapshot (`browser_list_profile` / `browser_save_profile` /
    `browser_clear_profile`). Check "am I already signed in?" before routing a
    login. Never print a profile id.
-2. **The bot sees pages as accessibility trees, not DOM.** `browser_snapshot`
-   returns elements as `[ref=eN]` reference ids with roles and visible labels —
-   **never CSS ids or classes**. Native `browser_click`/`browser_type` take those
-   refs. Your bot cannot "read the selectors off the page", and the JS escape hatch
-   is policy-gated (see fact 3). Consequence: **if your skill needs CSS selectors,
-   the skill must ship them** — see the selector map below. Prefer role+name
-   locators the snapshot already shows.
+2. **The bot sees pages as accessibility trees, not DOM.** After
+   `browser_navigate`, and after each `browser_type` / `browser_click` /
+   `browser_focus` (and a CDP aim), the wrap echoes `generation` and
+   `tree`. Same hash: the result stays tiny — keep last `@eN`, do not
+   call `browser_snapshot`. Hash changed: that same result already
+   carries the full tree (`this-snapshot`, `@eN`, named, nth). Call
+   `browser_snapshot` only when there is no tree yet. First look is
+   navigate or the first attached aim result. `browser_scroll` has no
+   peek. `value_matched` is not on the model type JSON. Elements are
+   `[ref=eN]` with roles and visible labels — **never CSS ids or
+   classes**. Your bot cannot "read the selectors off the page", and
+   the JS escape hatch is policy-gated (see fact 3). Consequence:
+   **if your skill needs CSS selectors, the skill must ship them** —
+   see the selector map below. Prefer role+name locators the attached
+   tree already shows.
 3. **JS evaluation is safety-gated.** `browser_console(expression=…)` refuses to
    read form values, cookies, storage, or network primitives (a prompt-injected page
    must not be able to steer the bot into exfiltration). So a skill can never verify
-   a form via JS — verification is a snapshot after the native click or type.
+   a form via JS — verification is the attached tree after the native click or type.
 
 ## Which tool for which job
 
 | Job | Tool | Why |
 | --- | --- | --- |
 | Open a page | `browser_navigate(url)` | Returns a compact snapshot too — no separate snapshot call needed after navigating. |
-| See the page | `browser_snapshot(full?)` | The accessibility tree with `[ref=eN]` ids. Over ~8000 chars it is truncated/summarized — prefer one snapshot per page, at the page boundary. |
-| Fill a form page | `browser_click(ref)` / `browser_type(ref, text)` | One native action at a time. Snapshot, act, verify. Prefer `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`. There is no batch fill tool. |
+| See the page | Last aim result, or `browser_snapshot(full?)` | After type or click the wrap already echoes `generation` + `tree`. Use that tree. Call `browser_snapshot` only when no tree exists yet, or when you asked for `full=true`. |
+| Fill a form page | `browser_click(ref)` / `browser_type(ref, text)` | One native action at a time. Use the last attached tree or hash for the next aim. Prefer `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`. There is no batch fill tool. |
 | A login / 2FA wall | `browser_request_human(reason)` — or better, a stored login via `connect_login` | Hand off **once**, then wait. Never type a password from chat; never re-click sign-in on a 2FA/rate-limit wall. |
 | Check the cookie snapshot | `browser_list_profile` | Returns `{exists}` only. Website passwords are `list_logins`. |
 | Save the cookie snapshot | `browser_save_profile` | Marks save-on-close. Result is `{ok, saved:false, when:"on_close"}`. A persist-false window cannot save. |
@@ -66,7 +74,7 @@ at authoring time, and ship them in the skill:
   show) — useful when ids are unstable, ambiguous when labels repeat (six Yes/No
   radio groups on one page — use the name+value form there).
 - Add a **portal-change check** to your skill: before filling each page, confirm
-  the expected labels are present (one snapshot). If the portal was redesigned,
+  the expected labels are present (use the last attached tree). If the portal was redesigned,
   selectors miss, the native click or type fails — your skill
   must halt and escalate, never improvise new selectors mid-run.
 
@@ -97,13 +105,23 @@ misses mid-filing on the first re-skin.
 
 ## Fill discipline (the short form)
 
-One native click or type at a time. Snapshot, act, verify. Sequence
+One native click or type at a time. The tree is available **after** the
+action — do not snapshot to start the next field. Same hash: keep last
+`@eN`. Hash changed: use the attached tree (`this-snapshot`). Call
+`browser_snapshot` only when there is no tree yet. Sequence
 unlock-then-set interactions (untick a filter before selecting the option
 it hides) as separate actions. **Never batch across a server round-trip**:
 a search that populates fields, a cascade where each pick loads the next.
 **Never** treat an irreversible/final submission as a silent next-click —
-take a fresh full snapshot and click that explicitly. Full rationale:
+use the last attached tree, then click that named control. Full rationale:
 [`business-bot-pattern.md`](business-bot-pattern.md) §6.
+
+`TOOLS.md` and `tools-reference.md` are **generated** from the platform
+catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
+The bot-facing contract for native click / type / snapshot / navigate is
+the `hh-browser` schema wrap (plugin `1.9.11`). A later catalog generate
+picks that up. Do not invent a second contract. There is no
+`browser_fill_form`. Do not write "never `@eN`".
 
 ## Logins and credentials
 
@@ -157,7 +175,7 @@ wrong cause is how a skill grows waits it never needed.
 sees it, and a long unbroken digit run after a `+` looks like a secret. So a phone number
 typed as `+35226310828` reads back as `+352****0828`, while `+352 26310828` comes back
 whole. Never have your skill re-type a value because the readback "looks wrong". Verify from
-the snapshot's validity state instead.
+the attached tree's validity state instead.
 
 **Prefer the named selector, and pass it without an `@`.** The `@` form means a snapshot
 ref. A named selector carrying one resolves to nothing. Your skill should state **one**
@@ -207,5 +225,5 @@ bot, sanity-check the mounted surface before writing the whole skill: ask the bo
 *"list your available tools and their parameter schemas"* (the runtime carries the
 same contracts as [`tools-reference.md`](tools-reference.md) — they cannot
 diverge), and run one native click or type against your own stub page to see
-the snapshot after the fill. The dev-loop recipe:
+the attached tree after the fill. The dev-loop recipe:
 [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md).

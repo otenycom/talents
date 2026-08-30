@@ -228,6 +228,11 @@ returns nothing meaningful.
   `scripts/lint_tools.py` checks your profile against it and **fails a stale claim**
   (a `stubbed` tool that is actually live). See
   [references/copy-and-tools.md](references/copy-and-tools.md).
+  A browser-fill Talent uses the wrap's attached tree after each aim — write
+  that into the skill
+  ([`references/browser-authoring.md`](references/browser-authoring.md)).
+  Do not hand-edit generated `TOOLS.md` / `tools-catalog.md`. The bot-facing
+  click / type / snapshot / navigate contract is the `hh-browser` schema wrap.
 
 ### 10. Discovery & progressive disclosure
 - `SKILL.md` opens with intent (plain language), then a **quick-reference index**
