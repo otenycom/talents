@@ -1064,9 +1064,9 @@ After type or click the wrap echoes `generation` and `tree`. Same
 hash: tiny — do not call `browser_snapshot`. Hash changed: that
 result already has the tree (`this-snapshot`). Call
 `browser_snapshot` only when there is no tree yet. First look is
-navigate or the first attached result. `browser_scroll`,
-`browser_press`, and `browser_back` peek under that same rule.
-`value_matched` is not on the model type JSON. Do not write a form
+navigate or the first attached result. `browser_scroll` peeks once
+at the end. `browser_press` and `browser_back` peek under that
+same rule. `value_matched` is not on the model type JSON. Do not write a form
 value through CDP or `Runtime.evaluate`. Do not request the removed
 tool in `tools.required`.
 

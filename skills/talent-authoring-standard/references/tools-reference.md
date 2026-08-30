@@ -869,22 +869,22 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 *built-in toolset · request via `toolset_contribution` · status **live** · cost A fraction of a cent*
 
-**Result** — Each native tool returns JSON with `success` plus its payload (a snapshot text, a click/type acknowledgment). Snapshots identify elements as `[ref=eN]` accessibility refs with roles and visible labels.
+**Result** — Each native tool returns JSON with `success` plus its payload. Aim results echo `generation` and `tree`. Same hash: tiny. Hash changed: that result already has the tree (`this-snapshot`). Elements are `[ref=eN]` with roles and visible labels.
 
 **Errors / edges** — A blocked/errored navigation, a timeout, or an 'unstable session' notice means the page is not usable — fail closed per your skill's rules rather than retrying past a second identical error.
 
 **Authoring notes** — The toolset's per-tool surface:
 
-- `browser_navigate(url)` — Open a page. Returns the result plus a compact snapshot.
-- `browser_snapshot(full?)` — The page as an accessibility tree. Elements carry `[ref=eN]` reference ids with roles + visible labels — **never CSS ids/classes**.
-- `browser_click(ref)` — Click the element with that snapshot ref (e.g. '@e5').
-- `browser_type(ref, text)` — Clear the field with that ref, then type `text`.
-- `browser_press(key)` — Press a key ('Enter', 'Tab', 'Escape', 'ArrowDown').
-- `browser_scroll(direction)` — Scroll 'up' or 'down'.
-- `browser_back()` — Browser history back.
-- `browser_get_images()` — List the images on the page.
-- `browser_vision(question, annotate?)` — Ask a vision model about a screenshot — the SLOWEST browser tool; reserve it for what the DOM genuinely can't tell you.
-- `browser_console(clear?, expression?)` — Read console messages / evaluate a JS expression. The safety policy BLOCKS reading form values, cookies, storage, and network primitives from JS — verify form state via snapshots, never via JS.
+- `browser_navigate(url)` — Open a page. The result already carries a compact tree — that is the first look.
+- `browser_snapshot(full?)` — Call only when the last aim result has no tree, or you asked for `full=true`. Elements carry `[ref=eN]` with roles + visible labels — **never CSS ids/classes**.
+- `browser_click(ref)` — Click a same-generation `@eN` or a named selector (no `@` prefix). Result echoes `generation` and `tree`.
+- `browser_type(ref, text)` — Type into a same-generation `@eN` or a named selector. Result echoes `generation` and `tree`. `value_matched` is not in the model JSON.
+- `browser_press(key)` — Press a key ('Enter', 'Tab', 'Escape', 'ArrowDown'). Peeks under the same generation/tree rule as click.
+- `browser_scroll(direction)` — Scroll 'up' or 'down'. Peeks once at the end. Same hash: tiny. Hash changed: that result already has the tree.
+- `browser_back()` — Browser history back. Peeks under the same generation/tree rule as click.
+- `browser_get_images()` — List the images on the page. No peek.
+- `browser_vision(question, annotate?)` — Ask a vision model about a screenshot — the SLOWEST browser tool; reserve it for what the DOM genuinely can't tell you. No peek.
+- `browser_console(clear?, expression?)` — Read console messages / evaluate a JS expression. Peeks only when `expression` runs page JS. The safety policy BLOCKS reading form values, cookies, storage, and network primitives from JS — verify form state from the attached tree, never via JS.
 
 Your bot also carries the delivered `oteny-web-operator` skill (visible on the box) with the operating discipline; the authoring-side counterpart is `browser-authoring.md` in this directory.
 

@@ -26,14 +26,18 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
    call `browser_snapshot`. Hash changed: that same result already
    carries the full tree (`this-snapshot`, `@eN`, named, nth). Call
    `browser_snapshot` only when there is no tree yet. First look is
-   navigate or the first attached aim result. `browser_scroll` has no
-   peek. `value_matched` is not on the model type JSON. Elements are
-   `[ref=eN]` with roles and visible labels — **never CSS ids or
-   classes**. Your bot cannot "read the selectors off the page", and
-   the JS escape hatch is policy-gated (see fact 3). Consequence:
-   **if your skill needs CSS selectors, the skill must ship them** —
-   see the selector map below. Prefer role+name locators the attached
-   tree already shows.
+   navigate or the first attached aim result. `browser_scroll` peeks
+   once at the end. `browser_press` and `browser_back` peek under that
+   same rule. So do `browser_dialog`, `browser_console` when
+   `expression` runs page JS, and mutating `browser_cdp`. Vision,
+   images, download, the cookie jar, logs-only console, read-only CDP,
+   and human handoff stay without a peek. `value_matched` is not on
+   the model type JSON. Elements are `[ref=eN]` with roles and visible
+   labels — **never CSS ids or classes**. Your bot cannot "read the
+   selectors off the page", and the JS escape hatch is policy-gated
+   (see fact 3). Consequence: **if your skill needs CSS selectors, the
+   skill must ship them** — see the selector map below. Prefer
+   role+name locators the attached tree already shows.
 3. **JS evaluation is safety-gated.** `browser_console(expression=…)` refuses to
    read form values, cookies, storage, or network primitives (a prompt-injected page
    must not be able to steer the bot into exfiltration). So a skill can never verify
@@ -119,7 +123,7 @@ use the last attached tree, then click that named control. Full rationale:
 `TOOLS.md` and `tools-reference.md` are **generated** from the platform
 catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
 The bot-facing contract for native click / type / snapshot / navigate is
-the `hh-browser` schema wrap (plugin `1.9.11`). A later catalog generate
+the `hh-browser` schema wrap (plugin `1.9.12`). A later catalog generate
 picks that up. Do not invent a second contract. There is no
 `browser_fill_form`. Do not write "never `@eN`".
 

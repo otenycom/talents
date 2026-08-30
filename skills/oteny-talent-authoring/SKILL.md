@@ -167,9 +167,10 @@ Talent alike.
 
 9. **A Talent that fills a page uses the tree the wrap already attached.** After
    `browser_type` / `browser_click` the result echoes `generation` and `tree`.
-   Same hash: tiny — do not call `browser_snapshot`. Hash changed: that result
-   already has the tree. First look is navigate or the first attached result.
-   Write Hands that way. The how-to is
+   `browser_scroll`, `browser_press`, and `browser_back` peek under that same
+   rule. Same hash: tiny — do not call `browser_snapshot`. Hash changed: that
+   result already has the tree. First look is navigate or the first attached
+   result. Write Hands that way. The how-to is
    [`browser-authoring.md`](../talent-authoring-standard/references/browser-authoring.md).
    `TOOLS.md` is generated from the platform catalog — do not hand-edit it. The
    bot-facing contract (no Talent loaded) lives on the `hh-browser` schemas.
