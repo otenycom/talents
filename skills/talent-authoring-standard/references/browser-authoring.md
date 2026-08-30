@@ -44,7 +44,7 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
 | Job | Tool | Why |
 | --- | --- | --- |
 | Open a page | `browser_navigate(url)` | Returns a compact snapshot too — no separate snapshot call needed after navigating. |
-| See the page | Last aim result, or `browser_snapshot(full?)` | After type or click the wrap already echoes `generation` + `tree`. Use that tree. Call `browser_snapshot` only when no tree exists yet, or when you asked for `full=true`. |
+| See the page | Last aim result, or `browser_snapshot(full?)` | After type, click, scroll, press, or back the wrap already echoes `generation` + `tree`. Use that tree. Call `browser_snapshot` only when no tree exists yet, or when you asked for `full=true`. |
 | Fill a form page | `browser_click(ref)` / `browser_type(ref, text)` | One native action at a time. Use the last attached tree or hash for the next aim. Prefer `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`. There is no batch fill tool. |
 | A login / 2FA wall | `browser_request_human(reason)` — or better, a stored login via `connect_login` | Hand off **once**, then wait. Never type a password from chat; never re-click sign-in on a 2FA/rate-limit wall. |
 | Check the cookie snapshot | `browser_list_profile` | Returns `{exists}` only. Website passwords are `list_logins`. |

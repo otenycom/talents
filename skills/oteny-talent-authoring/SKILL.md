@@ -266,7 +266,8 @@ passes, defence in depth.
    attempts" wall it must hand off **once** via `browser_request_human` and stop — repeated
    clicks trip the site's rate-limit and email the owner a security alert (rule 8).
 8. **A fill Talent that snapshots after every field.** After type or click the wrap
-   already echoes `generation` and `tree`. Same hash: keep last `@eN`. Hash
+   already echoes `generation` and `tree`. Scroll, press, and back peek under
+   that same rule. Same hash: keep last `@eN`. Hash
    changed: use the attached tree. Call `browser_snapshot` only when there is
    no tree yet (rule 9).
 
