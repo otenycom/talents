@@ -1514,8 +1514,9 @@ action at a time:**
 - **Snapshot, then click or type the control the snapshot shows.** Prefer
   `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
   A live accessible name may carry a trailing space — match the question
-  text, do not require an exact quoted name. After a radio click, snapshot
-  and confirm the option is checked. Do not write `.checked` or
+  text, do not require an exact quoted name. Do not snapshot after every
+  radio or type just to confirm the fill. Snapshot before the named
+  advance. Do not write `.checked` or
   `element.value` through CDP. Ship the page's **selector map in the
   skill** (a `references/` file). Name each page's advance control
   (`Next` / `OK` / a later *Summary*) so the model copies it. If the
