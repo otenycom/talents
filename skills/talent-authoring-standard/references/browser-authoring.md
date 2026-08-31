@@ -32,19 +32,21 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
    `expression` runs page JS, and mutating `browser_cdp`. Vision,
    images, download, the cookie jar, logs-only console, read-only CDP,
    and human handoff stay without a peek. `value_matched` is not on
-   the model type JSON. `value_matched=0` with an empty element id
-   can be a dead probe (the readback timed out or returned
-   nothing), not a missed fill. Do not add a Talent ban or a
-   re-type loop from that tape row alone. Confirm from the
-   attached tree.
+   the model type JSON. Trust `confirm` / `confirm_text` on the
+   type result.
 
-   When `browser_type` returns
-   `_TYPE_READBACK_TIMEOUT: readback timed out; write not confirmed.`,
-   pin **one** next step. Do not retype. Use the cheap peek already
-   on that result, or the last aim tree if `generation` / `tree` is
-   unchanged. Continue if the field looks filled. Retype only if
-   that peek shows empty. Do not call `browser_snapshot` for this
-   class.
+   `match` (`set value matches input`): continue.
+   `differ` (`set value differs from input`) with `set_value`:
+   look at that one value; if it is a format of what you sent,
+   continue and do not retype.
+   `differ` without `set_value`: the tool already failed
+   (empty); do not blindly retype the same `@eN` after a dead
+   confirm, and use a named selector only if the tool result
+   says the write did not land and you still need that field.
+   `unseen` (`set value could not be verified`): do not retype.
+   Do not call `browser_snapshot` for this class; continue only
+   if a later attached tree already shows the field, otherwise
+   stop that field because the host already fail-closed.
 
    Elements are `[ref=eN]` with roles and visible
    labels — **never CSS ids or classes**. Your bot cannot "read the
@@ -137,7 +139,7 @@ use the last attached tree, then click that named control. Full rationale:
 `TOOLS.md` and `tools-reference.md` are **generated** from the platform
 catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
 The bot-facing contract for native click / type / snapshot / navigate is
-the `hh-browser` schema wrap (plugin `1.9.14`). A later catalog generate
+the `hh-browser` schema wrap (plugin `1.9.15`). A later catalog generate
 picks that up. Do not invent a second contract. There is no
 `browser_fill_form`. Do not write "never `@eN`".
 

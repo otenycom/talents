@@ -567,17 +567,20 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    The host strips a stray `@` before the browser daemon sees the click, so a clean
    `role=…[name="…"]` now reaches the page.
 
-   A `browser_type` that cannot prove the text stuck reports **failure**, not
-   success. Believe that error. The host reads the field the selector names.
-   An empty field after type is a failed write
-   (`wrote nothing — field still empty`).
-
-   A probe that dies on the 3 s cap is a different class:
-   `_TYPE_READBACK_TIMEOUT: readback timed out; write not confirmed.`
-   That string does not say empty. Do not retype. Use the cheap peek
-   already on that result, or the last aim tree if `generation` / `tree`
-   is unchanged. Continue if the field looks filled. Retype only if that
-   peek shows empty. Do not call `browser_snapshot` for this class.
+   Trust `confirm` / `confirm_text` on the `browser_type` result.
+   `match` (`set value matches input`): continue.
+   `differ` (`set value differs from input`) with `set_value`:
+   look at that one value; if it is a format of what you sent,
+   continue and do not retype.
+   `differ` without `set_value` is a failed write
+   (`wrote nothing — field still empty`); do not blindly retype
+   the same `@eN` after a dead confirm, and use a named selector
+   only if the tool result says the write did not land and you
+   still need that field.
+   `unseen` (`set value could not be verified`): do not retype.
+   Do not call `browser_snapshot` for this class; continue only
+   if a later attached tree already shows the field, otherwise
+   stop that field because the host already fail-closed.
 
    **State one legal click method. Do not ban both.** The legal method is
    `browser_click` / `browser_type` with a named selector
