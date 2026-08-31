@@ -36,7 +36,17 @@ correctly. Exact per-tool parameters, result shapes, and worked examples:
    can be a dead probe (the readback timed out or returned
    nothing), not a missed fill. Do not add a Talent ban or a
    re-type loop from that tape row alone. Confirm from the
-   attached tree. Elements are `[ref=eN]` with roles and visible
+   attached tree.
+
+   When `browser_type` returns
+   `_TYPE_READBACK_TIMEOUT: readback timed out; write not confirmed.`,
+   pin **one** next step. Do not retype. Use the cheap peek already
+   on that result, or the last aim tree if `generation` / `tree` is
+   unchanged. Continue if the field looks filled. Retype only if
+   that peek shows empty. Do not call `browser_snapshot` for this
+   class.
+
+   Elements are `[ref=eN]` with roles and visible
    labels — **never CSS ids or classes**. Your bot cannot "read the
    selectors off the page", and the JS escape hatch is policy-gated
    (see fact 3). Consequence: **if your skill needs CSS selectors, the
@@ -127,7 +137,7 @@ use the last attached tree, then click that named control. Full rationale:
 `TOOLS.md` and `tools-reference.md` are **generated** from the platform
 catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
 The bot-facing contract for native click / type / snapshot / navigate is
-the `hh-browser` schema wrap (plugin `1.9.13`). A later catalog generate
+the `hh-browser` schema wrap (plugin `1.9.14`). A later catalog generate
 picks that up. Do not invent a second contract. There is no
 `browser_fill_form`. Do not write "never `@eN`".
 

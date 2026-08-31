@@ -568,8 +568,16 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    `role=…[name="…"]` now reaches the page.
 
    A `browser_type` that cannot prove the text stuck reports **failure**, not
-   success. Believe that error. Do not walk on. The host reads the field the
-   selector names. An empty field after type is a failed write.
+   success. Believe that error. The host reads the field the selector names.
+   An empty field after type is a failed write
+   (`wrote nothing — field still empty`).
+
+   A probe that dies on the 3 s cap is a different class:
+   `_TYPE_READBACK_TIMEOUT: readback timed out; write not confirmed.`
+   That string does not say empty. Do not retype. Use the cheap peek
+   already on that result, or the last aim tree if `generation` / `tree`
+   is unchanged. Continue if the field looks filled. Retype only if that
+   peek shows empty. Do not call `browser_snapshot` for this class.
 
    **State one legal click method. Do not ban both.** The legal method is
    `browser_click` / `browser_type` with a named selector
