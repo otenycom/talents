@@ -1075,7 +1075,10 @@ shares.
 A valid click aim is a same-generation `@eN` or a named selector.
 A valid type aim needs a name (`role=textbox[name="…"]`). `@eN`
 on type is optional glue and must pair-check. Number-only type
-is refused.
+is refused. A last-page summary vs this turn's uplink DTO is
+Talent work. The wrap does not judge a missing mapped field.
+Do not hardcode a city. Seed a force-miss if the happy path
+already carries every mapped part.
 After type or click the wrap echoes `generation` and `tree`. Same
 hash and the same `@eN`: tiny — do not call `browser_snapshot`.
 Same hash and reminted `@eN` (a rail hop remounts handles): that

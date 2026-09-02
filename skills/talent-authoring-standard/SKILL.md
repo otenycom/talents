@@ -232,6 +232,10 @@ returns nothing meaningful.
   scroll, press, and back peek under that same rule. Write that into
   the skill
   ([`references/browser-authoring.md`](references/browser-authoring.md)).
+  `browser_type` needs a name (`role=textbox[name="…"]`). `@eN` on
+  type is optional glue and must pair-check. A number-only type is
+  refused. A last-page summary vs this turn's uplink DTO is Talent
+  work, not wrap. The wrap does not judge a missing mapped field.
   Do not hand-edit generated `TOOLS.md` / `tools-catalog.md`. The bot-facing
   click / type / snapshot / navigate contract is the `hh-browser` schema wrap.
 
