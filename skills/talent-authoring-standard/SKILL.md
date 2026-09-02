@@ -236,6 +236,8 @@ returns nothing meaningful.
   type is optional glue and must pair-check. A number-only type is
   refused. A last-page summary vs this turn's uplink DTO is Talent
   work, not wrap. The wrap does not judge a missing mapped field.
+  Worked snapshot (role vs neighbour widgets vs remint):
+  [`business-bot-pattern.md`](references/business-bot-pattern.md) §4g.
   Do not hand-edit generated `TOOLS.md` / `tools-catalog.md`. The bot-facing
   click / type / snapshot / navigate contract is the `hh-browser` schema wrap.
 

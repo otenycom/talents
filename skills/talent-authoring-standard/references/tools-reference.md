@@ -878,7 +878,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 - `browser_navigate(url)` — Open a page. The result already carries a compact tree — that is the first look.
 - `browser_snapshot(full?)` — Call only when the last aim result has no tree, or you asked for `full=true`. Elements carry `[ref=eN]` with roles + visible labels — **never CSS ids/classes**.
 - `browser_click(ref)` — Click a same-generation `@eN` or a named selector (no `@` prefix). Result echoes `generation` and `tree`.
-- `browser_type(ref, text)` — Type into a same-generation `@eN` or a named selector. Result echoes `generation` and `tree`. `value_matched` is not in the model JSON.
+- `browser_type(ref, text)` — Type into the named selector the tree prints (role=textbox[name="…"]). A same-generation `@eN` is optional glue and must pair-check. A number alone is refused. Result echoes `generation` and `tree`. `value_matched` is not in the model JSON.
 - `browser_press(key)` — Press a key ('Enter', 'Tab', 'Escape', 'ArrowDown'). Peeks under the same generation/tree rule as click.
 - `browser_scroll(direction)` — Scroll 'up' or 'down'. Peeks once at the end. Same hash: tiny. Hash changed: that result already has the tree.
 - `browser_back()` — Browser history back. Peeks under the same generation/tree rule as click.

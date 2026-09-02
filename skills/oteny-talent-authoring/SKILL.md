@@ -170,7 +170,10 @@ Talent alike.
    `browser_scroll`, `browser_press`, and `browser_back` peek under that same
    rule. Same hash: tiny — do not call `browser_snapshot`. Hash changed: that
    result already has the tree. First look is navigate or the first attached
-   result. Write Hands that way. The how-to is
+   result. Write Hands that way. Type by the printed accessible name, not a
+   chat sticker — worked snapshot in
+   [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4g.
+   The how-to is
    [`browser-authoring.md`](../talent-authoring-standard/references/browser-authoring.md).
    `TOOLS.md` is generated from the platform catalog — do not hand-edit it. The
    bot-facing contract (no Talent loaded) lives on the `hh-browser` schemas.

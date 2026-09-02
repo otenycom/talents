@@ -1092,6 +1092,30 @@ not on the model type JSON. Do not write a form value through
 CDP or `Runtime.evaluate`. Do not request the removed tool in
 `tools.required`.
 
+### Type by the name the tree prints
+
+**Pit of failure.** The author writes “type `@e12`”. After a hop or a remint, that number is a different widget. A same-hash peek often drops the tree and leaves only `success` plus a 16-character `tree` hash. The model keeps the old sticker from chat.
+
+**Pit of success.** Type by **accessible name**. The wrap already prints **role** on every named sticker. `@eN` is optional glue and is pair-checked. Number-only type is refused.
+
+A generic snapshot excerpt (English demo labels — copy the *shape*, not a live portal's wording):
+
+```
+- combobox "Country of establishment" [ref=e53]
+  @e53 this-snapshot role=combobox[name="Country of establishment"]
+- button "Open date picker" [ref=e48]
+  @e48 this-snapshot role=button[name="Open date picker"][nth=1]
+- textbox "Expected start date" [required, ref=e49]
+  @e49 this-snapshot role=textbox[name="Expected start date"]
+```
+
+1. **Read the leading role.** `textbox` → `browser_type`. `button` / `combobox` → click (or the Talent's widget rule), not type. HTML `type=` is **not** on the bot snapshot. Do not ask the wrap for `<input type='text'>`.
+2. **Legal `browser_type` aim is the label** — `role=textbox[name="Expected start date"]`. Optional `@e49` only if it pair-checks against this generation's map. A mismatch refuses (`this number is not that name`).
+3. **Neighbour widgets.** A date row is often a **picker button** plus a **writable textbox**. Only the textbox accepts keys. Typing the button or the combobox above the dates yields `wrote nothing — field still empty`.
+4. **Remint.** Same labels, new `@eN`. A number that was a combobox on generation 2 can be a textbox on generation 6. Never retype a sticker from an older tree.
+5. **After a hop**, wait for the new photo. The wrap attaches a fresh snapshot and retires old `@eN`. Do not reuse chat stickers.
+6. **Last page vs the DTO** is Talent work. The wrap does not judge a missing mapped field. Write a scenario that force-misses the last page against this turn's uplink DTO. Do not grade a fill-first walk that happens to look complete.
+
 **Draft-only is a rung on the ladder, not a permanent product lock.**
 The government submit rides `browser_click`.
 Submit-deny covered the removed batch tool only, so it does not cover
@@ -1543,6 +1567,7 @@ action at a time:**
 
 - **Snapshot, then click or type the control the snapshot shows.** Prefer
   `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
+  Type by the printed name — the worked snapshot is §4g.
   A live accessible name may carry a trailing space — match the question
   text, do not require an exact quoted name. Do not snapshot after every
   radio or type just to confirm the fill. Snapshot before the named

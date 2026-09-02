@@ -125,9 +125,12 @@ misses mid-filing on the first re-skin.
 
 ## Fill discipline (the short form)
 
-One native click or type at a time. The tree is available **after** the
-action — do not snapshot to start the next field. Same hash: keep last
-`@eN`. Hash changed: use the attached tree (`this-snapshot`). Call
+One native click or type at a time. Type by the printed name, not a
+chat sticker. Worked snapshot (role vs neighbour widgets vs remint):
+[`business-bot-pattern.md`](business-bot-pattern.md) §4g. The tree is
+available **after** the action — do not snapshot to start the next
+field. Same hash: keep last `@eN`. Hash changed: use the attached
+tree (`this-snapshot`). Call
 `browser_snapshot` only when there is no tree yet. Sequence
 unlock-then-set interactions (untick a filter before selecting the option
 it hides) as separate actions. **Never batch across a server round-trip**:
