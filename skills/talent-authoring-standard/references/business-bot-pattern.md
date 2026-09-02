@@ -1169,6 +1169,21 @@ was to size the SLA to the bot: 45 minutes.
 Pin it with a test. An SLA is a number in a data file, and numbers drift upward every time
 someone sees a slow run and does not measure it.
 
+### When the walk sits still on a thinking model
+
+A long think can look like a hung walk. The model emits thought frames and no
+visible token. Discuss then said `provider may be slow or overloaded`, the
+platform killed the live hop, and a second provider redid the same call.
+
+That is a platform first-progress gate, not a Talent bug. You do not need a
+workaround in the bundle. A thought frame now counts as first-progress, so a
+live think keeps its hop. A keep-alive with no think still trips the gate.
+
+If a walk sits still *and* the same hop then continues, that is a live think.
+If Discuss names the provider as slow and the turn later finishes on a
+different hop, open a platform ticket. Do not pad selectors or invent a retry
+in the Talent to hide it.
+
 ### The graduation ladder — from rehearsal to unattended prod
 
 A side-effecting bot does **not** go from green tests straight to filing on its own. It climbs a
