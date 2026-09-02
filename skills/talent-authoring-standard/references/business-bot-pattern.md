@@ -584,7 +584,9 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
 
    **State one legal click method. Do not ban both.** The legal method is
    `browser_click` / `browser_type` with a named selector
-   (`role=…[name="…"]`), with no `@` prefix. Do not hand-drive the raw
+   (`role=…[name="…"]`), with no `@` prefix. `browser_type` needs that
+   name. `@eN` on type is optional glue and must pair-check. A
+   number-only type is refused. Do not hand-drive the raw
    browser protocol for an ordinary click. A snapshot ref goes stale after
    a mutation, so do not prefer it. A runbook that forbids refs *and*
    forbids the raw protocol, while the click tool only accepted a ref,
@@ -1070,7 +1072,10 @@ shares.
 `browser_fill_form` is gone from the control plane. Fill a page with
 `browser_click` and `browser_type`. Prefer
 `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
-A valid aim is a same-generation `@eN` or a named selector.
+A valid click aim is a same-generation `@eN` or a named selector.
+A valid type aim needs a name (`role=textbox[name="…"]`). `@eN`
+on type is optional glue and must pair-check. Number-only type
+is refused.
 After type or click the wrap echoes `generation` and `tree`. Same
 hash and the same `@eN`: tiny — do not call `browser_snapshot`.
 Same hash and reminted `@eN` (a rail hop remounts handles): that
