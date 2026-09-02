@@ -1072,14 +1072,17 @@ shares.
 `role=group[name=…] >> role=radio[name=…]` and `role=combobox[name=…]`.
 A valid aim is a same-generation `@eN` or a named selector.
 After type or click the wrap echoes `generation` and `tree`. Same
-hash: tiny — do not call `browser_snapshot`. Hash changed: that
-result already has the tree (`this-snapshot`). Call
-`browser_snapshot` only when there is no tree yet. First look is
-navigate or the first attached result. `browser_scroll` peeks once
-at the end. `browser_press` and `browser_back` peek under that
-same rule. `value_matched` is not on the model type JSON. Do not write a form
-value through CDP or `Runtime.evaluate`. Do not request the removed
-tool in `tools.required`.
+hash and the same `@eN`: tiny — do not call `browser_snapshot`.
+Same hash and reminted `@eN` (a rail hop remounts handles): that
+result already has the new tree. Use those `@eN`. Old stickers
+from chat are dead. Hash changed: that result already has the
+tree (`this-snapshot`). Call `browser_snapshot` only when there
+is no tree yet. First look is navigate or the first attached
+result. `browser_scroll` peeks once at the end. `browser_press`
+and `browser_back` peek under that same rule. `value_matched` is
+not on the model type JSON. Do not write a form value through
+CDP or `Runtime.evaluate`. Do not request the removed tool in
+`tools.required`.
 
 **Draft-only is a rung on the ladder, not a permanent product lock.**
 The government submit rides `browser_click`.
