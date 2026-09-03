@@ -43,7 +43,7 @@ def cmd_traces(args) -> int:
     from .traces import build_traces_dto
     client = _client(args)
     _emit(build_traces_dto(client, args.ref, session=args.session, since=args.since,
-                           limit=args.limit))
+                           limit=args.limit, photos=bool(getattr(args, "photos", False))))
     return 0
 
 
@@ -203,6 +203,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", default=None)
     p.add_argument("--since", default=None)
     p.add_argument("--limit", type=int, default=5)
+    p.add_argument("--photos", action="store_true",
+                   help="Attach each archived page's photo (visible text, aim, "
+                        "option list — never HTML) to its page_snapshot row")
     p.set_defaults(func=cmd_traces)
 
     p = sub.add_parser("lint", help="Offline Talent lint")

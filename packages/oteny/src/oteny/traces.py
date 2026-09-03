@@ -1,8 +1,90 @@
 """Harvested debug traces over account-key /json/2/ (dogfood)."""
 from __future__ import annotations
 
+import base64
 import json
+import zlib
 from typing import Any
+
+PHOTO_TEXT_CAP = 2000
+PHOTO_OPTIONS_CAP = 50
+
+
+def decode_page_archive(blob_b64: str) -> dict:
+    """base64(zlib(json)) — the shape ``hh.browser.trace.read_page_archive`` returns."""
+    return json.loads(zlib.decompress(base64.b64decode(blob_b64)).decode("utf-8"))
+
+
+def compact_photo(archive: dict, *, text_cap: int = PHOTO_TEXT_CAP,
+                  options_cap: int = PHOTO_OPTIONS_CAP) -> dict:
+    """The archived page as an author reads it back: what the page showed, what
+    was aimed, what was in the list — never the raw HTML. Same shape the platform's
+    own ``traces --photos`` and the bot's ``browser_recall`` tool hand out."""
+    archive = archive if isinstance(archive, dict) else {}
+    visible = str(archive.get("visible_text") or archive.get("ground_truth") or "")
+    photo = {
+        "url": archive.get("url") or "",
+        "title": archive.get("title") or "",
+        "capture_reason": archive.get("capture_reason") or "",
+        "tool_name": archive.get("tool_name") or "",
+        "aim": archive.get("aim") or "",
+        "generation": archive.get("generation"),
+        "visible_text": visible[:text_cap],
+        "visible_text_truncated": len(visible) > text_cap,
+    }
+    options = archive.get("options")
+    if isinstance(options, dict) and isinstance(options.get("names"), list):
+        names = [str(n) for n in options["names"]]
+        photo["options"] = {
+            "label": options.get("label") or "",
+            "total": options.get("total"),
+            "virtualized": bool(options.get("virtualized")),
+            "names": names[:options_cap],
+            "names_truncated": len(names) > options_cap,
+        }
+    widgets = archive.get("widgets")
+    if isinstance(widgets, list) and widgets:
+        photo["open_widgets"] = [
+            {"role": w.get("role"), "label": w.get("label"),
+             "options": [str(o) for o in (w.get("options") or [])][:options_cap]}
+            for w in widgets[:4] if isinstance(w, dict)
+        ]
+    return photo
+
+
+def attach_page_photos(client, browser_traces: list[dict], domain: list) -> dict:
+    """Put each archived page's compact photo onto its ``page_snapshot`` row as
+    ``photo``. The archive flag is read on its own, so an older platform that has
+    no page archive yet answers with a note instead of a failed ``traces``. The
+    blobs come through ``read_page_archive`` — the row's own seam — so the account
+    key's record rules govern, and an author sees only their own bots' pages."""
+    summary = {"pages_archived": 0, "photos_attached": 0}
+    snap_ids = [t["id"] for t in browser_traces
+                if t.get("kind") == "page_snapshot" and isinstance(t.get("id"), int)]
+    if not snap_ids:
+        return summary
+    try:
+        flags = client.search_read(
+            "hh.browser.trace", [["id", "in", snap_ids]], ["id", "has_page_archive"],
+            limit=len(snap_ids))
+    except RuntimeError as e:  # the platform predates the page archive
+        summary["photos_note"] = f"this platform has no page archive yet ({e})"[:200]
+        return summary
+    archived = [int(f["id"]) for f in flags if f.get("has_page_archive")]
+    summary["pages_archived"] = len(archived)
+    if not archived:
+        return summary
+    blobs = client.call("hh.browser.trace", "read_page_archive", ids=archived) or {}
+    for t in browser_traces:
+        blob = blobs.get(str(t.get("id"))) if isinstance(blobs, dict) else None
+        if not blob:
+            continue
+        try:
+            t["photo"] = compact_photo(decode_page_archive(blob))
+        except Exception:  # noqa: BLE001 — a corrupt blob loses its photo, not the DTO
+            continue
+        summary["photos_attached"] += 1
+    return summary
 
 
 def _msg_preview(m: dict) -> dict:
@@ -56,8 +138,12 @@ def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
 
 
 def build_traces_dto(client, ref: str, session: str | None = None,
-                     since: str | None = None, limit: int = 5) -> dict:
-    """Shape harvested Odoo log models into the structured debug trace."""
+                     since: str | None = None, limit: int = 5,
+                     photos: bool = False) -> dict:
+    """Shape harvested Odoo log models into the structured debug trace.
+
+    ``photos=True`` adds each archived page's compact photo (visible text, the
+    aim, the option list — never HTML) to its ``page_snapshot`` row."""
     sess_domain: list[Any] = [["tenant_ref", "=", ref]]
     if session:
         sess_domain.append(["source_session_id", "=", session])
@@ -119,6 +205,8 @@ def build_traces_dto(client, ref: str, session: str | None = None,
         "controls_captured": sum(
             len(t.get("form_inventory") or []) for t in snaps),
     }
+    if photos:
+        browser_summary.update(attach_page_photos(client, browser_traces, bt_domain))
     uplink = derive_uplink_status(diagnostics)
     return {
         "ref": ref, "sessions": out_sessions, "diagnostics": diagnostics,
@@ -180,5 +268,7 @@ def harvest_trace_text(dto: dict, *, after_session_id: int = 0) -> str:
         lines.append(
             f"# browser actions={bs.get('actions')} misses={bs.get('misses')} "
             f"click_no_ops={bs.get('click_no_ops')} failed={bs.get('failed')} "
-            f"pages={bs.get('pages_captured')} controls={bs.get('controls_captured')}")
+            f"pages={bs.get('pages_captured')} controls={bs.get('controls_captured')}"
+            + (f" archived={bs.get('pages_archived')} photos={bs.get('photos_attached')}"
+               if "pages_archived" in bs else ""))
     return "\n".join(lines)

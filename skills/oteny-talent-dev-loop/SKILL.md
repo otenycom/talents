@@ -98,6 +98,7 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 | A **private git repo you own** that Oteny has never seen | A repo admin adds Oteny's read-only Deploy Key once. Public repos and Oteny-owned private repos (`otenycom/radar`) already work. See [`how-delivery-works.md`](references/how-delivery-works.md). |
 | **`selector-audit` / `browser-diff` / `manifest-check`** (those verbs still live in hermeshost) | Harvest the accessible name from `oteny traces`. Put the observed name first. Do not copy a stub label. Promote the verbs onto `oteny` so Path B can score a map without staff. |
+| **`page-fixture-export`** (turn an archived page into an offline stub fixture; the verb lives in hermeshost) | `oteny traces --ref <clone> --photos` shows the same page as a photo: visible text, the aim, the option list. Copy the real names from the photo into your selector map and your stub. Ask staff for the export when you need the full page as a test fixture. |
 | **Thought-trail reader** (staff; hermeshost `scripts/read_thought_trail.py`) | The host already stores reasoning deltas in the metered payload. Ask staff for a `--mode themes` count. Keep the output out of git. A string-search miss is not proof that capture is off. There is **no** `oteny traces --thinking` yet. |
 | **Steel clip / frame download** (staff `steel-key`) | Bot Activity **Replay** is the player (48 h). There is no author verb to pull a frame at a tool clock. Do not ask for a vendor key. |
 
@@ -213,7 +214,7 @@ DM is Phase 2** (not in this package yet).
 | Clone | `oteny clone --source <ref> …` | Account-key clone **gate** (`request_clone`). Platform worker drains infra. |
 | Reload | `oteny reload --ref <clone>` | Ask Oteny to **pull** the pushed commit onto this bot. Push first. Wait for `last_status=delivered`. Do not reload mid-turn (`deferred_busy`). See [`how-delivery-works.md`](references/how-delivery-works.md). |
 | Test | `oteny test --ref <clone> --bundle <slug> --bundle-dir <path> [--scenario <glob>]…` | Run `tests/scenarios/*.yaml` LIVE; **`--bundle-dir` required** (local checkout — no deploy key). |
-| Traces | `oteny traces --ref <clone> [--session <id>]` | The structured session/turn/message debug trace — the agent's debugging eye. `page_snapshot` browser rows cover EVERY turn of a run, including the turns after a human login hand-off (donated sessions) and every follow-up turn — since 2026-08-25; a run before that date can show gaps there. |
+| Traces | `oteny traces --ref <clone> [--session <id>] [--photos]` | The structured session/turn/message debug trace — the agent's debugging eye. `page_snapshot` browser rows cover EVERY turn of a run, including the turns after a human login hand-off (donated sessions) and every follow-up turn — since 2026-08-25; a run before that date can show gaps there. |
 | Logs | `oteny logs --ref <clone> [--gateway-tail]` | Harvest traces (+ optional redacted gateway tail via box-access). |
 | Selfcheck | `oteny selfcheck --ref <clone> --bundle <slug>` | Run the bundle's `selfcheck.py` on the box via account-scoped shell. |
 | Migrate | `oteny migrate-talent --ref <clone> --bundle <slug>` | Drive `migrate.py` on the box. |
@@ -289,6 +290,22 @@ An outside author cannot run them on Path B today. Until they land on
 `oteny`, harvest the accessible name from `traces` and put that name first.
 Pattern + manifest format:
 [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
+
+**The pages your bot saw — the page archive (`--photos`).** The platform keeps every
+page a browser-driven bot sees on a portal: the visible text, the exact tree the bot
+read, the control it aimed at, and the option list of any list it opened. That archive
+is **your tenant's data**, on by default, and it is the ground truth your Talent and
+your stub are fixed against after a run. Read it back with
+`oteny traces --ref <clone> --photos`. Each `page_snapshot` row then carries a
+`photo`: `visible_text` (capped at 2000 characters), `aim`, `options.names`, and
+`capture_reason` (`hop`, `failed_type`, `widget_open`, `on_demand`). The HTML never
+leaves the platform through this verb. `browser_summary.pages_archived` /
+`photos_attached` say how many pages the walk kept. Your bot reads the same archive
+itself with the `browser_recall` tool (its own past pages, by session or by a word on
+the page). The record knob lives in `agent-profile.yaml` (`browser: record:` —
+`always` by default, `on_miss`, or `off`), and the account owner can switch the archive
+off per bot. To turn one archived page into an offline fixture for your stub
+(`page-fixture-export`) you still need Oteny staff today — see the gaps table.
 
 **Grading a click: did it stick?** Since 2026-08-25 an action row carries more than
 "the tool returned success". It names the snapshot ref your bot acted on, what that ref

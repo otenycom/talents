@@ -127,7 +127,11 @@ Talent alike.
      (defaults to the bot's tier; declare `builder` as a floor for a **side-effecting
      job** — a filing, payment, or submission — see the authoring standard's
      business-bot-pattern "Choosing the model tier", D235), and a `routing:` block with a
-     `channel_prompt` + `signature`.
+     `channel_prompt` + `signature`. Two optional self-learning knobs:
+     `self_modification: locked` (the bot may not edit this Talent from inside its own
+     box; undeclared means unlocked, and the bot may improve its own Talent) and
+     `browser: record: always | on_miss | off` (how much of what the bot sees on a
+     portal the platform archives as the tenant's page log; `always` when undeclared).
    - `required_artifacts.yaml` — the **setup goal**, one machine-checkable artifact per
      thing that must exist (db + tables, profile fields, etc.).
    - a `scripts/selfcheck.py` (copy the standard one) + a `references/first-run.md` drill

@@ -506,6 +506,19 @@ recovered it in one reaper tick, and the re-hand was consumed in seconds.)
 
 ## 4d. Make the double faithful — harvest the operator's walkthrough (page graph, not flat form)
 
+**The cheapest harvest is your bot's own run.** Since 2026-09 the platform archives every
+page a browser-driven bot sees on the real portal — the visible text, the tree it read,
+the control it aimed at, and the option list of any list it opened — as your tenant's
+data, on by default. After one attended run against the real site, read the pages back
+with `oteny traces --ref <clone> --photos` (each `page_snapshot` row carries a `photo`),
+and fix the stub and the selector map against those names, not against memory or a
+human's screenshots. A required field that the live page names `Street *` while your
+stub says `Street (required)` is exactly the kind of drift this catches, and it is the
+drift that kept a stub green for weeks while the bot failed live. The bot can read the
+same archive itself with `browser_recall`, so a Talent that is not locked
+(`self_modification`, below) can improve its own selector map from its own history.
+The human walkthrough below stays the fallback for a page the bot has not reached yet.
+
 A flat "all the fields on one page" double proves plumbing, not the filing. Your bot's skill text
 and the double **co-evolve against the real system**, and the cheapest source of truth is the
 **human operator who does the task today**: ask them for a click-by-click walkthrough of ONE real
@@ -1618,7 +1631,19 @@ action at a time:**
 - **Dropdowns: click the combobox, then the option.** Use the option's
   **exact visible text**. Copy it from the open list. Do not guess a
   translation. Do not write a hidden input. A cascade whose next list
-  arrives from the server stays one action at a time.
+  arrives from the server stays one action at a time. A click that opens
+  a list hands the bot `options` — every option in the list — so the
+  skill says "pick from `options`", never "guess the option".
+- **Trust the host's read-back, and look when you doubt.** After every
+  `browser_type` the host reads the box itself: `landed` (the box holds
+  what was typed), `bound` (the page kept it after focus left), and
+  `confirm` — `match`, `differ`, `unbound` (the page dropped the value on
+  blur: pick another way in), `unseen` (the box could not be read: look
+  once with `browser_snapshot`, never retype). A type aim the page does
+  not print is refused with the nearest printed names, so the skill uses
+  exact names, never substrings. When the bot doubts what it sees, one
+  `browser_snapshot` hands it the tree and the visible text around its
+  last aim; that look is cheap and is meant to be taken.
 - **Never batch across a server round-trip:** a search-then-pick, or a
   cascade where each choice populates the next. Those stay one action
   at a time.
