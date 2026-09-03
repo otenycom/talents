@@ -709,11 +709,33 @@ them is the trap that turns a high-level work instruction into a brittle screen-
    portal is redesigned you **regenerate the runbook** — you never rewrite the instruction.
    Do **not** copy a stub label as the live primary. The stub carries names a human
    transcribed. The trace carries the accessible name the page really exposes.
+   Harvest the **resolvable** name (the string Playwright exact-match accepts),
+   not a required-word the AX print invented. A contains-match that also hits a
+   twin box (`House number` vs `House number addition`) is not a primary.
 
 **A page owns its advance control.** Never name one global Next button for a
 whole wizard. A later page may say *Summary* or *OK* where earlier pages said
 *Next*. Scroll that control into view **before** the native click. A control
 below the fold reads as a naming bug and costs a whole model turn.
+
+**Read-back needs a full photo.** The fill snapshot (named boxes, short AX)
+is for “type this control.” Do not judge a summary, a confirm dialog, or an
+open list from that sheet. After a hop onto *Summary*, or after *Next*, the
+bot needs a photo of what the page now *shows* — accessible tree **and**
+visible text. A custom widget can drop AX on a read-only block while the
+city is still on the page. Empty AX plus a green *Next* is not a verify.
+Do not treat a native AX `: value` suffix as the page. A Path B stub that
+only uses native inputs stays false-green on **read-back**. Fill may
+still be a real empty-`name` input. Red-test both: a write that lands
+while AX has no suffix, and a CDP `.value` set plus synthetic
+`input`/`change` that does **not** bind. Do not teach generated ids,
+CDP `innerText`, or a green Next as the happy path. A slash
+`/House number/` is a substring. It also matches House number
+addition.
+Put the keys you must see in the Talent map (`agent-profile` / selector
+runbook). The platform marks present or missing when you send that list.
+If you send no list, it still hands the visible text. Do not close a
+judge with `innerText` you fetched because the wrap photo was dark.
 
 **A click can return success and change nothing — that usually means the target sat
 outside the viewport.** The snapshot is viewport-independent, so a clipped control looks
@@ -1111,10 +1133,12 @@ A generic snapshot excerpt (English demo labels — copy the *shape*, not a live
 
 1. **Read the leading role.** `textbox` → `browser_type`. `button` / `combobox` → click (or the Talent's widget rule), not type. HTML `type=` is **not** on the bot snapshot. Do not ask the wrap for `<input type='text'>`.
 2. **Legal `browser_type` aim is the label** — `role=textbox[name="Expected start date"]`. Optional `@e49` only if it pair-checks against this generation's map. A mismatch refuses (`this number is not that name`).
-3. **Neighbour widgets.** A date row is often a **picker button** plus a **writable textbox**. Only the textbox accepts keys. Typing the button or the combobox above the dates yields `wrote nothing — field still empty`.
-4. **Remint.** Same labels, new `@eN`. A number that was a combobox on generation 2 can be a textbox on generation 6. Never retype a sticker from an older tree.
-5. **After a hop**, wait for the new photo. The wrap attaches a fresh snapshot and retires old `@eN`. Do not reuse chat stickers.
-6. **Last page vs the DTO** is Talent work. The wrap does not judge a missing mapped field. Write a scenario that force-misses the last page against this turn's uplink DTO. Do not grade a fill-first walk that happens to look complete.
+3. **Printed name must be the resolvable name.** The tree can print a required word while Playwright matches a required mark (`*` or the live `aria-label`). Harvest the name the resolver accepts. A map that copies a stub word the live page does not expose is a false-green Path B.
+4. **A substring that matches a twin is illegal.** `House number` as a contains-match also hits `House number addition`. Exact name only, or a scoped group. Do not teach `/House number/` plus `nth` when two boxes share a stem.
+5. **Neighbour widgets.** A date row is often a **picker button** plus a **writable textbox**. Only the textbox accepts keys. Typing the button or the combobox above the dates yields `wrote nothing — field still empty`.
+6. **Remint.** Same labels, new `@eN`. A number that was a combobox on generation 2 can be a textbox on generation 6. Never retype a sticker from an older tree.
+7. **After a hop**, wait for the new photo. The wrap attaches a fresh snapshot and retires old `@eN`. Do not reuse chat stickers.
+8. **Last page vs the DTO** is Talent work. The wrap does not judge a missing mapped field. Write a scenario that force-misses the last page against this turn's uplink DTO. Do not grade a fill-first walk that happens to look complete.
 
 **Draft-only is a rung on the ladder, not a permanent product lock.**
 The government submit rides `browser_click`.

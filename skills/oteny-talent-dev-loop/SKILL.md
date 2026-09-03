@@ -98,7 +98,8 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | New business-account mint + connect Odoo + product “commission my bot” UX (**Path C** — hermeshost `plans/path-c-business-commission.md`) | Staff onboarding assist / D194 P0 scripted mint until the product surface ships |
 | A **private git repo you own** that Oteny has never seen | A repo admin adds Oteny's read-only Deploy Key once. Public repos and Oteny-owned private repos (`otenycom/radar`) already work. See [`how-delivery-works.md`](references/how-delivery-works.md). |
 | **`selector-audit` / `browser-diff` / `manifest-check`** (those verbs still live in hermeshost) | Harvest the accessible name from `oteny traces`. Put the observed name first. Do not copy a stub label. Promote the verbs onto `oteny` so Path B can score a map without staff. |
-| **Thought-trail reader** (staff; hermeshost `scripts/read_thought_trail.py`) | The host already stores reasoning deltas in the metered payload. Ask staff for a `--mode themes` count. Keep the output out of git. A string-search miss is not proof that capture is off. |
+| **Thought-trail reader** (staff; hermeshost `scripts/read_thought_trail.py`) | The host already stores reasoning deltas in the metered payload. Ask staff for a `--mode themes` count. Keep the output out of git. A string-search miss is not proof that capture is off. There is **no** `oteny traces --thinking` yet. |
+| **Steel clip / frame download** (staff `steel-key`) | Bot Activity **Replay** is the player (48 h). There is no author verb to pull a frame at a tool clock. Do not ask for a vendor key. |
 
 *Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
 **`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
@@ -328,6 +329,28 @@ That business Odoo needs **both** Watch and Replay credentials (not only the log
 — ask Oteny if the chip says replay is not configured. If the row still says **No browser used**
 while Discuss shows an active filing, the bot's discuss plugin is stale (redeliver/converge) or
 those purpose tokens were never claimed.
+
+**After a slow or dark filing.** Start here. Do not ask for a
+platform master key.
+
+1. Open the **Bot Activity** row for that run. Press **Watch live**
+   if the browser is still up. Press **Replay** if the run already
+   ended (48 hours). Align what you see with the tool clocks.
+2. Run `oteny traces --ref <bot>` (optional `--session`). Read
+   `browser_summary` first (`failed`, `value_mismatches`,
+   `click_no_ops`, `pages_captured`). Then read `browser_traces`.
+   Confirm-unseen is `value_matched` plus the error text. A typed
+   value never appears.
+3. Harvest the **accessible name** from a `page_snapshot` inventory.
+   Put that name first on the next map. Do not copy a stub label.
+   `selector-audit` / `browser-diff` are not on `oteny` yet.
+4. If traces are not enough, open box `inspect` or `shell` on **this**
+   bot. That window is not a Steel recording.
+
+Thinking text (`hh.llm.call`) and a downloadable Steel clip are
+**not** author verbs today. Replay is the player. Ask Oteny only
+if Replay is unconfigured, or if you need a thought-trail count.
+Do not run a private control-plane binary.
 
 ## When your live bot fails (post-incident repair)
 
