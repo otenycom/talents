@@ -1029,6 +1029,72 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Authoring notes** — This is the cookie snapshot, not website passwords. Use list_logins for the password store. If the site still asks you to log in after two failures, wait five minutes, then ten, then ask the owner.
 
+### `browser_recall` — Recall pages the browser saw before
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Recall pages this bot's browser saw before — this session or earlier ones. Returns the newest archived page photos: url, title, what the page showed (visible_text), what you aimed (aim), the options that were in an open list, and why it was captured (capture_reason: navigate, snapshot, hop, type_unseen, widget_open). Use it to check how a page looked last time, which name a field really printed, or what a list offered. Filter with query (a substring of url, title or text); limit defaults to 5, max 40. Never returns raw HTML.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Substring to match in url, title or visible text."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Newest N photos (default 5, max 40)."
+    },
+    "session": {
+      "type": "string",
+      "description": "Only photos of this browser session ref (optional)."
+    }
+  },
+  "required": []
+}
+```
+
+**Result** — {photos: [{trace_id, ts, session_ref, url, title, capture_reason, tool_name, aim, visible_text, visible_text_truncated, options?: {label, total, virtualized, names}, open_widgets?}], count} — the newest archived page photos of THIS bot, newest first. Never raw HTML.
+
+**Errors / edges** — A platform error returns {status:'error', message}. An empty list means nothing was archived yet (the owner may have switched the page archive off, or the Talent declared browser.record: off).
+
+**Example**
+
+```json
+{
+  "query": "Summary",
+  "limit": 3
+}
+```
+
+→
+
+```json
+{
+  "photos": [
+    {
+      "trace_id": 41,
+      "ts": "2026-09-03 09:09:07",
+      "session_ref": "sess-9",
+      "url": "https://portal/summary",
+      "title": "Summary",
+      "capture_reason": "hop",
+      "tool_name": "browser_click",
+      "aim": "role=button[name=\"Summary\"]",
+      "visible_text": "Summary\nCity Rivertown\nNext",
+      "visible_text_truncated": false
+    }
+  ],
+  "count": 1
+}
+```
+
+**Authoring notes** — Your own browsing history, this session or earlier ones: how a page looked last time, which name a field really printed, what a list offered. capture_reason is navigate, snapshot, hop, type_unseen or widget_open. limit is capped at 40 (the archive ring). Reading is always allowed; editing your Talent from what you learn is the Talent's own declaration.
+
 ### `browser_save_profile` — Save browser sign-in on close
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*

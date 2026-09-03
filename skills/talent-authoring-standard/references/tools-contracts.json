@@ -628,6 +628,38 @@
       "notes": "This is the cookie snapshot, not website passwords. Use list_logins for the password store. If the site still asks you to log in after two failures, wait five minutes, then ten, then ask the owner."
     },
     {
+      "name": "browser_recall",
+      "requestable_name": "browser_recall",
+      "request_via": "tools.required",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free",
+      "description": "Recall pages this bot's browser saw before — this session or earlier ones. Returns the newest archived page photos: url, title, what the page showed (visible_text), what you aimed (aim), the options that were in an open list, and why it was captured (capture_reason: navigate, snapshot, hop, type_unseen, widget_open). Use it to check how a page looked last time, which name a field really printed, or what a list offered. Filter with query (a substring of url, title or text); limit defaults to 5, max 40. Never returns raw HTML.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Substring to match in url, title or visible text."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Newest N photos (default 5, max 40)."
+          },
+          "session": {
+            "type": "string",
+            "description": "Only photos of this browser session ref (optional)."
+          }
+        },
+        "required": []
+      },
+      "result": "{photos: [{trace_id, ts, session_ref, url, title, capture_reason, tool_name, aim, visible_text, visible_text_truncated, options?: {label, total, virtualized, names}, open_widgets?}], count} — the newest archived page photos of THIS bot, newest first. Never raw HTML.",
+      "errors": "A platform error returns {status:'error', message}. An empty list means nothing was archived yet (the owner may have switched the page archive off, or the Talent declared browser.record: off).",
+      "example_request": "{\n  \"query\": \"Summary\",\n  \"limit\": 3\n}",
+      "example_result": "{\n  \"photos\": [\n    {\n      \"trace_id\": 41,\n      \"ts\": \"2026-09-03 09:09:07\",\n      \"session_ref\": \"sess-9\",\n      \"url\": \"https://portal/summary\",\n      \"title\": \"Summary\",\n      \"capture_reason\": \"hop\",\n      \"tool_name\": \"browser_click\",\n      \"aim\": \"role=button[name=\\\"Summary\\\"]\",\n      \"visible_text\": \"Summary\\nCity Rivertown\\nNext\",\n      \"visible_text_truncated\": false\n    }\n  ],\n  \"count\": 1\n}",
+      "notes": "Your own browsing history, this session or earlier ones: how a page looked last time, which name a field really printed, what a list offered. capture_reason is navigate, snapshot, hop, type_unseen or widget_open. limit is capped at 40 (the archive ring). Reading is always allowed; editing your Talent from what you learn is the Talent's own declaration."
+    },
+    {
       "name": "browser_save_profile",
       "requestable_name": "browser_save_profile",
       "request_via": "tools.required",

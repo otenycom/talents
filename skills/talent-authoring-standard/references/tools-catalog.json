@@ -173,6 +173,15 @@
       "cost": "free"
     },
     {
+      "name": "browser_recall",
+      "requestable_name": "browser_recall",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "browser_save_profile",
       "requestable_name": "browser_save_profile",
       "request_via": "tools.required",

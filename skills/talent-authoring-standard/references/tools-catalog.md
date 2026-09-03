@@ -66,6 +66,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `browser_download` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📥 Fetches a file off a website (export, invoice, backup) and hands you a link. |
 | `browser_needs_login` | `tools.required` | oteny-web-operator | live | Included | 🔑 Reports that a page needs a human sign-in so the bot ends the turn cleanly instead of stalling — the owner logs in later from a button. |
 | `browser_list_profile` | `tools.required` | oteny-web-operator | live | Included | 🍪 Says whether this bot has a saved browser cookie snapshot. Does not print an id. |
+| `browser_recall` | `tools.required` | oteny-web-operator | live | Included | 🗂️ Returns the newest archived page photos of this bot: what each page showed, what was aimed, the options in an open list. Never raw HTML. |
 | `browser_save_profile` | `tools.required` | oteny-web-operator | live | Included | 💾 Marks this signed-in window so the cookie snapshot writes when it closes. |
 | `browser_clear_profile` | `tools.required` | oteny-web-operator | live | Included | 🧹 Drops this bot's saved browser cookie snapshot. Website passwords stay. |
 
