@@ -80,10 +80,19 @@ def _resolve_slug(cli_slug: str | None) -> str:
     return slug
 
 
+# Git exports these to a hook it runs, and a linked worktree's hook always sees GIT_DIR.
+# A nested git call that inherits them acts on the CALLER's repo (the pre-commit run of
+# this Talent's tests once staged deletions across a whole worktree), so the scaffold's
+# own git must see only its cwd.
+_INHERITED_GIT_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_PREFIX", "GIT_OBJECT_DIRECTORY")
+
+
 def _git(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+    env = {k: v for k, v in os.environ.items() if k not in _INHERITED_GIT_ENV}
     return subprocess.run(
         ["git", *args], cwd=str(cwd), check=check,
-        capture_output=True, text=True,
+        capture_output=True, text=True, env=env,
     )
 
 

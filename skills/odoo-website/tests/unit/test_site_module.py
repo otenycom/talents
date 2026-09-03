@@ -103,3 +103,15 @@ def test_docs_give_the_exact_upgrade_command():
     skill = (root / "SKILL.md").read_text(encoding="utf-8")
     assert "/oteny_subscribe upgrade power" in first
     assert "/oteny_subscribe upgrade power" in skill
+
+
+def test_git_helper_ignores_an_inherited_git_dir(mod, tmp_path, monkeypatch):
+    """A hook run inside a linked worktree exports GIT_DIR; the scaffold's nested git
+    must still act on its own cwd, never on the repo that ran the hook."""
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "not-a-repo"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path / "not-a-tree"))
+    repo = tmp_path / "scaffold"
+    repo.mkdir()
+    mod._git(repo, "init", "-q")
+    assert (repo / ".git").is_dir()
+    assert not (tmp_path / "not-a-repo").exists()
