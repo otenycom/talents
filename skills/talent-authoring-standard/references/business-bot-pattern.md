@@ -1641,7 +1641,8 @@ action at a time:**
   blur: pick another way in), `unseen` (the box could not be read: look
   once with `browser_snapshot`, never retype). A type aim the page does
   not print is refused with the nearest printed names, so the skill uses
-  exact names, never substrings. When the bot doubts what it sees, one
+  exact names, never substrings (no `/…/`, no `name*=` / `name^=` /
+  `name$=`). When the bot doubts what it sees, one
   `browser_snapshot` hands it the tree and the visible text around its
   last aim; that look is cheap and is meant to be taken.
 - **Never batch across a server round-trip:** a search-then-pick, or a

@@ -41,6 +41,23 @@ def test_summary_counts_native_action_rows():
     assert bs["misses"] == 0 and bs["ambiguous"] == 0
 
 
+def test_summary_named_actions_are_not_misses_and_clicks_carry_no_value():
+    """A named click or type carries match_count 0 and a click carries no value.
+    A miss is a FAILED step with nothing matched; a value mismatch needs a step
+    that set a value. Otherwise a clean named walk reads as all misses."""
+    dto = _dto([
+        {"kind": "click", "target_attempted": 'role=combobox[name="Sector"]',
+         "match_count": 0, "ok": True, "checked_state": -1, "value_matched": 0},
+        {"kind": "type", "target_attempted": 'role=textbox[name="Street *"]',
+         "match_count": 0, "ok": True, "checked_state": -1, "value_matched": 1},
+        {"kind": "type", "target_attempted": 'role=textbox[name*="End date"]',
+         "match_count": 0, "ok": False, "checked_state": -1, "value_matched": 0,
+         "error": "set value could not be verified"},
+    ])
+    bs = dto["browser_summary"]
+    assert (bs["actions"], bs["misses"], bs["value_mismatches"], bs["failed"]) == (3, 1, 1, 1)
+
+
 def test_summary_surfaces_the_click_that_reported_success_and_stuck_nothing():
     dto = _dto([
         {"kind": "click", "target_attempted": "@e51", "el_id": "informeren_nee",

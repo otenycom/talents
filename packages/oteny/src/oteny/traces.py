@@ -8,6 +8,7 @@ from typing import Any
 
 PHOTO_TEXT_CAP = 2000
 PHOTO_OPTIONS_CAP = 50
+_VALUE_KINDS = frozenset({"type", "fill", "select"})
 
 
 def decode_page_archive(blob_b64: str) -> dict:
@@ -190,11 +191,18 @@ def build_traces_dto(client, ref: str, session: str | None = None,
     ]
     steps = [t for t in browser_traces if t.get("kind") != "page_snapshot"]
     snaps = [t for t in browser_traces if t.get("kind") == "page_snapshot"]
+    # A native click / type aimed by name carries no locator count and a click
+    # carries no value, so a miss is a step that FAILED with nothing matched and a
+    # value mismatch is counted only on a step that set a value. Otherwise a clean
+    # named run reads as all misses.
     browser_summary = {
         "actions": len(steps),
-        "misses": sum(1 for t in steps if t.get("match_count") == 0),
+        "misses": sum(1 for t in steps
+                      if t.get("match_count") == 0 and not t.get("ok")),
         "ambiguous": sum(1 for t in steps if (t.get("match_count") or 0) > 1),
-        "value_mismatches": sum(1 for t in steps if t.get("value_matched") == 0),
+        "value_mismatches": sum(1 for t in steps
+                                if t.get("kind") in _VALUE_KINDS
+                                and t.get("value_matched") == 0),
         # A click that reported SUCCESS and left its control unchecked — the
         # off-viewport no-op signature. The tool says ok, the page did not
         # change, and nothing the model can see tells the difference.
