@@ -646,6 +646,13 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    type into a combobox, and use the keyboard (first letters, then Enter) when
    `matched` is false.
 
+   Aim with the name the tree prints. When a label carries a required-indicator
+   span (`Straat <span aria-label="Verplicht">*</span>`), the tree prints
+   "Straat Verplicht" while the label's text reads "Straat *". The host's
+   selector resolver reads the accessible name the way the tree does, and the
+   result says `resolved_by: accessible-name` when that pass landed the aim. A
+   skill never rewrites a printed name to match the markup it guesses.
+
    Expect a **fidelity** win, not a speed win. Measured on one bot's two graded scenarios, the
    same change moved one run about 9% faster and the other about 4% slower. What you buy is that
    a green run on the double now exercises the technique a live run needs, so the two stop
