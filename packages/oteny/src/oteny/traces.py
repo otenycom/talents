@@ -88,10 +88,19 @@ def attach_page_photos(client, browser_traces: list[dict], domain: list) -> dict
     return summary
 
 
+# The window is sized to one filing walk: about 100 model calls, each with a tool
+# result, so 300 rows read newest-first hold the whole walk (a 50-row window ended
+# a third of the way through a draft and made every ``expect.trace`` marker vacuous).
+MESSAGE_WINDOW = 300
+TOOL_PREVIEW_CHARS = 800
+PREVIEW_CHARS = 160
+
+
 def _msg_preview(m: dict) -> dict:
     content = m.get("content")
     text = content if isinstance(content, str) else ("" if content is None else str(content))
-    return {"role": m.get("role"), "tool": m.get("tool_name") or None, "preview": text[:160]}
+    cap = TOOL_PREVIEW_CHARS if m.get("role") == "tool" else PREVIEW_CHARS
+    return {"role": m.get("role"), "tool": m.get("tool_name") or None, "preview": text[:cap]}
 
 
 def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
@@ -156,9 +165,11 @@ def build_traces_dto(client, ref: str, session: str | None = None,
 
     out_sessions = []
     for s in sessions:
-        msgs = client.search_read(
+        # newest first, so a long walk keeps its end; rendered oldest first.
+        msgs = list(reversed(client.search_read(
             "hh.hermes.message", [["session_id", "=", s["id"]]],
-            ["role", "tool_name", "content", "timestamp"], limit=50)
+            ["role", "tool_name", "content", "timestamp"],
+            limit=MESSAGE_WINDOW, order="id desc")))
         turns = client.search_read(
             "hh.hermes.turn", [["session_id", "=", s["id"]]], ["model_call_count"], limit=200)
         out_sessions.append({
@@ -187,8 +198,9 @@ def build_traces_dto(client, ref: str, session: str | None = None,
              "el_tag", "el_type", "action_fired", "checked_state", "value_matched",
              "ok", "error", "submit_actual", "nav_from", "nav_to", "has_snapshot",
              "snapshot_pretty"],
-            limit=300)
+            limit=MESSAGE_WINDOW, order="id desc")
     ]
+    browser_traces.reverse()  # oldest first, like the messages
     steps = [t for t in browser_traces if t.get("kind") != "page_snapshot"]
     snaps = [t for t in browser_traces if t.get("kind") == "page_snapshot"]
     # A native click / type aimed by name carries no locator count and a click
@@ -279,4 +291,13 @@ def harvest_trace_text(dto: dict, *, after_session_id: int = 0) -> str:
             f"pages={bs.get('pages_captured')} controls={bs.get('controls_captured')}"
             + (f" archived={bs.get('pages_archived')} photos={bs.get('photos_attached')}"
                if "pages_archived" in bs else ""))
+    # One line per browser action: what was aimed, whether it landed, and the
+    # platform's own sentence when it did not (a halt, a covered option). A marker
+    # or an ``absent`` in a scenario can then name a browser fact, not only a tool name.
+    for t in (dto.get("browser_traces") or []):
+        if t.get("kind") == "page_snapshot":
+            continue
+        lines.append(
+            f"[browser] {t.get('kind')} target={t.get('target_attempted') or ''} "
+            f"ok={t.get('ok')}" + (f" error={t.get('error')}" if t.get("error") else ""))
     return "\n".join(lines)
