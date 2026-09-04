@@ -625,6 +625,18 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    `role=group[name="…"] >> role=radio[name="…"]`. A generated shared `name` across a live
    group cannot be the primary. Old `input[name=]` rungs stay fallbacks only.
 
+   The host confirms a pick for you, because the page's own tree does not. A
+   snapshot prints a custom combobox with no value, so a landed pick looks like
+   no pick. Measured on four graded filings, the bot then typed into the
+   combobox and lost about three minutes per filing on one field. So, after a
+   click on an option, the click result carries `picked`: the combobox that was
+   open, `now_reads`, and `matched`. A look prints every combobox as
+   `- combobox "…": <what it reads>`. A type into a select-style combobox comes
+   back as a `select-style combobox` platform verdict, never as an empty field.
+   Teach the skill three things: read `picked.matched` as the confirmation, never
+   type into a combobox, and use the keyboard (first letters, then Enter) when
+   `matched` is false.
+
    Expect a **fidelity** win, not a speed win. Measured on one bot's two graded scenarios, the
    same change moved one run about 9% faster and the other about 4% slower. What you buy is that
    a green run on the double now exercises the technique a live run needs, so the two stop
