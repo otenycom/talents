@@ -653,6 +653,20 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    result says `resolved_by: accessible-name` when that pass landed the aim. A
    skill never rewrites a printed name to match the markup it guesses.
 
+   A folded option is the host's problem, not the skill's. A long list opens as
+   an overlay panel that shows a few rows, and the option you need sits below
+   the fold. The click result of the list trigger carries `options` (the host
+   waits for the panel's open animation), so read the list before you aim. When
+   an option click does not land, the host reopens the list, scrolls the option
+   within its own panel and clicks it once, then uses the list's typeahead (the
+   option's leading letters, Enter only once the active row reads the option, and
+   the combobox read back), and a landed recovery says `picked.recovered_by`
+   (`in-panel-scroll` or `typeahead`) with `matched: true`. Only when both failed
+   does `matched` come back false, with the steps that ran and the keyboard hint. A skill never scrolls the page to reach an
+   option (the panel is anchored to its field, so a page scroll changes nothing
+   inside it), and it never repeats an engine's layout guess ("under a sticky
+   heading") to the user as a fact about the page.
+
    Expect a **fidelity** win, not a speed win. Measured on one bot's two graded scenarios, the
    same change moved one run about 9% faster and the other about 4% slower. What you buy is that
    a green run on the double now exercises the technique a live run needs, so the two stop

@@ -154,3 +154,32 @@ def test_window_is_the_walk_newest_first_and_rendered_in_order():
     assert ('[browser] click target=role=option[name="Nederland (EER)"] ok=False '
             "error=the option sits below the list's fold and the panel did not scroll") in text
     assert "[browser] page_snapshot" not in text
+
+
+def test_a_browser_result_verdict_is_lifted_out_of_the_long_preview():
+    """A click result starts with a 10 000-character tree and ends with the
+    platform's own keys (`picked`, `resolved_by`, `options`, a halt). The 800-
+    character preview never reaches them; the verdict line does, so an author reads
+    a landed pick or a recovery from `oteny traces` alone."""
+    from oteny.traces import _msg_preview, harvest_trace_text
+    tree = "- combobox \"Sector\" [ref=e40]\n" * 400
+    result = json.dumps({"success": True, "snapshot": tree,
+                         "picked": {"option": "H. Vervoer en opslag", "combobox": "Sector",
+                                    "now_reads": "H. Vervoer en opslag", "matched": True,
+                                    "recovered_by": "typeahead"},
+                         "resolved_by": "typeahead",
+                         "options": {"label": "Sector", "total": 21, "visible": 7,
+                                     "virtualized": False, "names": ["A."] * 21}})
+    row = _msg_preview({"role": "tool", "tool_name": "browser_click", "content": result})
+    assert len(row["preview"]) == 800 and "picked" not in row["preview"]
+    assert row["verdict"]["picked"]["recovered_by"] == "typeahead"
+    assert row["verdict"]["options"] == {"label": "Sector", "total": 21, "visible": 7,
+                                         "virtualized": False}, "names stay out of the line"
+    assert "names" not in row["verdict"]["options"]
+    plain = _msg_preview({"role": "tool", "tool_name": "browser_click",
+                          "content": json.dumps({"success": True, "snapshot": tree})})
+    assert "verdict" not in plain
+    assert "verdict" not in _msg_preview({"role": "tool", "tool_name": "read_file", "content": result})
+    text = harvest_trace_text({"sessions": [{"session": "s", "label": "l", "turns": 1,
+                                             "model_calls": 1, "messages": [row]}]})
+    assert '[verdict] {"picked": {"option": "H. Vervoer en opslag"' in text

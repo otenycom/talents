@@ -96,11 +96,40 @@ TOOL_PREVIEW_CHARS = 800
 PREVIEW_CHARS = 160
 
 
+# The platform's own verdict keys on a browser tool result. They sit at the END of
+# a result that starts with a 10 000-character tree, so the 800-character preview
+# never reaches them; the verdict line lifts them out so an author reads a landed
+# pick, a recovery, an attached list or a halt without the transcript.
+_VERDICT_KEYS = ("picked", "resolved_by", "resolved_target", "source", "platform_reason",
+                 "halt", "halt_reason")
+
+
+def _tool_verdict(text: str) -> dict | None:
+    if not text.startswith("{") or not any(f'"{k}"' in text for k in _VERDICT_KEYS + ("options",)):
+        return None
+    try:
+        data = json.loads(text)
+    except Exception:  # noqa: BLE001 — a truncated or non-JSON result has no verdict
+        return None
+    if not isinstance(data, dict):
+        return None
+    out = {k: data[k] for k in _VERDICT_KEYS if k in data}
+    opts = data.get("options")
+    if isinstance(opts, dict):
+        out["options"] = {k: opts.get(k) for k in ("label", "total", "visible", "virtualized")}
+    return out or None
+
+
 def _msg_preview(m: dict) -> dict:
     content = m.get("content")
     text = content if isinstance(content, str) else ("" if content is None else str(content))
     cap = TOOL_PREVIEW_CHARS if m.get("role") == "tool" else PREVIEW_CHARS
-    return {"role": m.get("role"), "tool": m.get("tool_name") or None, "preview": text[:cap]}
+    row = {"role": m.get("role"), "tool": m.get("tool_name") or None, "preview": text[:cap]}
+    if m.get("role") == "tool" and str(m.get("tool_name") or "").startswith("browser_"):
+        verdict = _tool_verdict(text)
+        if verdict:
+            row["verdict"] = verdict
+    return row
 
 
 def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
@@ -283,6 +312,8 @@ def harvest_trace_text(dto: dict, *, after_session_id: int = 0) -> str:
                 f"[{m.get('role')}]"
                 + (f" tool={tool}" if tool else "")
                 + f" {(m.get('preview') or '')}")
+            if m.get("verdict"):
+                lines.append(f"[verdict] {json.dumps(m['verdict'], ensure_ascii=False)}")
     for d in (dto.get("diagnostics") or [])[:10]:
         lines.append(f"# diag {d.get('kind')} {d.get('severity')}: {d.get('summary')}")
     bs = dto.get("browser_summary") or {}
