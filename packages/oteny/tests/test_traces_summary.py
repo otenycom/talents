@@ -110,9 +110,11 @@ class RecordingClient(FakeClient):
     def __init__(self, rows):
         super().__init__(rows)
         self.queries = []
+        self.domains = []
 
     def search_read(self, model, domain, fields=None, limit=None, order=None):
         self.queries.append((model, limit, order))
+        self.domains.append((model, domain))
         return super().search_read(model, domain, fields, limit, order)
 
 
@@ -140,6 +142,10 @@ def test_window_is_the_walk_newest_first_and_rendered_in_order():
     dto = build_traces_dto(client, "lab00003", session="20260904_1")
     assert ("hh.hermes.message", MESSAGE_WINDOW, "id desc") in client.queries
     assert ("hh.browser.trace", MESSAGE_WINDOW, "id desc") in client.queries
+    # the browser rows are windowed on the task id, never on the Steel session id
+    bt_domains = [d for m, d in client.domains if m == "hh.browser.trace"]
+    assert ["task_id", "=", "20260904_1"] in bt_domains[0]
+    assert not any(c[0] == "session_ref" for c in bt_domains[0])
     msgs = dto["sessions"][0]["messages"]
     assert [m["role"] for m in msgs] == ["user", "assistant", "tool"]
     assert len(msgs[2]["preview"]) == 800 and len(msgs[1]["preview"]) == 160

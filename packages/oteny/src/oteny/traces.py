@@ -186,7 +186,9 @@ def build_traces_dto(client, ref: str, session: str | None = None,
 
     bt_domain: list[Any] = [["tenant_ref", "=", ref]]
     if session:
-        bt_domain.append(["session_ref", "=", session])
+        # ``--session`` is the Hermes task id everywhere in this DTO; a browser
+        # row keys it as ``task_id`` (``session_ref`` is the broker's Steel id).
+        bt_domain.append(["task_id", "=", session])
     if since:
         bt_domain.append(["ts", ">=", since])
     browser_traces = [
