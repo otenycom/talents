@@ -200,7 +200,9 @@ uv pip install -e ~/oteny/talents/packages/oteny
 
 Auth: `--api-key-file` or `OTENY_ACCOUNT_KEY` → your **account** key file (0600).
 Business-bot Discuss scenarios also need `tests/discuss.yaml` → `tester_key_file`
-(CrewRadar tester — not the Oteny account key).
+(CrewRadar tester — not the Oteny account key). `OTENY_TESTER_KEY_FILE` in the
+environment overrides that path, so two lanes (two business databases with two
+tester keys) run the same committed bundle without an edit to the yaml.
 
 Transports for `oteny test`: **Discuss** (business bots / `hand_off`), **CLI**
 (`hermes chat` oneshot over box-access — plain chat turns), auto-pick. **Telegram
@@ -252,6 +254,17 @@ same way, with three differences:
   does — which fires the platform's own token-fenced dispatch, then waits for the bot's channel
   narration. Use `hand_off` (not a driver-posted flagged message) so the scenario exercises the
   real claim fence, not a legacy path. Fixture must match **exactly one** record (seed/reset it).
+- **A long run waits on ground truth, and ends early on a hand-back.** Inside `hand_off`,
+  `done_when: {model, domain, equals|count}` polls the record until its terminal state, then
+  reads the final narration (channel silence is not "done": a browser pause fakes it).
+  `fail_when:` takes a list of the same specs, each with a `reason:` label. When one of them
+  passes first (the record is back in the human queue with no claim, because the platform's
+  stream watchdog, the reaper, or the Talent's own claim-fence decision handed it back), the
+  wait ends now and the reply ends with `[hand_off ended early: <reason>]`, so
+  `expect.reply` fails with the reason in the junit instead of a bare timeout
+  `reply_timeout` seconds later. Without it a hand-back costs the whole `reply_timeout`
+  (2026-09-04 lab: two walks, 25 minutes each). Keep `reply_timeout` under the workflow's
+  reaper window so a hung model stream lands on the reaper, not on both clocks in series.
 - **The clone points its uplink at a STAGING business Odoo** (never prod), and `neutralize.yaml`
   repoints connections + confirms any side-effecting adapter (portal/browser/mailbox) is the stub.
 - **Adversarial red scenarios run in their OWN invocation.** A red scenario (the fail-closed

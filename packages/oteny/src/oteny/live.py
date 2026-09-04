@@ -301,6 +301,7 @@ class LiveDriver:
         self._latest_session_id = latest_session_id
         self._trace_after = 0
         self._uplink_poll_s = uplink_poll_s
+        self._fail_when_reason = ""
 
     def _mark_trace_baseline(self) -> None:
         if self._latest_session_id is not None:
@@ -368,7 +369,16 @@ class LiveDriver:
                 # frame ~9 min before Barney finished). Once the record settles, grab the
                 # final narration (the channel is quiet now, so the debounce returns it fast).
                 deadline = time.monotonic() + wait
-                await self._await_done(done_when, deadline)
+                outcome = await self._await_done(done_when, deadline, spec.get("fail_when"))
+                if outcome == "failed":
+                    # The record left the bot's hands before the terminal state (a
+                    # hand-back: the adapter's stream watchdog, the reaper, or the
+                    # Talent's own claim-fence decision). Read the narration now and
+                    # say why the wait ended, so the author sees the reason in the
+                    # reply instead of a bare timeout ``reply_timeout`` seconds later
+                    # (2026-09-04 lab: two walks each burned 25 minutes that way).
+                    narration = await self._post_message.wait_for_reply(after, 60.0)
+                    return f"{narration}\n[hand_off ended early: {self._fail_when_reason}]"
                 remaining = max(60.0, deadline - time.monotonic())
                 return await self._post_message.wait_for_reply(after, remaining)
             return await self._post_message.wait_for_reply(after, wait)
@@ -462,15 +472,26 @@ class LiveDriver:
         except Exception as e:  # a seam/query error is a test failure, not a runner crash
             return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
 
-    async def _await_done(self, done_when, deadline: float) -> bool:
+    async def _await_done(self, done_when, deadline: float, fail_when=None) -> str:
         """Poll a ground-truth condition (or list) until ALL pass, or ``deadline`` (monotonic)
         passes. THE reliable 'the bot finished' signal for a long async run — a filing's
         completion is a business-record state reaching its terminal value, not the channel
-        going quiet (which a mid-run browser pause fakes — the 2026-07-11 false-fail)."""
+        going quiet (which a mid-run browser pause fakes — the 2026-07-11 false-fail).
+
+        ``fail_when`` (optional; one spec or a list, same ``count`` / ``equals`` verbs as
+        ``done_when``, plus an optional ``reason`` label) ends the wait early when any of
+        its conditions passes first: the record went back to the human queue, so the
+        terminal state will never come. Returns ``"done"``, ``"failed"`` or ``"timeout"``."""
         specs = done_when if isinstance(done_when, list) else [done_when]
+        fails = [] if not fail_when else (fail_when if isinstance(fail_when, list) else [fail_when])
+        self._fail_when_reason = ""
         while time.monotonic() < deadline:
             results = [await self._eval_uplink(s) for s in specs]
             if all(r.get("ok") for r in results):
-                return True
+                return "done"
+            for f in fails:
+                if (await self._eval_uplink(f)).get("ok"):
+                    self._fail_when_reason = str(f.get("reason") or "fail_when matched")
+                    return "failed"
             await asyncio.sleep(self._uplink_poll_s)
-        return False
+        return "timeout"

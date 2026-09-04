@@ -1964,6 +1964,16 @@ Derive the slot from the records themselves:
 A second business bot inherits the control by flagging its login-park states and calling the
 same predicate from `_bot_dispatch_gate`. Do not put client names in the engine.
 
+A graded scenario waits on **both** terminal states of a hand-off. `done_when`
+is the success state (the draft or the filing landed). `fail_when` is the
+hand-back: the record is back in the human queue with no claim, because a
+watchdog, a reaper or the Talent's own claim-fence decision returned it. The
+hand-back is the fail-closed path working as designed, so the scenario ends on
+it at once and names the reason (`[hand_off ended early: handback]`), instead of
+waiting the whole `reply_timeout` for a state that will never come. The verbs are
+in the dev-loop skill; the domain names your workflow's queue state and its
+claim field.
+
 Prove two overlapping Hands on the live queue. A graded scenario that waits
 `done_when` serializes itself, so a green `oteny test` does not prove the
 second Hand stayed queued. Two wizard saves a few seconds apart prove

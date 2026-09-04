@@ -20,6 +20,13 @@ def load_discuss_cfg(bundle: str, catalog_dir: str) -> dict | None:
     return data if has_channel and data.get("bot_login") else None
 
 
+def tester_key_file(cfg: dict) -> str:
+    """The tester key path: ``OTENY_TESTER_KEY_FILE`` in the environment wins over
+    ``tests/discuss.yaml``'s ``tester_key_file``, so two lanes (two business databases,
+    two tester keys) share one bundle without editing the committed yaml."""
+    return os.environ.get("OTENY_TESTER_KEY_FILE") or cfg.get("tester_key_file") or ""
+
+
 def read_secret_file(path: str) -> str:
     p = Path(os.path.expanduser(path)) if path else None
     return p.read_text().strip() if (p and p.is_file()) else ""
@@ -78,7 +85,7 @@ def build_discuss_driver(
 
     uplink = OdooClient(
         base_url=uplink_url, db=uplink_db,
-        api_key=read_secret_file(cfg.get("tester_key_file") or "") or None)
+        api_key=read_secret_file(tester_key_file(cfg)) or None)
     partner = resolve_bot_partner(uplink, cfg["bot_login"])
     channel = driver_channel(
         channel_override, cfg,
