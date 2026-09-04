@@ -609,6 +609,15 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    Keep trail output in a gitignored pack. Do not paste page quotes into
    the repo.
 
+   The host also ends a turn it has handed back. When a model call hangs past
+   the channel's watchdog, the host hands the record back to the operator and
+   marks the session. A turn that later resumes finds every browser tool
+   blocked with the message "the platform handed this record back at …". That
+   block is never a page problem and never a reason to reopen the browser:
+   the skill ends the turn with the one line the message asks for. Measured on
+   the lab bench (2026-09-04): without the block, a resumed turn opened a fresh
+   browser on a record the next dispatch was already filing.
+
    The host halts a second identical `Unknown ref` on the same session
    and target. The first miss still tells you to snapshot and use a
    named selector. The second miss returns `halt: true` and does not
