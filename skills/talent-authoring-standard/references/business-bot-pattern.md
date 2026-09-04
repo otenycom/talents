@@ -1974,6 +1974,18 @@ waiting the whole `reply_timeout` for a state that will never come. The verbs ar
 in the dev-loop skill; the domain names your workflow's queue state and its
 claim field.
 
+The host polls the fence too. Once a minute during an isolated turn the Oteny
+Discuss adapter asks the record's read-only epoch probe, `bot_token_check`,
+the same call your Talent makes before an irreversible action, whether the
+turn still owns the record. When the record says no, the host interrupts the
+turn and blocks every browser tool of that session. So a reaper, a human
+hand-back or a re-assignment never leaves a bot filling a record it no
+longer owns (on 2026-09-04 a lab bot kept filling a portal for twelve minutes
+after a reaper took its record back). A second business bot inherits this by
+exposing the same probe on its workflow model; the reaper's own window is a
+backstop for a dead harness, not a cutoff for a working bot, so size it past
+the browser session's life (65 minutes against a 60-minute browser cap).
+
 Prove two overlapping Hands on the live queue. A graded scenario that waits
 `done_when` serializes itself, so a green `oteny test` does not prove the
 second Hand stayed queued. Two wizard saves a few seconds apart prove
