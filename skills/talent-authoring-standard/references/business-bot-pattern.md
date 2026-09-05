@@ -650,8 +650,10 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    span (`Straat <span aria-label="Verplicht">*</span>`), the tree prints
    "Straat Verplicht" while the label's text reads "Straat *". The host's
    selector resolver reads the accessible name the way the tree does, and the
-   result says `resolved_by: accessible-name` when that pass landed the aim. A
-   skill never rewrites a printed name to match the markup it guesses.
+   result says `resolved_by: accessible-name` when that pass landed the aim, for
+   a bare aim and for a group-scoped one (`role=group[name="…"] >> role=textbox[
+   name="Straat Verplicht"]`) alike. A skill never rewrites a printed name to
+   match the markup it guesses.
 
    A folded option is the host's problem, not the skill's. A long list opens as
    an overlay panel that shows a few rows, and the option you need sits below
