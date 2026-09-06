@@ -1091,6 +1091,25 @@ it. A selector that misses on *every* run is real (the `browser-diff` verdict
 tells you which); a selector that misses once is a coin toss until a second run
 confirms it.
 
+**A headless browser in your test suite needs its OWN profile, and one browser per test
+class.** The offline check above is worth writing as a test, and there is one way to write
+it that turns your own suite into the flake. If you shell out to Chrome per assertion and
+name no `--user-data-dir`, every launch opens the **default** profile — the one the
+developer's own browser is using. That profile is shared mutable state. Its `SingletonLock`
+is held by the running browser, so each headless start must negotiate with it: measured on
+one laptop, 1.7 s uncontended, 14.7 s with a second start in flight, and over 30 s with a
+few. A per-launch timeout then fires on a machine's contention rather than on your page,
+and it fails a test that had nothing to say about your stub. Barney lost a deploy to
+exactly this on 2026-09-06: the pre-deploy suite aborted on a stub-fidelity test, then
+passed unchanged on the retry.
+
+Do not answer it with a longer timeout or a retry — both keep the contention and hide it.
+Start **one** browser for the test class, give it a throw-away `--user-data-dir` and its own
+debugging port, drive it over the DevTools protocol, and stop it when the class ends. Own
+the process lifetime yourself rather than relying on a one-shot flag to exit: Chrome's
+`--dump-dom` prints a correct DOM against a non-default profile and then, on Chrome 152,
+never exits at all. One start instead of a dozen is also the faster suite by a wide margin.
+
 ### Observe mode — reconcile against the real portal before the first side-effect
 
 `selector-audit` and `manifest-check` harden the runbook offline, and a stub run proves it drives
