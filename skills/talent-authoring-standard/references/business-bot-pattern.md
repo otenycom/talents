@@ -504,6 +504,17 @@ within the state's SLA and you simply re-hand it. (Live case, 2026-08-24: a rest
 served by a cron-less debug config held a claim stuck for five hours; a cron worker + reprovision
 recovered it in one reaper tick, and the re-hand was consumed in seconds.)
 
+**Two more shapes of a *Working* row that never closes, both platform-fixed in 2026-09.** First,
+a re-post of a never-consumed dispatch (the ERP's 3-minute belt) must reuse the open activity
+row, and the exit must close every open row of the work token. A second row under one token
+left the first *Working* for ever, because the close hook closed one row per exit. Second, the
+ERP must sign a dispatch as its system user, never as the bot's own login. A queue drain fires
+inside the bot's own uplink call (the escalate that freed the slot), and a sudo call keeps that
+user as the author; the bot's gateway drops a message its own partner wrote (the echo guard), so
+a bot-signed dispatch sits until the belt re-posts it. The tells: two activity rows with one work
+token, or a flagged message whose author is the bot. (Live case, 2026-09-05: CrewRadar test1
+session 51; the same shape once on production the day before.)
+
 ## 4d. Make the double faithful — harvest the operator's walkthrough (page graph, not flat form)
 
 **The cheapest harvest is your bot's own run.** Since 2026-09 the platform archives every
