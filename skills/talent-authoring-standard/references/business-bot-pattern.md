@@ -573,7 +573,48 @@ run — a screenshot per screen plus a sentence of what they click next. Then:
    existing happy-path stub suite on its own tag so a full green run does not hide the
    traps.
 
-   **Honour injectable fidelity knobs. Do not turn them on by default.** A later
+   **Two kinds of switch, and only one of them may BE a switch.** A double drifts in two
+   directions and they need opposite treatment, so name which one you are looking at before
+   you reach for a parameter.
+
+   A behaviour the real system genuinely has — a required marker the page really prints, a
+   panel that really folds, a widget that really is a trigger plus a popup listbox — is
+   **fidelity**. Fidelity is **not** a switch. It is the double's baseline, always on, with
+   no parameter to set. A behaviour that is *harder* than the real system — a panel that
+   forbids a scroll the real one allows, an overlay that manufactures a blind verdict, an
+   injected delay — is **adversity**. That one is a test instrument: keep it, default it
+   **off**, and give it a stated purpose and a **removal condition**.
+
+   **The third case is the dangerous one, because nobody names it.** A double that is
+   *easier* than the real system is neither fidelity nor adversity. It is a flattering
+   mirror: it reports green and tells you nothing, and it does so for months. A stub once
+   defaulted to `Street *` where the site prints `Street Required`, and to a four-row list
+   where the site holds twenty-three rows behind a fold. Both true behaviours existed —
+   behind switches, both off. Every measurement taken on that double, including a clean run
+   of 1,495 browser actions with zero failures, was taken on a page easier than the one the
+   bot files against. The gap surfaced only in production, where the bot missed five aims on
+   the real name, abandoned the supervised typing tool, and filled the rest of a legal form
+   with hand-written JavaScript.
+
+   **So fold fidelity into the baseline and delete its switch.** If you still want to isolate
+   one variable while debugging, **invert** the parameter: a named knob that makes the double
+   *easier*, off by default and obviously a debugging aid. Then the easy road is the one you
+   have to ask for, and a forgotten parameter fails toward the truth instead of away from it.
+
+   **Keeping an imperfection is never a goal.** The end state is a clean double and a clean
+   Talent that both walk the real system cleanly. An adversity instrument earns its place only
+   while it is proving that the platform hands your bot a way around something the author never
+   taught it. Write its removal condition beside it on the day you add it, or it becomes
+   permanent by neglect — and a suite that runs forever against a deliberately broken page
+   stops telling you anything about the page you actually file on.
+
+   **Derive fidelity from traces, never from invention.** Every fidelity behaviour should
+   trace to a captured real page — your bot's own archived run, per the top of this section.
+   A behaviour you reasoned your way to is a guess with a test around it.
+
+   **Honour injectable ADVERSITY knobs. Do not turn them on by default.** (These are the
+   instruments above, not fidelity — an earlier revision of this section called them "fidelity
+   knobs", which is the exact conflation the rule above exists to prevent.) A later
    session that makes the double faithful should generalise delay, mutation, and
    login-origin knobs the happy-path suite already uses. Sleep only when a
    millisecond param is set, so the existing suite stays fast. After a radio or
