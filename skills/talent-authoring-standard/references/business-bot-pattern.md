@@ -1772,6 +1772,60 @@ action at a time:**
 Same instinct as `agent_max_turns` (above), from the other side: raise the ceiling so a long job *can*
 finish, and batch the inputs so it finishes *sooner* — inside the browser session's hard lifetime.
 
+### A long run compacts, and the compaction takes the identifiers the write-back needs
+
+A filing that runs long enough will have its context compacted. When that happens the
+earlier turns become a summary, and the summary is written to preserve *meaning*, not
+identifiers. So the record id may survive and the workflow state id may not — and the
+leg that needs the state id is the one that advances the record at the end.
+
+This is not a hypothetical. On a real government filing in September 2026 the summary
+carried the record id six times and carried no state id at all. The run then needed the
+state id to find its exit transition, reached into the summary, and used a number that
+appears there six times as an industry-sector code. The search returned nothing. Two
+belts caught it — the search failed closed rather than matching something wrong, and the
+claim would have refused a transition whose from-state did not match — and neither was
+designed for this.
+
+**Ask the platform to pin your identifiers, and name which ones.** A well-built host puts
+the run's addresses somewhere a compaction cannot reach. On Oteny that is a
+`context_pins:` list in your `agent-profile.yaml`, naming the records your write-back leg
+cannot do without; the platform pins the dispatch identifiers it already owns beside them.
+
+**Pin addresses, never values.** It is tempting to have the platform re-inject a copy of
+the record's data after a compaction. Do not ask for that. A person can edit the record
+while your run is in flight, so a replayed copy can be wrong in a way your bot cannot
+detect, and a confidently wrong value is worse than a missing one. Pin the addresses and
+**re-read** through them. A bot that re-reads before it writes back is correct at any
+context length; a bot that trusts a summary is correct only until the run gets long.
+
+**Write your skill so the re-read is a rule, not a habit.** The rule reads: before any
+advance, escalate or irreversible action, re-read the record through the pinned
+identifiers and confirm it still matches what you are about to write. A good host will
+also tell you when a compaction has just happened, but your skill should not depend on
+being told.
+
+### Every tool that writes into the client's form belongs on the audit tape
+
+A scope-locked Talent usually removes the obvious escape hatch — a JavaScript console —
+from the model's visible tool set. Check what else is still mounted that can reach the
+page. A raw DevTools tool with an allowlist that admits an "evaluate" method leaves
+arbitrary JavaScript evaluation in the client's authenticated tab under a different name,
+and closing one door while leaving the other open is not a scope lock.
+
+The failure this produces is quiet. When a named aim misses, a capable model will fall
+back to writing fields with its own JavaScript. On that same September filing about
+thirty fields of a government form arrived that way. The host's audit store — the one
+that records which value reached which field — held **zero** rows for any of it, so the
+only evidence the values had landed was a human reading the portal's summary page three
+days later.
+
+Two consequences for an author. First, **your scenarios cannot see this** if they run
+against a friendly double: a fallback that is never provoked and a fallback that is fixed
+leave the same trace, which is §4d's rule again. Second, **assert the absence**: keep an
+`absent: tool=<raw-devtools-tool>` assertion on every filing scenario, and run at least
+one scenario against the double's honest shape so the assertion can fail.
+
 ### The timeout reaper — the owner's backstop
 
 The claim/escalate pair covers the cases where the dispatched turn *runs*. It cannot cover a
