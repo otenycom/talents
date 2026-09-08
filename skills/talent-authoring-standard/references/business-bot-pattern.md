@@ -379,6 +379,22 @@ legible at a glance; each is its own **mutually-exclusive run** — the induced 
 DOWN vs portal-UP-but-browser-UNSTABLE) is set per converge, not per turn, so it gets its own
 seeded fixture and its own `test --scenario …` invocation.
 
+
+**A judge step names the read it judges from, and never reports a repair it did not make.** The
+fail-closed rule above stops a bot inventing a *side effect*. This one stops it inventing a
+*verification*, which is the same failure one turn earlier. Two live cases from one afternoon, on
+one bot: on a summary page the bot announced a mandatory field missing, opened another page, wrote
+nothing, and then told the operator the field was present; and on an earlier page its own reasoning
+concluded *"this doesn't match, I should halt and escalate"* while the line it posted to the
+channel read *"the page matches the DTO"*. Nothing was ever wrong on either page.
+
+So two sentences belong in every verify step you write. **A step that verifies a page says which
+read it verifies from**, because a click result, a snapshot and a navigate result do not carry the
+same content — a click result may carry the accessibility tree and none of the page's text, so a
+judgement taken from it is a guess wearing a verdict's clothes. And **a channel line never asserts
+a state the reasoning did not reach**: if the page differed from the briefing, the line says so,
+and if no write landed in that turn, the line does not claim one.
+
 ## 4c. Your test double is YOUR fixture — self-host and tunnel it (the dog-food rule)
 
 A subtle ownership failure is putting the stub double (§4) on the *platform's* infrastructure.
@@ -800,6 +816,92 @@ bot's hands**. If any of those slips, walk it instead.
 Either way, **mark the branch UNMAPPED rather than leaving it silently absent** in the
 manifest and the doc twin. An absent branch reads as "there is no branch".
 
+
+### The rule that outranks the three below — a double encodes a cause, not a verdict
+
+**A double encodes a CAUSE you have captured, never a VERDICT our own tooling emitted.** This rule
+was paid for twice in two days by the same canary, and the second time an assessment proposed to
+teach a government-portal double to withhold a field's value, because our tooling had reported the
+value unverifiable on the real site. It had not been. Our own reader could not parse the bracket
+the site prints.
+
+Before you teach a double to reproduce a failure, do three things, in order.
+
+1. **Name the artefact.** An archived page, a frame, a recorded sentence from the real system, or a
+   trace row taken against it. A difference between the double and the site that has no artefact is
+   a **suspected defect of ours**, and it must never be encoded. Encoding it freezes our bug into
+   the fixture and relabels it as expected behaviour of somebody else's system, where it will
+   outlive every document that corrects it.
+2. **Check that our own code can even emit the verdict you want to provoke.** Read the grader, drive
+   its branches offline, and confirm that the page shape you plan to build really produces that
+   message. A symptom our grader cannot produce from that cause is proof the cause is wrong. In the
+   case above, the proposed markup would have graded *differ*, never the *unseen* it was built to
+   cause — so the change could not have worked even on its own terms.
+3. **Ask which leg moved.** A real system that behaved differently moves every leg of the path; a
+   defect of ours moves one. Before writing "the site does X", find the leg that did not change —
+   and check whether the two runs you are comparing ran **the same build of our own tooling**. Two
+   of the three fixes in that comparison had shipped between the live run and the double run.
+
+**When the answer is a recovery ladder that has never run, exercise it in a unit test** against a
+synthesised tool result, where the cause is written down and the test says so. A fixture carries the
+page's real markup; a unit test carries our own failure paths. Confusing the two is how a fixture
+becomes a monument to a bug.
+
+Then **write which of the three each behaviour is, beside the behaviour itself**: fidelity, with its
+artefact; instrument, with the direction it errs; or unproven. The first two carry a removal
+condition. A behaviour with no such declaration is the one the next reader will propose to delete or
+to invert, and both are wrong.
+
+### Three rules the 2026-09 business-bot canary paid for
+
+**A double mints the live identifier's shape, and a client never teaches the bot to accept the
+easier one.** A double gave a saved draft an 8-character internal token where the real portal
+mints a nine-digit number at the same moment, and the response was to teach the skill *both*
+shapes — "live: nine digits; the double: the short token". That is the flattering double moving
+one repo downstream, and it is never the fix. The identifier a workflow resumes on, files under,
+or hands to a human is **the one value a double must never simplify**, because it is the value
+written back into the client's records and read by a person. So: any identifier the double issues
+carries the live shape and the live issuing moment — mint it from a seeded generator so the run
+stays deterministic, rather than reusing an internal key. And when the double and the site
+disagree, **the fix goes in the double**; a this-versus-that clause in skill text is a defect
+register entry with an owner, never documentation. Add the standing check that would have caught
+this for free: the value the bot writes back to the client system passes the same shape guard on
+the draft path that it passes on the final path.
+
+**A faithful double reproduces the failure mode, not only the look.** The same canary's corrected
+double reproduces the live portal's folded option panel — the row count, the clipping, the target
+below the fold, the open animation — and does not reproduce its *behaviour*. On the real site that
+aim produced the engine's covered-by verdict twice and ended a filing; on the double the pick
+lands on the first click, and the live failing leg is **unmeasured**. Nothing captured the live
+panel's scroll container, and our own pre-click scroll did not exist when the live covered verdict
+happened — it shipped the day after. The live engine message names a page heading painted beneath
+the click point, and the record's own reading is that nothing covers the panel. Name the capture
+that would settle it, and encode nothing until it exists. The typing example that used to sit here was wrong, and it is the better lesson.
+It read: the double confirms every write where the site confirms almost none. The site confirms
+writes as readily as the double does — the live accessibility print carries a value on 195 control
+rows — and the unverified live verdicts came from **our own** aim-identity grader, on a build that
+had no box read. So: encode a **cause** you have captured, never a **verdict** our tooling emitted,
+and check first that our own grader can even emit the verdict you want the double to provoke.
+**A green run against such a double is evidence about the double's geometry and nothing about the
+belt the geometry exists to test.** So derive a double's difficulty from a **captured failure**,
+not from a picture of one — the acceptance question is *does the platform's recovery leg fire
+here*, not *does the page look right*. And when a leg has no offline coverage, say so in the
+double's own comment and in your follow-up register, so nobody reads a green fixture test as proof
+of a recovery that has never run.
+
+**A double never identifies itself, and skill text never branches on which tier it is on.** The
+rule above — the same skill text drives the double and the real system with zero branching — is
+failed from both ends at once. That canary's skill text carried explicit this-is-the-stub clauses,
+and the double carried its own tier in its URL path and in a page banner, reaching the model in 28
+tool results. Together they taught the model that a mismatch between the briefing and the page is
+benign, and it acted on that: *"the skill says live has field X. This is the stub, so field Y is
+correct."* It then filled a control the real portal does not have. So **skill text branches on
+what the page shows, never on which system the bot thinks it is talking to** — provenance belongs
+in the selector manifest's comments, which the model does not read. And **a double that must mark
+itself for human safety does so where the bot cannot see it** — outside the DOM the bot reads — or
+the marking is declared as a named exception with a removal condition, beside the double's other
+deliberate knobs.
+
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
 **Two layers — keep them apart.** A browser Talent is authored in **two** layers, and conflating
@@ -818,9 +920,13 @@ them is the trap that turns a high-level work instruction into a brittle screen-
    portal is redesigned you **regenerate the runbook** — you never rewrite the instruction.
    Do **not** copy a stub label as the live primary. The stub carries names a human
    transcribed. The trace carries the accessible name the page really exposes.
-   Harvest the **resolvable** name (the string Playwright exact-match accepts),
-   not a required-word the AX print invented. A contains-match that also hits a
-   twin box (`House number` vs `House number addition`) is not a primary.
+   Harvest the **resolvable** name (the string Playwright exact-match accepts).
+   An AX print's trailing `[required]` **state** is not part of the name and is
+   never harvested. A required **word** that the tree computed from a decoration
+   span's `aria-label` **is** part of the name — see *Aim with the name the tree
+   prints* above, and read the two together; a reader who lands on only one of
+   them harvests the wrong string. A contains-match that also hits a twin box
+   (`House number` vs `House number addition`) is not a primary.
 
 **A page owns its advance control.** Never name one global Next button for a
 whole wizard. A later page may say *Summary* or *OK* where earlier pages said
@@ -833,8 +939,15 @@ open list from that sheet. After a hop onto *Summary*, or after *Next*, the
 bot needs a photo of what the page now *shows* — accessible tree **and**
 visible text. A custom widget can drop AX on a read-only block while the
 city is still on the page. Empty AX plus a green *Next* is not a verify.
-Do not treat a native AX `: value` suffix as the page. A Path B stub that
-only uses native inputs stays false-green on **read-back**. Fill may
+Do not treat an accessibility `: value` suffix as the page — but not
+because a real site withholds it. A real site prints it too. A double built
+from bare native inputs prints a **narrower bracket** than the site, and that
+is what makes a suffix-based read-back false-green: the double prints
+`[ref=eN]: value` where a required live control prints
+`[required, ref=eN]: value`, so a reader anchored on the bare form reads the
+double and misses the site. Red-test your reader against every bracket shape
+the site emits, and against the full-tree shape, where the value arrives as a
+child text row rather than as a suffix. Fill may
 still be a real empty-`name` input. Red-test both: a write that lands
 while AX has no suffix, and a CDP `.value` set plus synthetic
 `input`/`change` that does **not** bind. Do not teach generated ids,
@@ -1181,6 +1294,20 @@ Then reconcile, iterating four steps until the diff is clean:
 Iterate **observe → diff → harden → fill-verify until the diff is clean**, and only *then* disarm the
 belt and let the bot perform the **real** side-effect. The submit-deny belt (§4f) is exactly what
 makes step 1 safe to run against the live site as many times as convergence needs.
+
+
+**A manifest gate that cannot see `role=` selectors certifies staleness.** The twin gate that
+keeps a selector manifest and its human-readable document in lockstep reported **ok, zero
+violations, zero warnings** on a map whose required-field names disagreed with every page the bot
+met, whose two halves were out of step on four selectors, and one of whose sentences was
+factually false. The reason is in the rule's own scope: its comparison returns nothing for any
+token starting `role=` or `text=`, and it skips the `fallbacks` key entirely — and those two
+exclusions are exactly where every divergence lived. **A gate that cannot see the class of
+selector the whole fleet actually uses is a gate that certifies staleness.** If you own such a
+gate, widen it to compare `role=…[name=…]` tokens and fallback rungs, and add a rule that fails a
+manifest whose entry references a rung the twin document claims exists and the manifest does not
+carry. If you only run one, do not read its green as evidence that your map matches the site — the
+only thing that settles that is a trace from the page.
 
 ## 4f. Rehearse against the real site — the per-bot submit-deny belt
 
