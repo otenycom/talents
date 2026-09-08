@@ -204,6 +204,20 @@ Business-bot Discuss scenarios also need `tests/discuss.yaml` → `tester_key_fi
 environment overrides that path, so two lanes (two business databases with two
 tester keys) run the same committed bundle without an edit to the yaml.
 
+`OTENY_UPLINK_URL` overrides the address the driver uses for the business ERP. The
+bot reaches the ERP through the address on its tenant record, which is a named tunnel,
+and that tunnel does not pass a plain bearer key through. So an author whose laptop
+serves the ERP drives the scenario at the local port while the bot keeps the tunnel:
+
+```bash
+OTENY_UPLINK_URL=http://127.0.0.1:8069 \
+OTENY_TESTER_KEY_FILE=~/.oteny/secrets/<lane>-tester-key \
+  oteny test --ref <dev bot> --scenario <name>
+```
+
+The database is the one the tunnel serves; only the address moves. Without the
+override the driver fails on the tunnel's edge login page, which is not a bot fault.
+
 Transports for `oteny test`: **Discuss** (business bots / `hand_off`), **CLI**
 (`hermes chat` oneshot over box-access — plain chat turns), auto-pick. **Telegram
 DM is Phase 2** (not in this package yet).

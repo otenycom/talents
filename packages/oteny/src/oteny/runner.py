@@ -10,7 +10,7 @@ from pathlib import Path
 from .box import AuthorBoxAccess
 from .catalog import bundle_db_rel, load_run_scenario, resolve_local_catalog
 from .cli_transport import CliPoster
-from .discuss import build_discuss_driver
+from .discuss import build_discuss_driver, uplink_url_for_driver
 from .live import LiveDriver
 from .traces import build_traces_dto, harvest_trace_text, latest_session_id
 
@@ -50,6 +50,8 @@ def run_scenarios_for_clone(
     if not rows:
         raise RuntimeError(f"no tenant {ref!r}")
     rec = rows[0]
+    # A1: the author's driver may reach the ERP at another address than the bot does.
+    uplink_url = uplink_url_for_driver(rec.get("uplink_url") or "")
     nid = rec["node_id"][0] if isinstance(rec["node_id"], (list, tuple)) else rec["node_id"]
     substrate = "vm" if ((rec.get("isolation_tier") == "vm") or not nid) else "container"
 
@@ -69,7 +71,7 @@ def run_scenarios_for_clone(
         box_exec = None
         if db_rel or transport == "cli" or (
                 transport == "auto" and not rec.get("bot_username")
-                and not rec.get("uplink_url") and not rec.get("discuss_channel_id")):
+                and not uplink_url and not rec.get("discuss_channel_id")):
             box_exec = box_stack.enter_context(AuthorBoxAccess(client).shell(ref))
 
             async def exec_on_node(cmd: str) -> str:  # noqa: F811
@@ -85,14 +87,14 @@ def run_scenarios_for_clone(
         if transport == "auto":
             if rec.get("bot_username"):
                 use_discuss = False  # would be telegram — refuse for now
-            elif rec.get("uplink_url") or rec.get("discuss_channel_id"):
+            elif uplink_url or rec.get("discuss_channel_id"):
                 use_discuss = True
             else:
                 use_cli = True
 
         if use_discuss:
             post_message, uplink_call = build_discuss_driver(
-                uplink_url=rec.get("uplink_url") or "",
+                uplink_url=uplink_url,
                 uplink_db=rec.get("uplink_db") or None,
                 bundle=bundle, catalog_dir=catalog_dir,
                 channel_override=rec.get("discuss_channel_id") or None)

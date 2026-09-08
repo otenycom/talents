@@ -120,3 +120,16 @@ def test_fail_when_absent_keeps_the_plain_wait(fail_when):
     spec = dict(_SPEC, fail_when=fail_when)
     reply = _talent(uplink).hand_off(spec, timeout=20.0)
     assert "ended early" not in reply
+
+
+def test_uplink_url_env_override(monkeypatch):
+    """A1: an author whose laptop sits beside the client ERP drives the scenario at
+    ``http://127.0.0.1:8069`` while the bot keeps its tunnel address. Without the
+    override the tunnel refuses a plain bearer, so the author cannot reach it."""
+    monkeypatch.delenv("OTENY_UPLINK_URL", raising=False)
+    assert discuss.uplink_url_for_driver("https://lane-b-uplink.example") == (
+        "https://lane-b-uplink.example")
+    monkeypatch.setenv("OTENY_UPLINK_URL", "http://127.0.0.1:8069")
+    assert discuss.uplink_url_for_driver("https://lane-b-uplink.example") == (
+        "http://127.0.0.1:8069")
+    assert discuss.uplink_url_for_driver("") == "http://127.0.0.1:8069"

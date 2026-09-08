@@ -27,6 +27,15 @@ def tester_key_file(cfg: dict) -> str:
     return os.environ.get("OTENY_TESTER_KEY_FILE") or cfg.get("tester_key_file") or ""
 
 
+def uplink_url_for_driver(record_url: str) -> str:
+    """The client ERP's address for the author's own driver: ``OTENY_UPLINK_URL`` in the
+    environment wins over the tenant's ``uplink_url``. The bot reaches the ERP through a
+    named tunnel that does not pass a plain bearer through, so an author whose laptop sits
+    beside the ERP drives the same database at ``http://127.0.0.1:8069`` while the bot
+    keeps its tunnel address. Same shape as ``OTENY_TESTER_KEY_FILE`` for the key."""
+    return os.environ.get("OTENY_UPLINK_URL") or record_url or ""
+
+
 def read_secret_file(path: str) -> str:
     p = Path(os.path.expanduser(path)) if path else None
     return p.read_text().strip() if (p and p.is_file()) else ""
