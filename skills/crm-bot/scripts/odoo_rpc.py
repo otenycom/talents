@@ -52,8 +52,11 @@ class OdooRPC:
     def __init__(self):
         self.apikey = _load_key()
         self.uid = 0
-        me = self._json2("res.users", "search", domain=[["login", "=", "admin"]], limit=1)
-        self.uid = me[0] if me else 0
+        # setup_admin rotates login away from ``admin`` to owner_email.
+        # context_get is the bearer session; a search for login=admin is empty.
+        ctx = self._json2("res.users", "context_get")
+        if isinstance(ctx, dict) and ctx.get("uid"):
+            self.uid = int(ctx["uid"])
         if not self.uid:
             raise RuntimeError("CRM_RPC_FAILED auth — /json/2/ rejected the key")
 
