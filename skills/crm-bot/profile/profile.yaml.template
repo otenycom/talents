@@ -1,0 +1,7 @@
+# ~/.hermes/data/crm-bot/profile.yaml — produced by first-run. Not baked.
+event_name: ""         # default event when no "<Event> Leads" group (e.g. OXP)
+owner_email: ""        # back-office login email
+language: "en"
+timezone: ""
+name: ""
+odoo_locus: "local"    # local | online | remote

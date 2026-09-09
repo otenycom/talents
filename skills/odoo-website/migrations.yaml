@@ -1,0 +1,10 @@
+# In-box checklist: prior WebsiteBot boxes have Postgres + Odoo and a hosted
+# ensure_cmd, but no services.d/ file. Only the agent holds register_service.
+bot: odoo-website
+migrations:
+  - id: 0001_register_local_stack
+    kind: checklist
+    ref: references/migrations.md#0001_register_local_stack
+    summary: >-
+      Register the local Postgres and Odoo keep-alives with register_service
+      so a bounce starts the stack without a hosted-site row.

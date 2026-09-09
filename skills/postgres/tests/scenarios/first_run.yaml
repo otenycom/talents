@@ -1,0 +1,13 @@
+# Owner asks for a local database. The bot must confirm, then install
+# and register — never host a public URL, never apt.
+bot: postgres
+live_only: true
+
+turns:
+  - user: "install postgres on this box"
+    expect:
+      reply:
+        contains_any: ["Postgres", "database", "Shall I", "install"]
+        not_contains:
+          - "apt install"
+          - "host_website"

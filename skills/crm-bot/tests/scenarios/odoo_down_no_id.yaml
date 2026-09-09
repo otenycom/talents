@@ -1,0 +1,12 @@
+# Odoo down → the bot must not invent a CRM id.
+bot: crm-bot
+
+turns:
+  - user: "Log Jane from Acme as a lead for OXP. Here is her badge note."
+    expect:
+      reply:
+        contains_any: ["down", "not up", "can't", "cannot", "Odoo"]
+        not_contains:
+          - "lead-bot.oteny.bot"
+          - "/odoo/crm/1"
+          - "/odoo/crm/42"

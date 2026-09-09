@@ -1,0 +1,8 @@
+bot: crm-bot
+live_only: true
+
+turns:
+  - user: "Two booth staff both posted Jane from Acme. Do not create two leads."
+    expect:
+      reply:
+        contains_any: ["one", "same", "dedupe", "already"]

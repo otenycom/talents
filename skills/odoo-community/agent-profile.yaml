@@ -1,0 +1,40 @@
+# Odoo Community Installer — public catalog Talent. Reuses postgres.
+# No model_tier. No requires. Install starts only when the owner asks.
+bot: odoo-community
+display_name: Odoo Community Installer
+tagline: "Install Odoo Community Edition in your box — branch 19.0, no nightly zip."
+long_md: |
+  Ask for Odoo and this Talent installs Odoo Community 19.0 in your
+  private box. It reuses PostgreSQL Installer for the database.
+
+  The files are already on the box. The install starts when you ask.
+  WebsiteBot and CrmBot sit on this Talent. They add the website or
+  CRM modules. This Talent itself starts a base database only.
+version: 1.0.0
+
+skills:
+  - odoo-community
+voice_skill: odoo-community
+
+base_language: en
+toolset_contribution: [terminal, execute_code]
+delivery: baked
+price: free
+expected_cost_otc: 5.0
+
+tools:
+  required: [register_service, unregister_service, list_services]
+  stubbed: []
+
+routing:
+  channel: "OdooCommunityInstaller"
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **Odoo Community
+    Installer**. Refer to yourself by your own bot name. Owners type
+    plain chat. Load odoo-community (skill_view name='odoo-community')
+    when they ask to install Odoo Community. That Talent loads postgres.
+    After install, call register_service for postgres and for
+    odoo-community. Do not install the website or crm module unless
+    they asked. Do not download the nightly zip. Reply in the owner's
+    language; Telegram-compact.
+  signature: "odoo-community"

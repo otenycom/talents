@@ -1,0 +1,20 @@
+bot: odoo-community
+base_language: en
+
+artifacts:
+  - kind: routing
+    config_path: ~/.hermes/config.yaml
+    platform: telegram
+    signature: "odoo-community"
+
+  - kind: tools
+    present_if_file:
+      ensure_odoo: ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh
+      install_odoo: ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh
+    stubbed: []
+
+  - kind: tools
+    blocking: false
+    present_if_file:
+      odoo_tree: ~/odoo-site/odoo/odoo
+    stubbed: []

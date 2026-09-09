@@ -263,6 +263,33 @@
       "cost": "free"
     },
     {
+      "name": "register_service",
+      "requestable_name": "register_service",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free"
+    },
+    {
+      "name": "unregister_service",
+      "requestable_name": "unregister_service",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free"
+    },
+    {
+      "name": "list_services",
+      "requestable_name": "list_services",
+      "request_via": "tools.required",
+      "kind": "first-party",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free"
+    },
+    {
       "name": "publish_file",
       "requestable_name": "publish_file",
       "request_via": "tools.required",

@@ -134,7 +134,11 @@ def test_the_cluster_is_initialised_with_a_PORTABLE_collation():
     with operating system" no matter how well this module rewrites the conf (seen live on
     hh00413). pgserver runs initdb with no --locale, so the environment decides — and it
     must decide C.UTF-8, which every substrate has."""
-    ensure = (Path(__file__).resolve().parents[2] / "scripts" / "ensure_site.sh").read_text()
+    scripts = Path(__file__).resolve().parents[2] / "scripts"
+    install = (scripts / "install_postgres.sh").read_text()
+    assert "LC_ALL=C.UTF-8 LANG=C.UTF-8" in install
+    assert "--locale=C.UTF-8" in install
+    ensure = (scripts / "ensure_postgres.sh").read_text()
     pgserver_line = next(
         ln for ln in ensure.splitlines()
         if "$VENV/bin/python" in ln and ln.strip().endswith("- <<'PY'"))

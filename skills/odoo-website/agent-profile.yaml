@@ -28,8 +28,10 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.1.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.0:  sits on postgres + odoo-community; in-box 0001_register_local_stack;
+                 #         public catalog (baked, no min_tier, no model_tier).
                  # 1.1.0:  every site ends with one small footer credit linking to
                  #         oteny.com/business; removed on request, partner's credit first.
                  # 1.0.20: carried Postgres clusters (Max→Power) rewrite missing lc_* locales
@@ -68,28 +70,15 @@ skills:
 voice_skill: odoo-website
 
 base_language: en
-model_tier: builder                      # installs software + reasons about hosting/debugging → the builder tier
-# Hardware requirement (a capability, NOT a raw customer tier — substrate is internal).
-# `substrate: vm` = a full kernel + dedicated machine (not a packed gVisor container): real
-# systemd supervises the app, Odoo's one-time init is minutes (no gofer tax), and the box has
-# its own egress IP. `min_tier` is the cheapest subscription that provides it today
-# (max → VM); the storefront renders "Requires the Max plan" and gates purchase, the deployer
-# warns on a mismatch, and install_odoo.sh/preflight refuse at runtime as a backstop. The lint
-# enforces substrate↔min_tier consistency.
-requires:
-  # A container is enough: measured, the whole stack (agent + Odoo + Postgres) uses ~700 MB
-  # and ~2 GB of disk against Power's 3 GB / 20 GB envelope, and the install recipe is
-  # proven under gVisor. What it needs is a persistent box of its own, not a dedicated VM.
-  substrate: container
-  min_tier: power
+# No model_tier — an unlocked Telegram bundle stays on the fleet assistant default.
 toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned into the agent
 # Brokered tools this Talent needs. host_website / unhost_website / list_hosted_websites are
-# platform defaults (the hh-sites gateway plugin, delivered to every box) — declared here so
-# the store copy + the lint know the Talent depends on them (they are LIVE, never stubbed).
+# platform defaults (the hh-sites gateway plugin, delivered to every box). register_service
+# is the local keep-alive (hh-services). Coming on the fleet until overlay 181 lands.
 tools:
-  required: [host_website, unhost_website, list_hosted_websites]
-delivery: purchased                      # à-la-carte from the Talent Market (not baked into every box)
-price: free                              # free during the pilot (Q4: flip to paid at go-live)
+  required: [host_website, unhost_website, list_hosted_websites, register_service, unregister_service, list_services]
+delivery: baked
+price: free
 # Verify budget: the whole scenario-suite staging run must stay under this measured spend or
 # the dev-loop verify holds the Talent for review. OTC = internal credits; tune from runs.
 expected_cost_otc: 6.0
