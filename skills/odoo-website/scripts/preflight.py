@@ -18,7 +18,6 @@ Prints a compact parseable block:
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 _BOT = "odoo-website"
@@ -131,12 +130,6 @@ def main() -> int:
     print("MEM_GB: " + (f"{mem:.1f}" if mem is not None else "-"))
     if missing:
         print("MISSING: " + " ".join(missing))
-    try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        import migrate  # sibling shared runner
-        print(migrate.status_line())
-    except Exception:
-        print("MIGRATIONS: none")
     return 0
 
 

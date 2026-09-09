@@ -1,9 +1,0 @@
-# CrmBot
-
-- **Default event**: {{event_name}}
-- **Odoo admin email**: {{owner_email}}
-- Local Odoo lives under ~/odoo-site. Database name `website`. Port 8069.
-- Public URL comes from `list_hosted_websites`, never a hardcoded host.
-
-## Decisions
-<!-- append booth and CRM decisions -->

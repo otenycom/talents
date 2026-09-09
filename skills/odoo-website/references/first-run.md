@@ -75,24 +75,7 @@ ping you when it's ready." Do **not** say 30 minutes. Then:
 sh ~/.hermes/skills/talents/odoo-website/scripts/install_odoo.sh
 ```
 
-That wrapper runs **odoo-community** (shallow git `19.0`, Postgres first),
-then installs the `website` module. Expect `ODOO_INSTALLED <sha>`.
-Idempotent if interrupted.
-
-Then register the local stack, even when the owner never said "put it
-online":
-
-- `register_service` name `postgres`, command
-  `sh ~/.hermes/skills/talents/postgres/scripts/ensure_postgres.sh`
-- `register_service` name `odoo-community`, command
-  `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
-
-Then stamp current-shape migrations so this box never runs the legacy
-checklist:
-
-```
-python3 ~/.hermes/skills/talents/odoo-website/scripts/migrate.py --baseline
-```
+Expect `ODOO_INSTALLED <sha>`. Idempotent if interrupted.
 
 **While READY: no — never** `python3 -m http.server`, static HTML folders,
 `host_website` on a non-Odoo port, reuse of an existing `*.oteny.bot` link, or

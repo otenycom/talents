@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.0
+version: 1.1.3
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -9,7 +9,7 @@ metadata:
     tags: [website, odoo, host, online, shop, landing, page, booking, site, builder, web, publish]
     # oteny-drop is intentionally NOT related — drop.oteny.bot is a file share, not a site.
     # Relating it made WebsiteBot skip install_odoo and "publish" a static drop (E2E 2026-08-01).
-    related_skills: [oteny-sites, oteny-services, odoo-community, postgres]
+    related_skills: [oteny-sites]
 ---
 
 # WebsiteBot — build a website in your box and put it online
@@ -49,8 +49,6 @@ plain sentence above instead — you call the tool.
 python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 ```
 
-- **MIGRATIONS: pending** → [`migrations.md`](references/migrations.md) **first**,
-  even when READY is yes. First-run does not own this path.
 - **READY: no** → [`first-run.md`](references/first-run.md). First reply = **intake
   questions only** before building. Never a static `http.server` fake, never
   `oteny-drop` / `drop.oteny.bot` as a website substitute.
@@ -65,7 +63,6 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 
 1. Confirm the goal in one line. Keep facts in `~/.hermes/data/odoo-website/memory.md`.
 2. `sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh`
-   (thin wrapper: execs `odoo-community` `ensure_odoo.sh`, which starts Postgres first)
 3. **`module`:** `site_module.py init` / `set-homepage`. **`json2`:** `site_rpc.py ping` /
    `set-homepage`. Never post passwords in chat.
 4. Confirm: "Shall I put it online at `https://<slug>.oteny.bot`?"

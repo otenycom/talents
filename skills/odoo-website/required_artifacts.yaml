@@ -27,9 +27,8 @@ artifacts:
     signature: "odoo-website"
 
   - kind: tools
-    # Shipped with the bundle: ensure_site.sh (thin wrapper for odoo-community
-    # ensure_odoo.sh; hosted-site rows still name this path). The keep-alive is
-    # register_service → ~/.hermes/services.d/. Missing ⇒ delivery is broken.
+    # Shipped with the bundle: ensure_site.sh (the keep-alive the hosted-site row uses).
+    # Missing ⇒ the delivery itself is broken — a hard delivery gate.
     present_if_file:
       ensure_site: ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
     # host_website et al. are platform-provided (the hh-sites plugin) — always live, not stubbed.
