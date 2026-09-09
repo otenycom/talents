@@ -2382,6 +2382,34 @@ tiers.
   non-prod never needs it, because the stub inbox needs no auth. The outcome-watch is offline-testable
   end to end while the real inbox stays reachable only from prod.
 
+### Three alignment rules a walk on the double taught (2026-09-09)
+
+The 2026-09-08 test1 filings and their redo produced three rules that hold for every
+business bot, not only for the one that paid for them.
+
+**A verify step names the read it judges from.** "Check the readback" is not an
+instruction. Say which result carries the fact: the two date rows a click result's tree
+prints, or a type result's `confirm`. A summary page is judged only from a result that
+carries `visible_text`; a click result without it is not a read of that page, so the bot
+takes a snapshot first. A repair line is posted only after a write landed that turn, never
+from a plan. One filing's *Werkgever detour* on 2026-09-08 was a false alarm produced by
+exactly this gap, and its stated plan was a wrong write into a government draft.
+
+**Map staleness is not a portal change.** Split the halt rule in two. The page is the
+expected step, and one control's printed name differs from the map's by a suffix, a mark
+or a word: aim with the printed name, report the delta, carry on. The page is not the
+expected step, a mapped question is missing, or an unmapped required question appears:
+halt and escalate with the heading and the question. A single "if the labels look wrong,
+halt" rule made the bot halt in its reasoning and then fill the field anyway, because
+halting would have been wrong and no rule authorised what it did.
+
+**A double never announces itself.** Not in a page banner, and not in a text the skill
+reads. On 2026-09-08 the bot read its own tier off the double's banner six times and once
+let it override the halt rule ("this is stub, so the invented field is correct"). Skill
+text that contrasts "the stub" with "live" teaches the same. The tier decides which URL
+the bot gets; the skill and the pages stay tier-blind. A URL prefix that still names the
+double is a named exception with a removal condition, never an invisible default.
+
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
 A B2C bot's activity is visible only to its owner in chat. A business bot serves a *team*,
