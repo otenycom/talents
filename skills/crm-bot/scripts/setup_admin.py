@@ -63,6 +63,18 @@ def _odoo_site() -> Path:
     return _home() / "odoo-site"
 
 
+def _db_cli_args(home: Path | None = None) -> list[str]:
+    """Match install_modules.sh: TCP when ~/postgres/data exists."""
+    root = home or _home()
+    if (root / "postgres" / "data").is_dir():
+        return ["--db_host=127.0.0.1", "--db_port=5432", "--db_user=odoo"]
+    return [
+        f"--db_host={root / 'odoo-site' / 'pgdata'}",
+        "--db_port=5432",
+        "--db_user=odoo",
+    ]
+
+
 def _load_profile() -> dict:
     path = _data_dir() / "profile.yaml"
     if not path.exists():
@@ -239,7 +251,6 @@ def _mint_api_key(login: str) -> str:
     site = _odoo_site()
     venv_py = site / "venv" / "bin" / "python"
     src = site / "odoo"
-    pgdata = site / "pgdata"
     if not venv_py.is_file() or not src.is_dir():
         raise RuntimeError(f"odoo-site missing under {site}")
 
@@ -265,9 +276,7 @@ def _mint_api_key(login: str) -> str:
         "--no-http",
         "-d",
         _DB,
-        f"--db_host={pgdata}",
-        "--db_port=5432",
-        "--db_user=odoo",
+        *_db_cli_args(),
         f"--data-dir={site / 'odoo-data'}",
     ]
     try:
