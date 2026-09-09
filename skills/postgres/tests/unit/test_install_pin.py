@@ -14,3 +14,19 @@ def test_pin_is_postgres_18_not_16():
 def test_adopts_legacy_pgdata_without_second_initdb():
     assert "LEGACY=$HOME/odoo-site/pgdata" in _TEXT
     assert "POSTGRES_ADOPTED" in _TEXT
+
+
+def test_ensure_takes_a_lock_so_two_starts_do_not_race():
+    ensure = Path(__file__).resolve().parents[2] / "scripts" / "ensure_postgres.sh"
+    text = ensure.read_text(encoding="utf-8")
+    assert "flock -w 60" in text
+    assert "ensure.lock" in text
+
+
+def test_vendors_libxml2_for_the_sandbox_parent():
+    vendor = Path(__file__).resolve().parents[2] / "scripts" / "vendor_pg_runtime_libs.py"
+    text = vendor.read_text(encoding="utf-8")
+    assert "libxml2_2.9.14+dfsg-1.3ubuntu3.8_amd64.deb" in text
+    assert "bfd07c01d6e5ab3e327f3ca5819409b1914bbfb3f1a016d53e4dabd5f96143bb" in text
+    assert "c9a70989678660eed9a1e904c74fa043da8bec8e2036856fc16e31ced79b04f8" in text
+    assert "vendor_pg_runtime_libs.py" in _TEXT

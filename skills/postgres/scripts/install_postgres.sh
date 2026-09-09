@@ -3,6 +3,7 @@
 # Idempotent. Adopts ~/odoo-site/pgdata when ~/postgres/data is missing.
 set -eu
 
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PREFIX=$HOME/postgres
 FRESH=$PREFIX/data
 LEGACY=$HOME/odoo-site/pgdata
@@ -39,6 +40,9 @@ if [ ! -x "$PREFIX/bin/pg_ctl" ]; then
   fi
   rm -f "$ARCHIVE"
 fi
+
+# theseus gnu binaries need libxml2 (and ICU). The parent does not ship them.
+python3 "$HERE/vendor_pg_runtime_libs.py" "$PREFIX"
 
 export LD_LIBRARY_PATH="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PATH="$PREFIX/bin:$PATH"

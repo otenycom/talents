@@ -73,17 +73,23 @@ if _up; then
   exit 0
 fi
 
-if [ "$START" = "pg_ctl" ]; then
-  if [ ! -x "$PREFIX/bin/pg_ctl" ]; then
-    echo "POSTGRES_DOWN: pg_ctl missing at $PREFIX/bin — run install_postgres.sh" >&2
-    exit 1
+# Two keep-alives can fire at once (odoo-community sorts before postgres).
+# Hold the lock only around the start, not the wait.
+mkdir -p "$PREFIX/run"
+LOCK=$PREFIX/run/ensure.lock
+_start_locked() {
+  if [ "$START" = "pg_ctl" ]; then
+    if [ ! -x "$PREFIX/bin/pg_ctl" ]; then
+      echo "POSTGRES_DOWN: pg_ctl missing at $PREFIX/bin — run install_postgres.sh" >&2
+      return 1
+    fi
+    "$PREFIX/bin/pg_ctl" -D "$DATADIR" -l "$DATADIR/pg.log" -o "-p 5432 -h 127.0.0.1" start
+    return
   fi
-  "$PREFIX/bin/pg_ctl" -D "$DATADIR" -l "$DATADIR/pg.log" -o "-p 5432 -h 127.0.0.1" start
-else
   VENV=$HOME/odoo-site/venv
   if [ ! -x "$VENV/bin/python" ]; then
     echo "POSTGRES_DOWN: legacy cluster $DATADIR needs the site venv pgserver" >&2
-    exit 1
+    return 1
   fi
   LC_ALL=C.UTF-8 LANG=C.UTF-8 "$VENV/bin/python" - <<'PY'
 import os, pgserver
@@ -91,6 +97,19 @@ srv = pgserver.get_server(os.path.expanduser("~/odoo-site/pgdata"), cleanup_mode
 srv.psql("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='odoo') "
          "THEN CREATE ROLE odoo WITH LOGIN CREATEDB; END IF; END $$;")
 PY
+}
+
+if command -v flock >/dev/null 2>&1; then
+  (
+    flock -w 60 9 || {
+      echo "POSTGRES_DOWN: could not lock $LOCK" >&2
+      exit 1
+    }
+    _up && exit 0
+    _start_locked
+  ) 9>"$LOCK" || exit 1
+else
+  _start_locked || exit 1
 fi
 
 i=0
