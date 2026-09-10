@@ -115,3 +115,76 @@ def test_git_helper_ignores_an_inherited_git_dir(mod, tmp_path, monkeypatch):
     mod._git(repo, "init", "-q")
     assert (repo / ".git").is_dir()
     assert not (tmp_path / "not-a-repo").exists()
+
+
+def _args(**kwargs):
+    defaults = {"slug": "moondive", "name": "Moon", "force": False, "addon": ""}
+    defaults.update(kwargs)
+    return type("A", (), defaults)()
+
+
+def test_init_adopts_existing_folder_without_git(mod, tmp_path):
+    """A migrated site already has files. init must git-init without rewriting them."""
+    root = tmp_path / "odoo-site/addons/oteny_site_moondive"
+    root.mkdir(parents=True)
+    (root / "__manifest__.py").write_text('{"name": "Moon"}\n', encoding="utf-8")
+    (root / "static").mkdir(parents=True)
+    (root / "static" / "keep.css").write_text("/* owner */\n", encoding="utf-8")
+    assert not (root / ".git").exists()
+    assert mod.cmd_init(_args()) == 0
+    assert (root / ".git").is_dir()
+    assert (root / "static" / "keep.css").read_text(encoding="utf-8") == "/* owner */\n"
+    log = mod._git(root, "log", "-1", "--pretty=%s")
+    assert "adopt" in log.stdout
+
+
+def test_rollback_reverts_last_commit(mod, tmp_path, monkeypatch):
+    monkeypatch.setattr(mod, "_upgrade", lambda name: 0)
+    assert mod.cmd_init(_args(name="Moon")) == 0
+    root = tmp_path / "odoo-site/addons/oteny_site_moondive"
+    first = (root / "data/website_homepage.xml").read_text(encoding="utf-8")
+    rc = mod.cmd_set_homepage(_args(
+        title="Night jumps",
+        body_html="<p>After dark.</p>",
+    ))
+    assert rc == 0
+    changed = (root / "data/website_homepage.xml").read_text(encoding="utf-8")
+    assert "Night jumps" in changed
+    assert mod.cmd_rollback(_args()) == 0
+    back = (root / "data/website_homepage.xml").read_text(encoding="utf-8")
+    assert back == first
+    assert "Night jumps" not in back
+
+
+def test_commit_records_a_static_edit(mod, tmp_path):
+    assert mod.cmd_init(_args()) == 0
+    root = tmp_path / "odoo-site/addons/oteny_site_moondive"
+    scss = root / "static/src/scss/site.scss"
+    scss.write_text("/* edited */\n", encoding="utf-8")
+    rc = mod.cmd_commit(_args(message="style: type size"))
+    assert rc == 0
+    log = mod._git(root, "log", "-1", "--pretty=%s")
+    assert log.stdout.strip() == "style: type size"
+
+
+def test_addon_flag_uses_the_unique_folder(mod, tmp_path):
+    assert mod.cmd_init(_args(slug="pioneergardens", addon="pioneer_gardens",
+                              name="Pioneer Gardens")) == 0
+    root = tmp_path / "odoo-site/addons/pioneer_gardens"
+    assert (root / "__manifest__.py").exists()
+    assert (root / ".git").is_dir()
+    assert not (tmp_path / "odoo-site/addons/oteny_site_pioneergardens").exists()
+
+
+def test_refuses_core_folder_name(mod):
+    with pytest.raises(SystemExit, match="refused"):
+        mod._resolve_root(_args(addon="odoo"))
+
+
+def test_db_host_uses_tcp_when_postgres_data_exists(mod, tmp_path):
+    (tmp_path / "postgres" / "data").mkdir(parents=True)
+    assert mod._odoo_db_host() == "127.0.0.1"
+
+
+def test_db_host_uses_legacy_socket_without_postgres_data(mod, tmp_path):
+    assert mod._odoo_db_host() == str(tmp_path / "odoo-site/pgdata")

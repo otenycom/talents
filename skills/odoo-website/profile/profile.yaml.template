@@ -13,3 +13,4 @@ odoo_locus: "local"    # local | online | remote — Online/remote ⇒ JSON-2 on
 build_backend: "module"  # module (Max/local default) | json2 (Online / opt-in)
 git_customer_facing: false  # after prompt; remote origin via credential intake, never chat
 git_remote_url: ""     # set when customer-facing git is enabled
+site_addon: ""         # unique addon folder under ~/odoo-site/addons; blank → oteny_site_<slug>

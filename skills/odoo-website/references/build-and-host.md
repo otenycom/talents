@@ -60,6 +60,22 @@ Take the site down.
 
 (Confirm before `unhost_website`.)
 
+### Undo the last saved change (module path)
+
+```
+Undo the last change to my site.
+```
+
+You confirm first (`Shall I undo the last saved change?`). They send:
+
+```
+Yes, go ahead.
+```
+
+Then `site_module.py rollback`. This undoes the last git commit in the site
+module folder and applies the files. It does not touch `~/odoo-site/odoo` or
+the filestore.
+
 ### Back-office login
 
 ```
@@ -122,12 +138,19 @@ error page means the app stopped answering, and the fix is the app.
 ### BUILD — module path
 
 1. `sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh`
-2. `site_module.py init --slug <slug> --name "<site_name>"` (idempotent; creates git)
-3. `site_module.py set-homepage --title "…" --body-html '…'`
+2. `site_module.py init --slug <slug> --name "<site_name>"` (idempotent; creates
+   git). On a migrated folder that already has `__manifest__.py` and no `.git`,
+   this only `git init` + one baseline commit. It does not start Odoo. A unique
+   folder (not `oteny_site_<slug>`) takes `--addon <folder>` or `site_addon` in
+   the profile.
+3. `site_module.py set-homepage --title "…" --body-html '…'` (commits, then `-u`)
 4. Controllers / `static/src/scss/site.scss` OK → then `site_module.py upgrade`
-5. Git is bot-owned by default. Ask once: customer-facing remote? If yes → credential
-   intake (never Telegram) → `site_module.py git-remote --url <url>`
-6. Append facts to `~/.hermes/data/odoo-website/memory.md`
+   (commits dirty files, then `-u`). Or `commit --message "…"` first.
+5. Git is bot-owned by default and lives only in that addon folder. Ask once:
+   customer-facing remote? If yes → credential intake (never Telegram) →
+   `site_module.py git-remote --url <url>`
+6. Owner asked to undo → confirm → `site_module.py rollback`
+7. Append facts to `~/.hermes/data/odoo-website/memory.md`
 
 **UI note:** Website Builder edits may be **overwritten** by module upgrades — prefer
 chat/module as source of truth in module mode.
@@ -174,7 +197,8 @@ polish pass — retrofitting it means re-translating every page.
 
 ### Care loop
 
-- Module → edit files → `site_module.py upgrade` / `set-homepage`.
+- Module → edit files → `site_module.py upgrade` / `set-homepage`. Undo →
+  `rollback`.
 - JSON-2 → `site_rpc.py`.
 - Down → `list_hosted_websites` + `ensure_site.sh`.
 - Take down → `unhost_website(site_slug="<slug>")` after confirm.

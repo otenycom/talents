@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.0
+version: 1.2.1
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -38,6 +38,7 @@ Run in the owner's language; keep replies compact and Telegram-friendly.
 | `What's the status of my custom domains on site <slug>?` | `list_site_domains` |
 | `Set my site's public URL to https://example.com` | `set-base-url` to vanity URL |
 | `Take the site down.` | Confirm, then `unhost_website` |
+| `Undo the last change to my site.` | Confirm, then `site_module.py rollback` (module path) |
 | `I want the back-office login.` | Handoff (email + secure password link — never chat) |
 
 If they ask how to "run `host_website`" / `attach_site_domains()`, tell them to send the
@@ -66,8 +67,9 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 1. Confirm the goal in one line. Keep facts in `~/.hermes/data/odoo-website/memory.md`.
 2. `sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh`
    (thin wrapper: execs `odoo-community` `ensure_odoo.sh`, which starts Postgres first)
-3. **`module`:** `site_module.py init` / `set-homepage`. **`json2`:** `site_rpc.py ping` /
-   `set-homepage`. Never post passwords in chat.
+3. **`module`:** `site_module.py init` / `set-homepage`. `init` on a folder that
+   already has files creates `.git` if it is missing (no Odoo start). **`json2`:**
+   `site_rpc.py ping` / `set-homepage`. Never post passwords in chat.
 4. Confirm: "Shall I put it online at `https://<slug>.oteny.bot`?"
 5. `host_website(local_port=8069, site_slug="<slug>",
    ensure_cmd="sh /home/hermes/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh")`
@@ -101,7 +103,10 @@ the page.
 
 ## Bot notes — CARE
 
-- Module → edit under `~/odoo-site/addons/oteny_site_<slug>/` then `site_module.py upgrade`.
+- Module → edit under `~/odoo-site/addons/<addon>/` (usually
+  `oteny_site_<slug>`; keep a unique name such as `pioneer_gardens`) then
+  `site_module.py upgrade` (commits dirty files, then `-u`). Owner asked to
+  undo the last change → confirm → `site_module.py rollback`.
 - JSON-2 → `ensure_site.sh` + `site_rpc.py`.
 - Down → `list_hosted_websites`; if down, `ensure_site.sh` (it clears a stale
   `postmaster.pid` left by a crash or a plan change, and exits non-zero — saying why — when

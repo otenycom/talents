@@ -128,7 +128,9 @@ Then tell the owner **exactly**:
 **Your website engine is ready — what should the site say?**
 
 (then BUILD in [`build-and-host.md`](build-and-host.md)). Mention briefly: the site lives
-in a git repo the bot owns; they can later make it customer-facing.
+in a git repo the bot owns (the addon folder only — not the Odoo core tree); they can
+later make it customer-facing. `init` on a folder that already has files creates
+`.git` if it is missing and does not start Odoo.
 
 If `READY: no` persists:
 
