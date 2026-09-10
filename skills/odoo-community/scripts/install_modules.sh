@@ -25,6 +25,9 @@ if [ -d "$HOME/postgres/data" ]; then
 else
   DB_ARGS="--db_host=$BASE/pgdata --db_port=5432 --db_user=odoo --addons-path=$ADDONS_PATH"
 fi
+if [ -f "$BASE/odoo.conf" ]; then
+  DB_ARGS="$DB_ARGS --config=$BASE/odoo.conf"
+fi
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 sh "$HERE/ensure_odoo.sh" --init-only

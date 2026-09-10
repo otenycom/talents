@@ -27,6 +27,9 @@ else
   PGDATA=$BASE/pgdata
   DB_ARGS="--db_host=$PGDATA --db_port=5432 --db_user=odoo --addons-path=$ADDONS_PATH"
 fi
+if [ -f "$BASE/odoo.conf" ]; then
+  DB_ARGS="$DB_ARGS --config=$BASE/odoo.conf"
+fi
 
 sh "$PG_SCRIPTS/ensure_postgres.sh"
 

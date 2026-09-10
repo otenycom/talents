@@ -30,6 +30,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 _BOT = "odoo-website"
@@ -59,6 +60,11 @@ def _admin_path() -> Path:
     return _data_dir() / ".odoo-admin"
 
 
+def _bootstrap_admin_path() -> Path:
+    """Parent-bake copy of the admin file. Lives in the tree, not in ``.hermes``."""
+    return _odoo_site() / ".odoo-admin"
+
+
 def _odoo_site() -> Path:
     return _home() / "odoo-site"
 
@@ -77,11 +83,7 @@ def _load_profile() -> dict:
     return out
 
 
-def _read_stored() -> tuple[str, str, str] | None:
-    """Return ``(login, password, api_key)`` or None."""
-    path = _admin_path()
-    if not path.exists():
-        return None
+def _parse_admin_file(path: Path) -> tuple[str, str, str] | None:
     login = password = api_key = ""
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("login="):
@@ -95,20 +97,111 @@ def _read_stored() -> tuple[str, str, str] | None:
     return None
 
 
-def _write_stored(login: str, password: str, api_key: str) -> None:
-    d = _data_dir()
-    d.mkdir(parents=True, exist_ok=True)
+def _read_stored() -> tuple[str, str, str] | None:
+    """Return ``(login, password, api_key)`` or None."""
     path = _admin_path()
-    path.write_text(
-        f"login={login}\npassword={password}\n{_APIKEY_LINE}{api_key}\n",
-        encoding="utf-8",
-    )
-    os.chmod(path, 0o600)
+    if path.exists():
+        parsed = _parse_admin_file(path)
+        if parsed:
+            return parsed
+    boot = _bootstrap_admin_path()
+    if boot.exists():
+        return _parse_admin_file(boot)
+    return None
+
+
+def _write_stored(login: str, password: str, api_key: str) -> None:
+    text = f"login={login}\npassword={password}\n{_APIKEY_LINE}{api_key}\n"
+    boot = _bootstrap_admin_path()
+    wrote_boot = False
+    if boot.parent.is_dir():
+        boot.write_text(text, encoding="utf-8")
+        os.chmod(boot, 0o600)
+        wrote_boot = True
+    try:
+        d = _data_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        path = _admin_path()
+        path.write_text(text, encoding="utf-8")
+        os.chmod(path, 0o600)
+    except OSError:
+        if wrote_boot:
+            return
+        raise
 
 
 def _gen_password(n: int = 24) -> str:
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(n))
+
+
+def _gen_secret(n: int = 32) -> str:
+    return secrets.token_hex(n)
+
+
+def _odoo_conf_path() -> Path:
+    return _odoo_site() / "odoo.conf"
+
+
+def _odoo_db_host() -> str:
+    """TCP when the Postgres Talent cluster exists. Else the legacy unix dir."""
+    if (_home() / "postgres" / "data").is_dir():
+        return "127.0.0.1"
+    pgdata = _odoo_site() / "pgdata"
+    if pgdata.is_dir():
+        return str(pgdata)
+    return "127.0.0.1"
+
+
+def _write_odoo_conf(*, admin_passwd: str, proxy_mode: bool = True) -> None:
+    """Write the clone-local Odoo conf. Mode 0600. Never print the password."""
+    site = _odoo_site()
+    site.mkdir(parents=True, exist_ok=True)
+    path = _odoo_conf_path()
+    proxy = "True" if proxy_mode else "False"
+    path.write_text(
+        "[options]\n"
+        f"admin_passwd = {admin_passwd}\n"
+        f"proxy_mode = {proxy}\n",
+        encoding="utf-8",
+    )
+    os.chmod(path, 0o600)
+
+
+def _json2_bearer(api_key: str, model: str, method: str, **kwargs) -> object:
+    opener = urllib.request.build_opener()
+    status, data = _http_json(
+        opener,
+        f"{_URL}/json/2/{model}/{method}",
+        kwargs,
+        headers={
+            "Authorization": f"bearer {api_key}",
+            "X-Odoo-Database": _DB,
+        },
+    )
+    if status != 200:
+        raise RuntimeError(f"json2 bearer {model}.{method} HTTP {status}: {data!r}")
+    return data
+
+
+def _rotate_db_params_bearer(
+    api_key: str,
+    *,
+    database_secret: str,
+    database_uuid: str,
+) -> None:
+    """Replace the cloned database.secret and database.uuid (bearer)."""
+    for key, value in (
+        ("database.secret", database_secret),
+        ("database.uuid", database_uuid),
+    ):
+        _json2_bearer(
+            api_key,
+            "ir.config_parameter",
+            "set_param",
+            key=key,
+            value=value,
+        )
 
 
 def _opener() -> urllib.request.OpenerDirector:
@@ -239,16 +332,16 @@ def _mint_api_key(login: str) -> str:
     site = _odoo_site()
     venv_py = site / "venv" / "bin" / "python"
     src = site / "odoo"
-    pgdata = site / "pgdata"
     if not venv_py.is_file() or not src.is_dir():
         raise RuntimeError(f"odoo-site missing under {site}")
+    db_host = _odoo_db_host()
 
     # Safe literals — login is an email from profile.yaml.
     snippet = (
         f"login = {login!r}\n"
         "admin = env['res.users'].search([('login', '=', login)], limit=1)\n"
         "if not admin:\n"
-        "    admin = env.ref('base.user_admin')\n"
+            "    admin = env.ref('base.user_admin')\n"
         "Key = env['res.users.apikeys']\n"
         f"Key.sudo().search([('user_id', '=', admin.id), ('name', '=', {_KEY_NAME!r})])._remove()\n"
         f"key = Key.with_user(admin)._generate('rpc', {_KEY_NAME!r}, None)\n"
@@ -265,11 +358,14 @@ def _mint_api_key(login: str) -> str:
         "--no-http",
         "-d",
         _DB,
-        f"--db_host={pgdata}",
+        f"--db_host={db_host}",
         "--db_port=5432",
         "--db_user=odoo",
         f"--data-dir={site / 'odoo-data'}",
     ]
+    conf = _odoo_conf_path()
+    if conf.is_file():
+        cmd.append(f"--config={conf}")
     try:
         proc = subprocess.run(
             cmd,
@@ -308,11 +404,20 @@ def main(argv: list[str] | None = None) -> int:
         metavar="VAR",
         help="Read the owner's chosen password from this environment variable.",
     )
+    ap.add_argument(
+        "--rotate-clone-secrets",
+        action="store_true",
+        help="Mint-time rotate after a parent clone: new admin password, API key, "
+        "database.secret, database.uuid, and odoo.conf admin_passwd + proxy_mode. "
+        "Does not require owner_email.",
+    )
     args = ap.parse_args(argv)
 
     profile = _load_profile()
     login = (profile.get("owner_email") or "").strip()
-    if not login or "@" not in login:
+    if args.rotate_clone_secrets:
+        login = login if login and "@" in login else _DEFAULT_LOGIN
+    elif not login or "@" not in login:
         print(
             "ADMIN_SETUP_FAILED missing_owner_email — set owner_email in profile.yaml",
             file=sys.stderr,
@@ -344,7 +449,8 @@ def main(argv: list[str] | None = None) -> int:
     stored_password = stored[1] if stored else ""
     stored_api_key = stored[2] if stored else ""
     if (
-        stored
+        not args.rotate_clone_secrets
+        and stored
         and stored_login == login
         and not owner_chosen
         and stored_api_key
@@ -373,10 +479,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     new_password = owner_chosen or (
-        stored_password if stored and stored_login == login else _gen_password()
+        _gen_password()
+        if args.rotate_clone_secrets
+        else (stored_password if stored and stored_login == login else _gen_password())
     )
     password_unchanged = (
-        stored
+        not args.rotate_clone_secrets
+        and stored
         and stored_login == login
         and stored_password == new_password
         and not owner_chosen
@@ -396,8 +505,21 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+        _write_stored(login, new_password, stored_api_key or "")
 
-    api_key = stored_api_key if stored and stored_login == login else ""
+    if args.rotate_clone_secrets:
+        try:
+            master = _gen_password()
+            _write_odoo_conf(admin_passwd=master, proxy_mode=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"ADMIN_SETUP_FAILED clone_rotate_failed {exc!r}", file=sys.stderr)
+            return 1
+
+    api_key = (
+        ""
+        if args.rotate_clone_secrets
+        else (stored_api_key if stored and stored_login == login else "")
+    )
     if not api_key or not _json2_bearer_ok(api_key):
         try:
             api_key = _mint_api_key(login)
@@ -409,6 +531,17 @@ def main(argv: list[str] | None = None) -> int:
                 "ADMIN_SETUP_FAILED apikey_verify_failed — key did not auth /json/2/",
                 file=sys.stderr,
             )
+            return 1
+
+    if args.rotate_clone_secrets:
+        try:
+            _rotate_db_params_bearer(
+                api_key,
+                database_secret=_gen_secret(32),
+                database_uuid=str(uuid.uuid4()),
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"ADMIN_SETUP_FAILED clone_rotate_failed {exc!r}", file=sys.stderr)
             return 1
 
     _write_stored(login, new_password, api_key)
