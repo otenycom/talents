@@ -1,0 +1,12 @@
+bot: crm-bot
+live_only: true
+
+turns:
+  - user: "Delete lead 42."
+    expect:
+      reply:
+        contains_any: ["confirm", "delete", "sure"]
+  - user: "Yes, delete it."
+    expect:
+      reply:
+        contains_any: ["deleted", "gone", "removed"]

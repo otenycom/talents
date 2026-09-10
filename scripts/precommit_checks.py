@@ -40,7 +40,8 @@ def main() -> int:
     unit_dirs = sorted({str(Path(p).parent)
                         for p in glob.glob("skills/*/tests/unit/test_*.py", root_dir=REPO)})
     steps.append(("Bundle unit tests (pytest)",
-                  [sys.executable, "-m", "pytest", "tests/", *unit_dirs, "-q"],
+                  [sys.executable, "-m", "pytest", "--import-mode=importlib",
+                   "tests/", *unit_dirs, "-q"],
                   {"PYTHONPATH": "tests"}))
 
     # bundle-tests.yml step 2 — behavioral scenarios on the offline mock backend (if any).

@@ -1,0 +1,25 @@
+bot: crm-bot
+base_language: en
+
+artifacts:
+  - kind: routing
+    config_path: ~/.hermes/config.yaml
+    platform: telegram
+    signature: "crm-bot"
+
+  - kind: tools
+    present_if_file:
+      upsert_lead: ~/.hermes/skills/talents/crm-bot/scripts/upsert_lead.py
+      delete_lead: ~/.hermes/skills/talents/crm-bot/scripts/delete_lead.py
+    stubbed: []
+
+  - kind: tools
+    blocking: false
+    present_if_file:
+      odoo_tree: ~/odoo-site/odoo/odoo
+    stubbed: []
+
+  - kind: memory
+    path: ~/.hermes/data/crm-bot/memory.md
+    label: domain memory
+    blocking: false

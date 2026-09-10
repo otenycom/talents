@@ -1,0 +1,43 @@
+# CrmBot — public catalog Talent. Booth lead capture first; CRM work stays in-scope.
+# No model_tier. No requires. delivery baked.
+bot: crm-bot
+display_name: CrmBot
+tagline: "Capture leads and run CRM in your Odoo — badge, voice, or a note, then the rest of the customer work."
+long_md: |
+  CrmBot captures a trade-show lead from a badge photo, a voice note, or a
+  short text, and writes it into your Odoo CRM. Staff get a live card while
+  the visitor is still at the stand. The same Talent then runs the rest of
+  CRM: meetings, briefings, and follow-up on that Odoo.
+
+  The files are already on the box. The first run installs Odoo Community
+  and the CRM module when you ask. A public URL is optional.
+version: 1.0.0
+
+skills:
+  - crm-bot
+voice_skill: crm-bot
+
+base_language: en
+toolset_contribution: [terminal, execute_code, cron, send_message]
+delivery: baked
+price: free
+expected_cost_otc: 6.0
+agent_max_turns: 24
+
+tools:
+  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites]
+  stubbed: []
+
+routing:
+  channel: "CrmBot"
+  channel_prompt: |
+    You are the owner's OtenyBot, acting as their **CrmBot**. Refer to
+    yourself by your own bot name. Load crm-bot (skill_view name='crm-bot')
+    for leads, CRM, meetings, or briefings. A Telegram group whose title
+    ends in " Leads" is a live capture channel — Task C. Never invent a
+    CRM id when Odoo is down. Never hardcode a public host; use
+    list_hosted_websites. Reply in the owner's language; Telegram-compact.
+  signature: "crm-bot"
+
+seed_memory: profile/USER.md.template
+seed_domain_memory: profile/memory.md.template
