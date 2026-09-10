@@ -7,7 +7,16 @@ edit homepage (QWeb + optional SCSS/Python), git-commit, then -u via upgrade.
     python3 …/site_module.py init --slug moondive --name "Moon Skydive Club"
     python3 …/site_module.py set-homepage --title "…" --body-html "…"
     python3 …/site_module.py upgrade
+    python3 …/site_module.py commit --message "style: homepage type"
+    python3 …/site_module.py rollback
     python3 …/site_module.py git-remote --url git@github.com:org/repo.git   # after intake
+
+A migrated folder that already has files and no ``.git`` is adopted on
+``init`` (git init + one baseline commit). That path does not start Odoo.
+
+The site-module git lives only under ``~/odoo-site/addons/<addon>/``.
+It is not the Community core at ``~/odoo-site/odoo`` and not the
+filestore at ``~/odoo-site/odoo-data``.
 
 Do NOT use this against Odoo Online. Non-Max owners must upgrade first:
 ``/oteny_subscribe upgrade max``.
@@ -24,6 +33,11 @@ import time
 from pathlib import Path
 
 _SLUG_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$")
+_ADDON_RE = re.compile(r"^[a-z][a-z0-9_]{1,60}$")
+_REFUSED_ROOT_NAMES = frozenset(
+    {"odoo", "odoo-data", "pgdata", "pgdata.legacy", "venv", "postgres"}
+)
+_REFUSED_SECRET_NAMES = (".odoo-admin", ".env", "id_rsa", "id_ed25519")
 
 
 def _home() -> Path:
@@ -66,8 +80,9 @@ def module_name(slug: str) -> str:
     return f"oteny_site_{safe}"
 
 
-def module_dir(slug: str) -> Path:
-    return _addons() / module_name(slug)
+def module_dir(slug: str, addon: str | None = None) -> Path:
+    name = (addon or "").strip() or module_name(slug)
+    return _addons() / name
 
 
 def _resolve_slug(cli_slug: str | None) -> str:
@@ -78,6 +93,80 @@ def _resolve_slug(cli_slug: str | None) -> str:
             "(3–30 chars, lowercase/digits/hyphens)"
         )
     return slug
+
+
+def _resolve_addon(cli_addon: str | None) -> str:
+    raw = (cli_addon or _load_profile().get("site_addon") or "").strip()
+    if not raw:
+        return ""
+    if not _ADDON_RE.match(raw):
+        raise SystemExit(
+            "SITE_MODULE_ERR --addon must be one folder name "
+            "(letters, digits, underscore)"
+        )
+    return raw
+
+
+def _resolve_root(args: argparse.Namespace) -> tuple[str, Path]:
+    slug = _resolve_slug(getattr(args, "slug", None))
+    addon = _resolve_addon(getattr(args, "addon", None))
+    root = module_dir(slug, addon or None)
+    _assert_site_addon_root(root)
+    return slug, root
+
+
+def _assert_site_addon_root(root: Path) -> None:
+    """Site-module git is one addon folder. Never the Community core or filestore."""
+    addons = _addons().resolve()
+    resolved = root.resolve()
+    if resolved.parent != addons:
+        raise SystemExit(
+            "SITE_MODULE_ERR git root must be a folder under ~/odoo-site/addons"
+        )
+    if resolved.name in _REFUSED_ROOT_NAMES:
+        raise SystemExit(
+            f"SITE_MODULE_ERR refused {resolved.name!r} — that is not a site module"
+        )
+
+
+def _refuse_secrets(root: Path) -> None:
+    for name in _REFUSED_SECRET_NAMES:
+        if (root / name).exists():
+            raise SystemExit(f"SITE_MODULE_ERR refuse to commit {name}")
+
+
+def _odoo_db_host() -> str:
+    """TCP Postgres (Talent install) wins over the legacy unix socket at pgdata."""
+    if (_home() / "postgres" / "data").is_dir():
+        return "127.0.0.1"
+    return str(_base() / "pgdata")
+
+
+def _ensure_git_identity(root: Path) -> None:
+    _git(root, "config", "user.email", "websitebot@oteny.local")
+    _git(root, "config", "user.name", "WebsiteBot")
+
+
+def _ensure_git(root: Path, message: str) -> None:
+    _assert_site_addon_root(root)
+    if (root / ".git").exists():
+        _ensure_git_identity(root)
+        return
+    if not (root / ".gitignore").exists():
+        _write(root / ".gitignore", _gitignore())
+    _git(root, "init")
+    _ensure_git_identity(root)
+    _refuse_secrets(root)
+    _git(root, "add", "-A")
+    _git(root, "commit", "-m", message, check=False)
+
+
+def _commit(root: Path, message: str) -> bool:
+    _ensure_git(root, message)
+    _refuse_secrets(root)
+    _git(root, "add", "-A")
+    proc = _git(root, "commit", "-m", message, check=False)
+    return proc.returncode == 0
 
 
 # Git exports these to a hook it runs, and a linked worktree's hook always sees GIT_DIR.
@@ -196,12 +285,20 @@ def _gitignore() -> str:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    slug = _resolve_slug(args.slug)
+    slug, root = _resolve_root(args)
     name = (args.name or _load_profile().get("site_name") or slug).strip()
-    mod = module_name(slug)
-    root = module_dir(slug)
+    mod = root.name
     _addons().mkdir(parents=True, exist_ok=True)
     if (root / "__manifest__.py").exists() and not args.force:
+        # Migrated site: files exist, git may not. Adopt without rewriting or starting Odoo.
+        _ensure_git(root, f"chore: adopt {mod}")
+        prof = _data_dir() / "profile.yaml"
+        if prof.exists():
+            text = prof.read_text(encoding="utf-8")
+            addon = _resolve_addon(getattr(args, "addon", None))
+            if addon and "site_addon:" not in text:
+                with prof.open("a", encoding="utf-8") as fh:
+                    fh.write(f"site_addon: {addon}\n")
         print(f"SITE_MODULE_OK already {root}")
         return 0
     title = name
@@ -218,12 +315,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     _write(root / "models" / "__init__.py", "# Optional models — bot may add.\n")
     _write(root / ".gitignore", _gitignore())
     _write(root / "README.md", f"# {name}\n\nBot-owned WebsiteBot site module (`{mod}`).\n")
-    if not (root / ".git").exists():
-        _git(root, "init")
-        _git(root, "config", "user.email", "websitebot@oteny.local")
-        _git(root, "config", "user.name", "WebsiteBot")
-        _git(root, "add", "-A")
-        _git(root, "commit", "-m", f"chore: scaffold {mod}")
+    _ensure_git(root, f"chore: scaffold {mod}")
     # Persist backend choice on profile if missing.
     prof = _data_dir() / "profile.yaml"
     if prof.exists():
@@ -234,14 +326,17 @@ def cmd_init(args: argparse.Namespace) -> int:
         if "git_customer_facing:" not in text:
             with prof.open("a", encoding="utf-8") as fh:
                 fh.write("git_customer_facing: false\ngit_remote_url: \"\"\n")
+        addon = _resolve_addon(getattr(args, "addon", None))
+        if addon and "site_addon:" not in text:
+            with prof.open("a", encoding="utf-8") as fh:
+                fh.write(f"site_addon: {addon}\n")
     print(f"SITE_MODULE_OK init {mod} path={root}")
     return 0
 
 
 def cmd_set_homepage(args: argparse.Namespace) -> int:
-    slug = _resolve_slug(args.slug)
-    mod = module_name(slug)
-    root = module_dir(slug)
+    slug, root = _resolve_root(args)
+    mod = root.name
     if not (root / "__manifest__.py").exists():
         raise SystemExit(f"SITE_MODULE_ERR run init first ({root} missing)")
     title = (args.title or "").strip()
@@ -250,12 +345,9 @@ def cmd_set_homepage(args: argparse.Namespace) -> int:
         raise SystemExit("SITE_MODULE_ERR --title and --body-html required")
     xml_path = root / "data" / "website_homepage.xml"
     _write(xml_path, _homepage_xml(mod, title, body))
-    if (root / ".git").exists():
-        _git(root, "add", "data/website_homepage.xml")
-        # commit may be empty if unchanged
-        _git(root, "commit", "-m", f"content: homepage — {title}", check=False)
+    _commit(root, f"content: homepage — {title}")
     # Install or upgrade
-    rc = _upgrade(slug)
+    rc = _upgrade(mod)
     if rc != 0:
         return rc
     print(f"SITE_MODULE_OK homepage title={title!r}")
@@ -310,8 +402,7 @@ def _ensure_serving(*, attempts: int = 45) -> bool:
     return False
 
 
-def _upgrade(slug: str) -> int:
-    mod = module_name(slug)
+def _upgrade(mod: str) -> int:
     base = _base()
     venv_py = base / "venv" / "bin" / "python"
     addons = f"{base / 'odoo' / 'addons'},{base / 'addons'}"
@@ -325,7 +416,7 @@ def _upgrade(slug: str) -> int:
         str(venv_py), "-m", "odoo",
         "-d", "website", action, mod,
         "--stop-after-init", "--without-demo=True",
-        f"--db_host={base / 'pgdata'}", "--db_port=5432", "--db_user=odoo",
+        f"--db_host={_odoo_db_host()}", "--db_port=5432", "--db_user=odoo",
         f"--addons-path={addons}",
         f"--data-dir={base / 'odoo-data'}",
         "--http-port=8069", "--http-interface=127.0.0.1", "--workers=0",
@@ -347,16 +438,49 @@ def _upgrade(slug: str) -> int:
 
 
 def cmd_upgrade(args: argparse.Namespace) -> int:
-    slug = _resolve_slug(args.slug)
-    if not (module_dir(slug) / "__manifest__.py").exists():
+    _slug, root = _resolve_root(args)
+    if not (root / "__manifest__.py").exists():
         raise SystemExit("SITE_MODULE_ERR run init first")
-    return _upgrade(slug)
+    _commit(root, f"chore: upgrade {root.name}")
+    return _upgrade(root.name)
+
+
+def cmd_commit(args: argparse.Namespace) -> int:
+    _slug, root = _resolve_root(args)
+    if not (root / "__manifest__.py").exists():
+        raise SystemExit(f"SITE_MODULE_ERR run init first ({root} missing)")
+    message = (args.message or "").strip()
+    if not message or "\n" in message or len(message) > 200:
+        raise SystemExit("SITE_MODULE_ERR --message must be one line, max 200 chars")
+    if not _commit(root, message):
+        print(f"SITE_MODULE_OK commit noop path={root}")
+        return 0
+    print(f"SITE_MODULE_OK commit {message!r} path={root}")
+    return 0
+
+
+def cmd_rollback(args: argparse.Namespace) -> int:
+    """Undo the last site-module commit, then apply the files with -u."""
+    _slug, root = _resolve_root(args)
+    if not (root / ".git").exists():
+        raise SystemExit("SITE_MODULE_ERR no git repo — run init")
+    parent = _git(root, "rev-parse", "--verify", "HEAD~1", check=False)
+    if parent.returncode != 0:
+        raise SystemExit("SITE_MODULE_ERR nothing to roll back — this is the first commit")
+    revert = _git(root, "revert", "--no-edit", "HEAD", check=False)
+    if revert.returncode != 0:
+        err = (revert.stderr or revert.stdout or "").strip()[:300]
+        raise SystemExit(f"SITE_MODULE_ERR rollback failed: {err}")
+    rc = _upgrade(root.name)
+    if rc != 0:
+        return rc
+    print(f"SITE_MODULE_OK rollback path={root}")
+    return 0
 
 
 def cmd_git_remote(args: argparse.Namespace) -> int:
     """Record remote URL after credential intake; push if credentials work."""
-    slug = _resolve_slug(args.slug)
-    root = module_dir(slug)
+    _slug, root = _resolve_root(args)
     url = (args.url or "").strip()
     if not url:
         raise SystemExit("SITE_MODULE_ERR --url required")
@@ -388,24 +512,41 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
 
+    def _slug_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--slug", default="")
+        p.add_argument(
+            "--addon",
+            default="",
+            help="Unique addon folder under ~/odoo-site/addons (e.g. pioneer_gardens)",
+        )
+
     p_init = sub.add_parser("init")
-    p_init.add_argument("--slug", default="")
+    _slug_args(p_init)
     p_init.add_argument("--name", default="")
     p_init.add_argument("--force", action="store_true")
     p_init.set_defaults(func=cmd_init)
 
     p_home = sub.add_parser("set-homepage")
-    p_home.add_argument("--slug", default="")
+    _slug_args(p_home)
     p_home.add_argument("--title", required=True)
     p_home.add_argument("--body-html", required=True)
     p_home.set_defaults(func=cmd_set_homepage)
 
     p_up = sub.add_parser("upgrade")
-    p_up.add_argument("--slug", default="")
+    _slug_args(p_up)
     p_up.set_defaults(func=cmd_upgrade)
 
+    p_commit = sub.add_parser("commit")
+    _slug_args(p_commit)
+    p_commit.add_argument("--message", required=True)
+    p_commit.set_defaults(func=cmd_commit)
+
+    p_rb = sub.add_parser("rollback")
+    _slug_args(p_rb)
+    p_rb.set_defaults(func=cmd_rollback)
+
     p_rem = sub.add_parser("git-remote")
-    p_rem.add_argument("--slug", default="")
+    _slug_args(p_rem)
     p_rem.add_argument("--url", required=True)
     p_rem.set_defaults(func=cmd_git_remote)
 
