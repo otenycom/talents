@@ -852,7 +852,7 @@ artefact; instrument, with the direction it errs; or unproven. The first two car
 condition. A behaviour with no such declaration is the one the next reader will propose to delete or
 to invert, and both are wrong.
 
-### Three rules the 2026-09 business-bot canary paid for
+### Four rules the 2026-09 business-bot canary paid for
 
 **A double mints the live identifier's shape, and a client never teaches the bot to accept the
 easier one.** A double gave a saved draft an 8-character internal token where the real portal
@@ -901,6 +901,40 @@ in the selector manifest's comments, which the model does not read. And **a doub
 itself for human safety does so where the bot cannot see it** — outside the DOM the bot reads — or
 the marking is declared as a named exception with a removal condition, beside the double's other
 deliberate knobs.
+
+**A double reproduces every text node inside a naming element, the hidden ones included.**
+This is the sharpest version of "a double must not be easier than the site", because the whole
+gap can be one text node nobody can see.
+
+The canary's government portal marks a required field with an indicator that holds *two* things:
+a `*` with `aria-label="Verplicht"`, and a hover tooltip reading `Dit veld is verplicht`. Both
+sit inside the field's own `<label>`. So the label has two different readings, and an aim
+resolves against one of them:
+
+| Reading | What it is | Live value |
+| --- | --- | --- |
+| XPath `normalize-space(.)` | every text node in the DOM, hidden or not | `Straat * Dit veld is verplicht` |
+| the accessibility tree | decoration replaced by its `aria-label`, hidden subtrees skipped | `Straat Verplicht` |
+
+The double rendered the `*` and not the tooltip, so *its* string value was exactly `Straat *`.
+An exact `role=textbox[name="Straat *"]` aim therefore landed on the double and could not land on
+the site. The Talent's selector manifest had been measured against the double, so it carried
+`Straat *` as the primary for **95 lines**, every scenario passed, and two production filings then
+failed every such aim — the failure message even names the alternative:
+`Nearest on this page: "Straat Verplicht"`.
+
+Three things follow, and each is cheap:
+
+- **Copy a naming element's markup whole**, from the archive, including a tooltip, a help
+  sentence, a screen-reader-only span, and its `display:none` or `visibility:hidden`. Those
+  attributes are not decoration you can drop: they are precisely what splits the two readings, and
+  reproducing the split is what makes your double able to fail the way the site fails.
+- **Assert the split, not one side of it.** Write the test as *this exact aim resolves to nothing
+  here, and this one resolves*. A test that only checks the aim that works cannot notice that the
+  aim that fails on the site passes here.
+- **Never keep a second copy of a fidelity constant in a test file.** The same session found a test
+  module holding a literal copy of the indicator's markup. The double changed, the copy did not,
+  and three tests reported that no label carried an indicator every label carried. Import it.
 
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
@@ -1388,12 +1422,14 @@ A generic snapshot excerpt (English demo labels — copy the *shape*, not a live
 
 1. **Read the leading role.** `textbox` → `browser_type`. `button` / `combobox` → click (or the Talent's widget rule), not type. HTML `type=` is **not** on the bot snapshot. Do not ask the wrap for `<input type='text'>`.
 2. **Legal `browser_type` aim is the label** — `role=textbox[name="Expected start date"]`. Optional `@e49` only if it pair-checks against this generation's map. A mismatch refuses (`this number is not that name`).
-3. **Printed name must be the resolvable name.** The tree can print a required word while Playwright matches a required mark (`*` or the live `aria-label`). Harvest the name the resolver accepts. A map that copies a stub word the live page does not expose is a false-green Path B.
+3. **Aim with the name the tree PRINTS, and prove it against the site.** A required field has two readings and only one of them is aimable: the tree prints the indicator's `aria-label` (`Expected start date Required`), while an XPath rung reads the label's raw text nodes — including a hover tooltip nobody can see. On the 2026-09 canary's portal those were `Straat Verplicht` and `Straat * Dit veld is verplicht`, so the middle shape `Straat *` matched **neither**, and a manifest measured against a tooltip-free double carried it on 95 lines. Harvest the name from an archive of the real page, and put a shape that lands only on your double in the FALLBACK ladder, never in the primary. See the naming-element rule in §4d.
 4. **A substring that matches a twin is illegal.** `House number` as a contains-match also hits `House number addition`. Exact name only, or a scoped group. Do not teach `/House number/` plus `nth` when two boxes share a stem.
-5. **Neighbour widgets.** A date row is often a **picker button** plus a **writable textbox**. Only the textbox accepts keys. Typing the button or the combobox above the dates yields `wrote nothing — field still empty`.
-6. **Remint.** Same labels, new `@eN`. A number that was a combobox on generation 2 can be a textbox on generation 6. Never retype a sticker from an older tree.
-7. **After a hop**, wait for the new photo. The wrap attaches a fresh snapshot and retires old `@eN`. Do not reuse chat stickers.
-8. **Last page vs the DTO** is Talent work. The wrap does not judge a missing mapped field. Write a scenario that force-misses the last page against this turn's uplink DTO. Do not grade a fill-first walk that happens to look complete.
+5. **Never invent a `role=group[...] >>` scope.** A two-segment chain means "B **inside** A", and on a form a group is usually the `<fieldset>` around one question's radio pair — every text box and combobox in the same visual section is its SIBLING. Five of nine name misses in the canary's two production filings were this one mistake, with a correct group name each time, and dropping the wrapper landed seconds later. So use a chain only for a control inside its own question's group, which is what a selector manifest's `>>` entries are; aim at the bare `role=<role>[name="..."]` for anything else.
+6. **Never aim between a navigation and a fresh tree.** Two aims in the same filing fired at questions the new page had not rendered yet — correct names, zero matches — and the next snapshot made the next aim land first time. No selector edit can prevent this one.
+7. **Neighbour widgets.** A date row is often a **picker button** plus a **writable textbox**. Only the textbox accepts keys. Typing the button or the combobox above the dates yields `wrote nothing — field still empty`.
+8. **Remint.** Same labels, new `@eN`. A number that was a combobox on generation 2 can be a textbox on generation 6. Never retype a sticker from an older tree.
+9. **After a hop**, wait for the new photo. The wrap attaches a fresh snapshot and retires old `@eN`. Do not reuse chat stickers.
+10. **Last page vs the DTO** is Talent work. The wrap does not judge a missing mapped field. Write a scenario that force-misses the last page against this turn's uplink DTO. Do not grade a fill-first walk that happens to look complete.
 
 **Draft-only is a rung on the ladder, not a permanent product lock.**
 The government submit rides `browser_click`.
