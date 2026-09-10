@@ -66,3 +66,28 @@ def test_recipe_is_shallow_git_not_nightly_zip():
     assert "git clone --branch 19.0 --single-branch --depth 1 --no-tags" in text
     assert "nightly.odoo.com" not in text
     assert "pgserver" not in text
+
+
+def test_ensure_treats_origin_root_as_up():
+    """`/` HTTP 200 is enough. `/web/login` 404 is not `ODOO_DOWN`."""
+    text = (Path(__file__).resolve().parents[2] / "scripts" / "ensure_odoo.sh").read_text(
+        encoding="utf-8"
+    )
+    fn_start = text.index("_odoo_answering()")
+    fn_end = text.index("\n}\n", fn_start)
+    body = text[fn_start:fn_end]
+    root_idx = body.index("http://127.0.0.1:$PORT/\"")
+    login_idx = body.index("/web/login")
+    assert root_idx < login_idx
+    assert "ODOO_DOWN" not in body
+
+
+def test_skill_tells_owner_origin_root():
+    """Owner copy: Odoo answers at `/`. Do not send them to `/web/login`."""
+    skill = (Path(__file__).resolve().parents[2] / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "curl `/`" in skill
+    assert "answers on this box at `/`" in skill
+    assert "curl `/web/login`" not in skill
+    assert "answers on this box at `/web/login`" not in skill

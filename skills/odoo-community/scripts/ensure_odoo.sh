@@ -1,7 +1,7 @@
 #!/bin/sh
 # ensure_odoo.sh — Postgres first, then Odoo on 0.0.0.0:8069.
 # Always waits for 127.0.0.1:5432 (odoo-community sorts before postgres).
-#   ensure_odoo.sh              -> serving /web/login
+#   ensure_odoo.sh              -> serving / (primary). /web/login is fallback only.
 #   ensure_odoo.sh --init-only  -> base DB inited, then exit
 set -eu
 
@@ -50,20 +50,30 @@ fi
 
 [ "${1:-}" = "--init-only" ] && { echo "DB_READY"; exit 0; }
 
-if ! curl -sf -o /dev/null -m 3 "http://127.0.0.1:$PORT/web/login" 2>/dev/null; then
+# Canonical "Odoo is up" probe is /. A shop may disable
+# /web/login on purpose (Pioneer). / HTTP 200 is enough.
+# /web/login is fallback for a backend-only box with no
+# website /. Do not start a second listener.
+_odoo_answering() {
+  curl -sf -o /dev/null -m "$1" "http://127.0.0.1:$PORT/" && return 0
+  curl -sf -o /dev/null -m "$1" "http://127.0.0.1:$PORT/web/login" && return 0
+  return 1
+}
+
+if ! _odoo_answering 3; then
   cd "$BASE"
   setsid "$VENV/bin/python" -m odoo -d website $DB_ARGS \
     --data-dir="$BASE/odoo-data" --http-port="$PORT" --http-interface=0.0.0.0 --workers=0 \
     >> "$BASE/odoo.log" 2>&1 </dev/null &
   i=0
   while [ $i -lt 30 ]; do
-    curl -sf -o /dev/null -m 2 "http://127.0.0.1:$PORT/web/login" 2>/dev/null && break
+    _odoo_answering 2 && break
     i=$((i + 1))
     sleep 1
   done
 fi
 
-if curl -sf -o /dev/null -m 5 "http://127.0.0.1:$PORT/web/login" 2>/dev/null; then
+if _odoo_answering 5; then
   echo "ODOO_UP"
   exit 0
 fi

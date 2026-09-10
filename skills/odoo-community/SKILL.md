@@ -24,7 +24,7 @@ Detail: [`references/first-run.md`](references/first-run.md).
 | They send | You do |
 | --- | --- |
 | `Install Odoo Community.` | INSTALL if the tree is missing |
-| `Is Odoo up?` | curl `/web/login` + `list_services` |
+| `Is Odoo up?` | curl `/` + `list_services` |
 | `Stop the local Odoo.` | Confirm, then `unregister_service` name `odoo-community` |
 
 ## Every message — triage first
@@ -49,8 +49,9 @@ Missing `~/odoo-site` is not a failure. Install only when they asked.
    `odoo-community` sorts before `postgres`.
 4. `register_service` name `postgres`, then name `odoo-community`
    (`sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`).
-5. Tell the owner Odoo answers on this box at `/web/login`. Do not
-   invent a public URL. `host_website` only if they asked for one.
+5. Tell the owner Odoo answers on this box at `/`. A shop may
+   disable `/web/login` on purpose. Do not invent a public URL.
+   `host_website` only if they asked for one.
 
 Do **not** download `odoo_19.0.latest.tar.gz`. Do not `-i website` or
 `-i crm` here. A consumer Talent asks `install_modules.sh` for those.
