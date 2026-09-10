@@ -2004,6 +2004,38 @@ through the state's timeout exit.
 - Each work-in-progress state carries its own SLA (in minutes); a zero SLA disables the
   reaper for that state.
 
+**Give every work-in-progress state a timeout exit, and let a person take it too.** The
+platform refuses a human transition out of a record while an agent run is live, so a person
+cannot cancel a job in the seconds between an irreversible act and the record catching up with
+it. **One** exit is exempt from that refusal: the state's own timeout exit — the same
+transition the reaper takes. That exemption is the *only* early release, and you get it by
+declaring the exit; there is no separate abort flag, method or button to author.
+
+Two things follow for your workflow.
+
+- **A work-in-progress state with no timeout exit strands a person, not just a record.** With
+  no exit declared there is no reaper *and* no abort, so a dead run holds the record with no
+  door at all. Declare one on every state a bot works in.
+- **Point the timeout exit at "unfinished, a person should look", never at "cancelled".** The
+  distinction is what makes the early abort safe. A hand-back that says the work is unfinished
+  stays true whether or not the irreversible act landed. A *Cancel* asserts the work is over,
+  and an act that did land behind a cancelled record is a lie that record keeps carrying. This
+  is why Cancel stays refused during a live run while the hand-back does not.
+
+**The abort cancels the running turn for you.** The platform asks the record once a minute
+whether the live turn still owns it; a handed-back record answers that it does not, and the
+turn is interrupted and its browser tools locked out. So a person clicking the hand-back stops
+the bot — you do not author a stop command, a channel message, or a cancellation signal.
+
+**What you DO author is the warning on that transition.** The one thing an abort cannot undo is
+an irreversible act already in flight. Your Talent must re-check its claim immediately before
+such an act and stop when the claim is gone (§4b) — that is what turns an abort into a no-op
+rather than a race. The seconds between that check and the act stay possible, so put the check
+a person can make into the transition's own description: name the record field or artifact that
+shows the act was reached. The posted-workers bot writes a `PENDING-<claim>` credential line
+just before it submits, and its hand-back dialog tells HR to check the portal when that line is
+there. A dialog with no description is a silent hazard, not a cosmetic gap.
+
 **Robustness belts you get for free — given a running scheduler (you don't author them; you do
 have to not disable them).** The SLA reaper is the *slow* backstop (tens of minutes to hours).
 Faster mechanisms below it keep a transient outage from stranding work, and the dispatch/uplink
