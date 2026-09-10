@@ -126,17 +126,14 @@ def test_absent_conf_is_noop(tmp_path: Path):
     assert normalize_pgdata(tmp_path / "missing") == []
 
 
-# ── the half a conf rewrite can never reach ──────────────────────────────────────────── #
-def test_the_cluster_is_initialised_with_a_PORTABLE_collation():
-    """`lc_*` lives in postgresql.conf and is rewritable; **LC_COLLATE does not.** It is
-    baked into pg_database by initdb and cannot be edited afterwards, so a cluster born on
-    an Ubuntu VM as en_US.UTF-8 dies on a container with "database locale is incompatible
-    with operating system" no matter how well this module rewrites the conf (seen live on
-    hh00413). pgserver runs initdb with no --locale, so the environment decides — and it
-    must decide C.UTF-8, which every substrate has."""
+# ── the healer must not live here ──────────────────────────────────────────── #
+def test_ensure_site_is_the_thin_wrapper():
+    """Hosted-site rows still name ensure_site.sh. That file must exec the
+    installer ensure, not initdb ~/odoo-site/pgdata. The portable-collation
+    contract lives on postgres ensure_postgres.sh / install_postgres.sh."""
     ensure = (Path(__file__).resolve().parents[2] / "scripts" / "ensure_site.sh").read_text()
-    pgserver_line = next(
-        ln for ln in ensure.splitlines()
-        if "$VENV/bin/python" in ln and ln.strip().endswith("- <<'PY'"))
-    assert "LC_ALL=C.UTF-8" in pgserver_line, pgserver_line
-    assert "LANG=C.UTF-8" in pgserver_line, pgserver_line
+    assert 'exec sh "$OC/ensure_odoo.sh"' in ensure
+    assert "pgserver" not in ensure
+    assert "initdb" not in ensure
+    assert "~/odoo-site/pgdata" not in ensure
+    assert "$BASE/pgdata" not in ensure
