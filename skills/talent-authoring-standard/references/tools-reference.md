@@ -537,7 +537,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 *first-party tool · request via `tools.required` · status **live** · cost A fraction of a cent*
 
-> Transcribe a voice note or audio file to text (speech→text). Use whenever the user sends a voice message or audio file, or asks you to transcribe/understand spoken audio. Pass the audio as `source` (a local file path, an http(s) URL, or a data: URL). Returns the transcript text. Do NOT use this to SPEAK text — that is `text_to_speech`.
+> Transcribe a voice note or audio file to text (speech→text) in whatever language(s) were spoken. A VOICE NOTE is already transcribed for you before your turn starts: the quoted line at the top of the user message is that machine transcript, and names in it may be misheard. Call this tool for an audio FILE the user sent, or to re-transcribe a cached voice note with `context` (the names, places and terms you expect) when the transcript looks garbled. Pass the audio as `source` (a local file path, an http(s) URL, or a data: URL). Returns {text, language, engine}. Do NOT use this to SPEAK text — that is `text_to_speech`.
 
 **Parameters**
 
@@ -549,9 +549,13 @@ browser-driving discipline (selector maps, batching, fail-closed), read
       "type": "string",
       "description": "Audio file: local path, http(s) URL, or data: URL (e.g. a voice note)."
     },
-    "language": {
+    "context": {
       "type": "string",
-      "description": "Optional language hint, e.g. 'en'."
+      "description": "Names, places and terms likely to occur, comma-separated (e.g. 'Fabien Pinckaers, Odoo, Oteny'). The engine prefers these spellings."
+    },
+    "languages": {
+      "type": "string",
+      "description": "Language(s) likely to occur, ISO-639-1, comma-separated (e.g. 'nl,en'). A hint only — recognition is automatic and never forced."
     }
   },
   "required": [
@@ -560,7 +564,7 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 }
 ```
 
-**Result** — {text, language?} — the transcript; `language` only when the provider reports it. Text-only (no file is produced).
+**Result** — {text, language?, languages?, engine} — the verbatim transcript in the spoken language(s); `language` is the detected primary language, `languages` appears when the clip switches languages, `engine` names the engine that answered (`gemini` first, `xai` as the fallback). Text-only (no file is produced).
 
 **Errors / edges** — {error:'source is required'} · {error:'source is not valid base64 audio'} · a size cap: {error:'audio exceeds N MB limit', bytes}. Plus the shared platform set.
 
@@ -568,7 +572,9 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 ```json
 {
-  "source": "/home/user/voice-note.ogg"
+  "source": "/home/user/voice-note.ogg",
+  "context": "Fabien Pinckaers, Odoo, Oteny",
+  "languages": "nl,en"
 }
 ```
 
@@ -576,12 +582,13 @@ browser-driving discipline (selector maps, batching, fail-closed), read
 
 ```json
 {
-  "text": "Hoi, kun je de afspraak naar dinsdag verzetten?",
-  "language": "nl"
+  "text": "Noteer Fabien als een lead. Fabien is CEO van Odoo.",
+  "language": "nl",
+  "engine": "gemini"
 }
 ```
 
-**Authoring notes** — Speech→text (a voice note, a recording). To SPEAK text use text_to_speech. Priced per minute of audio.
+**Authoring notes** — Speech→text (a voice note, a recording). A Telegram voice note is already transcribed by the gateway through this same engine before the turn starts. `context` (names/terms) fixes spellings; `languages` is a hint, never forced. To SPEAK text use text_to_speech. Priced per minute of audio.
 
 ## Create media
 
@@ -1497,6 +1504,139 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
       "status": "active",
       "ssl_status": "active",
       "cname_target": "customers.oteny.bot"
+    }
+  ]
+}
+```
+
+## Local services
+
+### `register_service` — Register a local service
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Register a local service or daemon so it starts again after a box bounce — Postgres, Odoo, a worker, any long-running process you started inside this box. Writes ~/.hermes/services.d/<name>. Pass `name` (a short token) and `command` (the shell line that starts the service; safe to re-run). Does not publish a public URL — use host_website when the owner also asked for that. There is no systemd in this box; do not write unit files.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Keep-alive name (letters, digits, dot, underscore, hyphen)."
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell command that (re)starts the service. Must be idempotent."
+    }
+  },
+  "required": [
+    "name",
+    "command"
+  ]
+}
+```
+
+**Result** — {ok, name, path, command} — one keep-alive file under ~/.hermes/services.d/<name>. Idempotent.
+
+**Errors / edges** — {ok: false, error: 'pass `name` — …'} when the name is empty or a path. {ok: false, error: 'pass `command` — …'} when the command is empty.
+
+**Example**
+
+```json
+{
+  "name": "postgres",
+  "command": "sh ~/.hermes/skills/talents/postgres/scripts/ensure_postgres.sh"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "name": "postgres",
+  "path": "/home/hermes/.hermes/services.d/postgres",
+  "command": "sh ~/.hermes/skills/talents/postgres/scripts/ensure_postgres.sh"
+}
+```
+
+**Authoring notes** — Does not publish a public URL. Use host_website only when the owner also asked for that. There is no systemd in the box.
+
+### `unregister_service` — Unregister a local service
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Stop auto-starting a local service after a bounce. Removes ~/.hermes/services.d/<name>. Does not kill a process that is already running. Use only when the owner asked to stop the local stack.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The keep-alive name to remove."
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
+```
+
+**Result** — {ok, name, removed} — removed is true when a file was present.
+
+**Errors / edges** — {ok: false, error: 'pass `name` of the service to unregister.'}
+
+**Example**
+
+```json
+{
+  "name": "postgres"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "name": "postgres",
+  "removed": true
+}
+```
+
+**Authoring notes** — Does not kill a process that is already running.
+
+### `list_services` — List local services
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> List local services registered to start after a bounce (name and command). Side-effect-free. Answers 'what will come back after a restart?'.
+
+**Result** — {ok, services: [{name, command}, …]} — side-effect-free.
+
+**Errors / edges** — None on the happy path.
+
+**Example**
+
+```json
+{}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "services": [
+    {
+      "name": "postgres",
+      "command": "sh ~/.hermes/skills/talents/postgres/scripts/ensure_postgres.sh"
     }
   ]
 }

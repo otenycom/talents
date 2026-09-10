@@ -82,6 +82,14 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `detach_site_domain` | `tools.required` | oteny-sites | live | Included | 🔓 Removes a custom domain from a hosted website. |
 | `list_site_domains` | `tools.required` | oteny-sites | live | Included | 📎 Lists custom domains on your hosted websites and their DNS status. |
 
+## Local services
+
+| Request name | Request via | Skill to compose | Status | Cost | What it does |
+|---|---|---|---|---|---|
+| `register_service` | `tools.required` | oteny-services | live | Included | 🔁 Keeps a process you started in the box — Postgres, Odoo, a worker — coming back after a bounce. |
+| `unregister_service` | `tools.required` | oteny-services | live | Included | ⏹️ Stops auto-starting a local service after a bounce. |
+| `list_services` | `tools.required` | oteny-services | live | Included | 📋 Lists the local services registered to start after a bounce. |
+
 ## Share a file as a link
 
 | Request name | Request via | Skill to compose | Status | Cost | What it does |
