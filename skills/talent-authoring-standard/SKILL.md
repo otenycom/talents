@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.8
+version: 0.5.9
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -124,8 +124,9 @@ under the other Talent. Worked stamps: [`postgres`](../postgres/),
 Stamp **`## About this Talent`** after `Builds on:` / `Do not start:` /
 secrets, and **above** any "What the owner types" table. Write every
 value the owner gets, from the owner's point of view. Use as many
-paragraphs as that needs. Do not add how-to-answer lines, pit lines,
-or "tell me about" routing under the heading.
+paragraphs as that needs. Do not slim this section to one paragraph.
+The catalog lint fails a dropped value. Do not add how-to-answer
+lines, pit lines, or "tell me about" routing under the heading.
 
 Worked stamp: [`crm-bot`](../crm-bot/). Author note:
 [`audience-and-voice.md`](references/audience-and-voice.md).

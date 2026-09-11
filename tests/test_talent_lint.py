@@ -732,18 +732,34 @@ def test_shipped_crm_bot_does_not_solicit_a_secret_in_chat():
 
 def test_public_catalog_about_this_talent_sits_above_the_command_table():
     for slug in ("crm-bot", "odoo-website", "postgres", "odoo-community"):
-        text = (CATALOG / slug / "SKILL.md").read_text(encoding="utf-8")
-        about = text.index("## About this Talent")
-        table = text.index("## What the owner types")
-        assert about < table, slug
-        rest = text[about:]
-        end = len(rest)
-        for marker in ("\nYou are the owner's", "\nDetail:", "\n## "):
-            idx = rest.find(marker, 1)
-            if idx != -1:
-                end = min(end, idx)
-        stamp = rest[:end].lower()
-        assert "tell me about" not in stamp, slug
-        assert "do not recite" not in stamp, slug
-        assert "pit of failure" not in stamp, slug
-        assert "pit of success" not in stamp, slug
+        assert lint._about_value_findings(CATALOG / slug) == [], slug
+
+
+def test_about_value_lint_fails_a_slim_crm_stamp(tmp_path):
+    b = tmp_path / "crm-bot"
+    b.mkdir()
+    (b / "SKILL.md").write_text(
+        "## About this Talent\n\n"
+        "The CRM Talent helps you collect leads at trade shows.\n\n"
+        "## What the owner types\n",
+        encoding="utf-8",
+    )
+    findings = lint._about_value_findings(b)
+    assert any("dropped 'badge'" in f for f in findings)
+    assert any("do not slim" in f for f in findings)
+
+
+def test_authoring_standard_forbids_one_short_about():
+    standard = CATALOG / "talent-authoring-standard"
+    blob = "\n".join(
+        p.read_text(encoding="utf-8")
+        for p in (
+            standard / "SKILL.md",
+            standard / "references" / "audience-and-voice.md",
+            standard / "references" / "checklist-first.md",
+            standard / "references" / "rubric.md",
+        )
+    )
+    assert "one short value paragraph" not in blob
+    assert "every value the owner gets" in blob
+    assert "do not slim" in blob.lower()
