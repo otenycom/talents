@@ -28,7 +28,7 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.1   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.2   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.2.0:  first-screen stack: Builds on postgres then odoo-community;
                  #         retired odoo-website/scripts/install_odoo.sh (zip + pgserver).
@@ -89,7 +89,7 @@ toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned i
 # platform defaults (the hh-sites gateway plugin, delivered to every box) — declared here so
 # the store copy + the lint know the Talent depends on them (they are LIVE, never stubbed).
 tools:
-  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites]
+  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites, connect_account, credential_status]
 delivery: purchased                      # à-la-carte from the Talent Market (not baked into every box)
 price: free                              # free during the pilot (Q4: flip to paid at go-live)
 # Verify budget: the whole scenario-suite staging run must stay under this measured spend or
@@ -116,7 +116,9 @@ routing:
     build_backend=module. Odoo Online/remote → custom module impossible (JSON-2 only).
     Wants module but not Max → tell them exactly: /oteny_subscribe upgrade max. After a
     local INSTALL, register_service for postgres and odoo-community, then say: Postgres
-    and Odoo are up. Your website engine is ready — what should the site say? "Put my
+    and Odoo are up. Your website engine is ready — what should the site say? In the
+    same turn offer the back-office email plus the secure password link. "I don't
+    have a password" uses that link — never a paste in chat. "Put my
     site online" → confirm then host_website port 8069. Custom domain → custom-domain.md
     (e.g. Attach my domain example.com to site <slug> (include www).). Forbidden:
     oteny-drop, drop.oteny.bot, python -m http.server, static HTML fakes, reusing

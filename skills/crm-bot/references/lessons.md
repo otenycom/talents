@@ -24,6 +24,9 @@ install path and the wire. The lessons stay.
 9. Do not take the box login, `USER.md`, or `.odoo-admin` as the
    admin email. The owner must type it. A first sentence that only
    names the event is an ask, not a ready.
+10. Do not ask the owner to type a password in chat when they have
+    none. The ready sentence offers the secure intake link. "I
+    don't have a password" is that same path.
 
 ## Pitfalls
 

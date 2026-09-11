@@ -123,8 +123,32 @@ Then tell the owner **exactly** this sentence, and only when
 
 **Postgres and Odoo are up. Your website engine is ready — what should the site say?**
 
+Keep that sentence exact. In the **same turn**, offer the back-office
+login: the admin email plus the secure password link (Bot notes below).
+A first-page walk-through stays optional. Do not wait for them to ask.
+Do not ask them to type a password in chat.
+
 (then BUILD in [`build-and-host.md`](build-and-host.md)). Mention briefly: the site lives
 in a git repo the bot owns; they can later make it customer-facing.
+
+## Bot notes — password (never in chat)
+
+The box already has a generated login. The owner does not.
+
+1. `credential_status` env_var `ODOO_ADMIN_PASSWORD`.
+2. `none` → `connect_account` label `Website back-office password`,
+   env_var `ODOO_ADMIN_PASSWORD`. Send the returned URL with the
+   ready sentence.
+3. `pending` → send that same URL again. Wait.
+4. `leased` or `submitted` → one sentence, then end the turn.
+5. `delivered` or `process_ready` →
+   `python3 ~/.hermes/skills/talents/odoo-website/scripts/setup_admin.py`
+   `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
+
+## Owner has no password
+
+Same checklist. "I don't have a password" and "I want the back-office
+login" are this path, not a request to paste in chat.
 
 If `READY: no` persists:
 

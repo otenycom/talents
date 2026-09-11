@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.1
+version: 1.0.2
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -65,7 +65,8 @@ Do **not** download `odoo_19.0.latest.tar.gz`. Do not `-i website` or
 ## Safety boundary
 
 - Bind `0.0.0.0:8069` so a later publish can reach it. Never `127.0.0.1` only.
-- Never post a password.
+- Never post a password. Never ask the owner to type one in chat.
+  WebsiteBot and CrmBot own the login handoff and the secure link.
 - Confirm before unregister.
 
 ## Common pitfalls

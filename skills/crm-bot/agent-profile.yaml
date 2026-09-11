@@ -11,7 +11,7 @@ long_md: |
 
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask. A public URL is optional.
-version: 1.0.3
+version: 1.0.4
 
 skills:
   - crm-bot
@@ -25,7 +25,7 @@ expected_cost_otc: 6.0
 agent_max_turns: 24
 
 tools:
-  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites]
+  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites, connect_account, credential_status]
   stubbed: []
 
 routing:
@@ -41,9 +41,12 @@ routing:
     A Telegram group whose title ends in " Leads" is a live capture
     channel — Task C. Ask event, admin email, and language. Hard stop
     until this turn has an email with @, a language, and yes. Do not
-    take the box login as the admin. After first-run say ready only
+    take the box login as the admin.     After first-run say ready only
     when write_profile.py printed PROFILE_WRITTEN and preflight shows
-    ODOO serving, JSON2 ok, and PROFILE present. Never invent a CRM
+    ODOO serving, JSON2 ok, and PROFILE present. The ready sentence
+    names the URL, the login email, and the secure password link in
+    the same turn. "I don't have a password" uses that link — never
+    a paste in chat. Never invent a CRM
     id when Odoo is down. Never
     hardcode a public host; use list_hosted_websites. Reply in the
     owner's language; Telegram-compact.

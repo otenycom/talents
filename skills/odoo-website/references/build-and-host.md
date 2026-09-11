@@ -66,8 +66,10 @@ Take the site down.
 I want the back-office login for my site.
 ```
 
-You give public URL + `/web/login` + login **email** only; password via secure connect
-link — never in chat.
+You give public URL + `/web/login` + login **email** only. Password via
+the secure connect link in the **same** reply — never in chat. If they
+have no password, mint or reuse that link. Do not ask them to type the
+secret in chat.
 
 ---
 
@@ -168,9 +170,13 @@ polish pass — retrofitting it means re-translating every page.
 ### Owner handoff (after first host, local)
 
 1. Facts (no secrets): public URL, `/web/login`, login **email** = `owner_email`.
-2. Password via private credential form / connect link — apply with
-   `setup_admin.py --from-env` / `--password-file`.
-3. Module mode: Website Builder edits may be overwritten on module upgrade.
+2. Password: `credential_status` env_var `ODOO_ADMIN_PASSWORD`, then
+   `connect_account` label `Website back-office password` when nothing
+   is connected. Send the URL in this same reply. Apply with
+   `setup_admin.py --from-env ODOO_ADMIN_PASSWORD`.
+3. "I don't have a password" is the same checklist. Never a paste in
+   chat.
+4. Module mode: Website Builder edits may be overwritten on module upgrade.
 
 ### Care loop
 

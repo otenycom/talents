@@ -54,9 +54,12 @@ No personal data, tokens, or hardcoded chat/user ids. Method facts stay; body/
 account specifics go. Owner settings live in the profile/override (D34/D53), not
 the bundle — delivered files carry only generic defaults. Numbers that remain
 must fit any tenant (%/relative, per-unit, derived from the profile) — never
-tuned to one source user. Gate:
+tuned to one source user. A Talent also never asks the owner to type a
+password, API key, or other secret in chat. The same turn offers the
+secure intake link. Gate:
 ``grep -riE 'name-of-source-user|real_token|DEFAULT_TOKEN|[0-9]{8,}|api[_-]?key' <bundle>``
-returns nothing meaningful.
+returns nothing meaningful. The upgrade-safety lint also fails a line that
+tells the bot to collect a secret in chat.
 
 ### 5. Routing declared (not hand-edited into SOUL)
 - A `routing` declaration: a per-group `channel_prompt` (persona **and** a "load

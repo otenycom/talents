@@ -21,6 +21,12 @@ body (see the standard's First-screen stack). Then this drill calls the
 **other** Talent's scripts. It does not paste a second installer. After
 READY, one "ready" sentence — not a second recipe.
 
+If the owner needs a login secret after READY, that same sentence
+offers the secure intake link. The pit of failure is a ready line that
+names the email and then asks them to type a password in chat. The pit
+of success is the URL, the email, and the secure link in one turn.
+Never collect the secret in Telegram, webchat, or Discuss.
+
 ## Declared scripts only — never improvised exec (D57)
 
 Create the schema via the shipped `scripts/init.sql` (`sqlite3 db < scripts/init.sql`)

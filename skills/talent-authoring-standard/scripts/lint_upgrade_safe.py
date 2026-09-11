@@ -127,6 +127,10 @@ NAMED CONNECTIONS + THE READINESS GATE (every bundle — an infra default that d
      an undeclared read reaches the tenant as an unset variable and a ``KeyError`` that
      names no account. (Needs PyYAML; CI installs it.) Author guide:
      ``references/connections.md``.
+ 21. (Talent only) a delivered ``.md`` line that tells the bot to collect a
+     password or other secret in chat (``send it here``, ``paste it in chat``,
+     ``I will not repeat it``). A prohibition line (never / do not) is
+     guidance. The owner sets a secret on the secure intake link.
 
 SOFT (non-blocking — surfaced as ``WARN``, never FAILs the gate, ``checklist_warnings``):
   the checklist-first bar (D85, the airline-pilot rule). Every Oteny skill the weak
@@ -242,6 +246,17 @@ _INTERNAL_ARTIFACTS = [
     (re.compile(r"(?i)\bgolden[- ]image\b"), "internal infra term 'golden image'"),
 ]
 _LINT_OK = "lint-ok"
+
+# A Talent that collects a password in chat (hh00538). A prohibition line
+# ("never …") is guidance. A line that tells the bot to collect the secret
+# in chat is a FAIL.
+_CHAT_SECRET_SOLICIT = re.compile(
+    r"(?i)("
+    r"send it here|paste it here|type it here|"
+    r"send it in (this )?chat|paste it in (this )?chat|"
+    r"won'?t repeat it|will not repeat it"
+    r")"
+)
 
 
 def _read_description(skill_md_text: str) -> str | None:
@@ -1263,6 +1278,32 @@ def _connection_findings(bundle: Path) -> list[str]:
     return out
 
 
+def _chat_secret_solicit_findings(bundle: Path) -> list[str]:
+    """Talent markdown must not tell the bot to collect a secret in chat."""
+    out: list[str] = []
+    for p in sorted(bundle.rglob("*.md")):
+        if _SKIP_DIRS & set(p.parts) or "tests" in p.parts:
+            continue
+        rel = p.relative_to(bundle)
+        try:
+            text = p.read_text(errors="ignore")
+        except OSError:
+            continue
+        for ln, line in enumerate(text.splitlines(), 1):
+            if _LINT_OK in line:
+                continue
+            if not _CHAT_SECRET_SOLICIT.search(line):
+                continue
+            if _NEGATIVE.search(line):
+                continue
+            out.append(
+                f"{rel}:{ln}: asks the owner to send a secret in chat — "
+                "offer the secure intake link in the same turn "
+                "(connect_account / connect_login)"
+            )
+    return out
+
+
 def lint_bundle(bundle: Path) -> list[str]:
     """Return a list of build-time violations for one bundle dir ('' = clean)."""
     findings: list[str] = []
@@ -1297,6 +1338,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _task_escalation_findings(bundle)  # (16) per-task model escalation shape
         findings += _channel_role_findings(bundle)     # (19) declared Discuss role lanes
         findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
+        findings += _chat_secret_solicit_findings(bundle)
 
     # (20) connections: + the readiness gate — EVERY bundle, not only a Talent. An infra
     # default skill that declares `connections:` sets the map for the whole bot (the

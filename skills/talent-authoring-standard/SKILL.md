@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.5
+version: 0.5.6
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -98,6 +98,12 @@ contract on the **first page**, before any other prose:
    stack is up).
 5. **No stale path** on the first page. Do not name a retired installer
    script as the recipe.
+6. **Secrets.** Never ask the owner to type a password, API key, or other
+   secret in chat. The same turn offers the secure intake link
+   (`connect_account` / `connect_login`) and prefers that link. If they
+   have no password, mint or reuse the link. Do not collect the secret
+   in Telegram, webchat, or Discuss. The lint fails a Talent that tells
+   the bot to collect a secret in chat.
 
 There is no `requires_talents:` key. Do not invent one. `requires:` in
 `agent-profile.yaml` is hardware (`substrate` / `min_tier`) only. Point with
@@ -155,7 +161,7 @@ is in [references/rubric.md](references/rubric.md). Open it before grading. The 
 1. **1. Package structure** — `SKILL.md` with valid agentskills.io frontmatter (`name`, `description`, `version`).
 2. **2. Setup goal well-defined** — Every artifact the bot needs is in `required_artifacts.yaml` with a **concrete, checkable** condition (a path, table names, field names) — no vague "set up correctly." If you can't write a one-line check for it, it's underspecified.
 3. **3. First-run is mechanical, idempotent, in `references/`, and approval-clean** — Six graded rules — drill in **`references/first-run.md`** (not the body, D57); declared scripts only (no improvised exec); cron pins `model`+`provider` as a persona alias; one `sqlite3` per terminal call; readiness scripts are pure-stdlib and never hard-fail (D237); third-party feature scripts ship a uv lock + `talent-run`; collapse the per-turn preamble to one preflight (D38).
-4. **4. PII / secrets clean (method, not person) — and generic, not baked for one body** — No personal data, tokens, or hardcoded chat/user ids.
+4. **4. PII / secrets clean (method, not person) — and generic, not baked for one body** — No personal data, tokens, or hardcoded chat/user ids. Never ask the owner to type a password or other secret in chat; the same turn offers the secure intake link.
 5. **5. Routing declared (not hand-edited into SOUL)** — A `routing` declaration: a per-group `channel_prompt` (persona **and** a "load `<skill>` first" directive) + an optional one-line DM hint.
 6. **6. Namespacing (so bots never collide)** — Data under `~/.hermes/data/<bot>/` (D34); skills under `~/.hermes/skills/talents/<bot>/`; crons tagged by bot; config entries keyed by the bot's group id.
 7. **7. Safety boundary (domain-appropriate)** — A boundary loaded with the voice: a "not professional advice" disclaimer, red-flag escalation for the domain (medical for food, financial for stocks), no invented facts about the user, and any sane hard limits.

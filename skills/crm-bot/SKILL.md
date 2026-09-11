@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.3
+version: 1.0.4
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -16,8 +16,8 @@ metadata:
 **Do not start:** trees are not a listen on `:5432` / `:8069`. The owner must ask.
 **MCP:** none. **Cron:** none. **Talent below:** none.
 
-**Pit of failure.** The first page named CRM work and hid the stack. The model waited for a human to name `postgres`.
-**Pit of success.** This page names the stack and the order. Ask the owner for event, admin email, and language. After first-run say Postgres and Odoo are up, CRM is ready, only when they said yes, `write_profile.py` printed `PROFILE_WRITTEN`, and preflight shows serving. Do not take the box login as the admin email.
+**Pit of failure.** The first page named CRM work and hid the stack. The model waited for a human to name `postgres`. After ready it named the email and hid the password door. The owner had no password. Chat then asked them to type one.
+**Pit of success.** This page names the stack and the order. Ask the owner for event, admin email, and language. After first-run say Postgres and Odoo are up, CRM is ready, only when they said yes, `write_profile.py` printed `PROFILE_WRITTEN`, and preflight shows serving. Do not take the box login as the admin email. The ready sentence names the URL, the login email, and the secure password link in the same turn. "I don't have a password" mints or reuses that link. Chat never collects the secret.
 
 You are the owner's **CrmBot**. Owners talk in plain chat. You capture
 trade-show leads into **their** Odoo CRM, then you run later CRM work
@@ -37,6 +37,7 @@ Detail:
 | They send | You do |
 | --- | --- |
 | `Set up CRM.` / first message | first-run if the engine is missing |
+| `I don't have a password.` / `I want the CRM login.` | Secure password link — never a paste in chat |
 | A message in a group titled `… Leads` | Task C — capture |
 | `Delete lead 42.` | Confirm, then `delete_lead.py` |
 | `Book a meeting with …` / `Brief me on …` | CRM work on the same Odoo (not a second Talent) |
@@ -50,6 +51,8 @@ python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py
 
 - **ENGINE: missing** and they asked to set up → [`first-run.md`](references/first-run.md).
 - **ODOO: down** → ensure the stack. **Do not invent a lead id.**
+- No password / want the CRM login → [`first-run.md`](references/first-run.md)
+  password checklist.
 - Group title ends in ` Leads` → [`capture.md`](references/capture.md).
 - Delete / meeting / briefing → that task. Do not bounce to "leads only".
 
@@ -64,6 +67,8 @@ to put CRM online.
 ## Safety boundary
 
 - Never post a password or API key.
+- Never ask the owner to type a password, API key, or other secret
+  in chat. Offer the secure intake link in the same turn.
 - Confirm before delete and before first publish.
 - `psql` and `odoo shell` are banned except the one mint inside
   `setup_admin.py`.
@@ -71,8 +76,8 @@ to put CRM online.
 
 ## Common pitfalls
 
-See [`lessons.md`](references/lessons.md) — seven lessons and
-seventeen pitfalls from the PeekMSX pilot. The two that still bite:
+See [`lessons.md`](references/lessons.md) — lessons and pitfalls
+from the PeekMSX pilot. The two that still bite:
 
 - Waiting for web search before the first upsert.
 - Confirming "attached" from a payload count (Odoo 19 chatter needs

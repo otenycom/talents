@@ -702,3 +702,29 @@ def test_required_on_a_purchased_bundle_is_clean(tmp_path):
                      profile_extra="delivery: purchased\n" + _SAAS + "    required: true\n",
                      artifacts=_CONN_ARTIFACT)
     assert _conn_findings(b) == []
+
+
+def test_chat_secret_solicit_is_a_finding(tmp_path):
+    b = _talent(tmp_path)
+    (b / "references").mkdir()
+    (b / "references" / "first-run.md").write_text(
+        "Pick one you want and send it here. I'll set it.\n",
+        encoding="utf-8",
+    )
+    assert any("send a secret in chat" in f for f in lint.lint_bundle(b))
+
+
+def test_chat_secret_prohibition_is_clean(tmp_path):
+    b = _talent(tmp_path)
+    (b / "SKILL.md").write_text(
+        "Never say send it here. Offer the secure link instead.\n",
+        encoding="utf-8",
+    )
+    assert not any("send a secret in chat" in f for f in lint.lint_bundle(b))
+
+
+def test_shipped_crm_bot_does_not_solicit_a_secret_in_chat():
+    crm = CATALOG / "crm-bot"
+    assert lint._chat_secret_solicit_findings(crm) == []
+    website = CATALOG / "odoo-website"
+    assert lint._chat_secret_solicit_findings(website) == []
