@@ -46,10 +46,9 @@ internal lab hostnames.
 
 Authors write `## About this Talent` on the first page and cover every
 value the owner gets. Use as many paragraphs as that needs. Do not
-slim this section to one paragraph. The catalog lint fails a dropped
-value. Do not add "tell me about", pit lines, or routing under that
-heading. The bot answers a general question from the section when it
-is there and complete.
+add "tell me about", pit lines, or routing under that heading. The
+bot answers a general question from the section when it is there and
+complete.
 
 CrmBot is the worked example.
 

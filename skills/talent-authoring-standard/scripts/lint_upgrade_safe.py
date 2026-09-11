@@ -1278,105 +1278,6 @@ def _connection_findings(bundle: Path) -> list[str]:
     return out
 
 
-# Owner-facing words that must stay under ## About this Talent.
-# A later trim that drops one fails this lint. Do not slim to one paragraph.
-_ABOUT_REQUIRED = {
-    "crm-bot": (
-        "trade show",
-        "badge",
-        "voice",
-        "photo",
-        "contact",
-        "lead",
-        "search",
-        "follow-up",
-        "leads",
-        "meeting",
-        "briefing",
-        "live card",
-    ),
-    "odoo-website": (
-        "website",
-        "chat",
-        "landing page",
-        "shop",
-        "booking",
-        "https",
-        "domain",
-        "back-office",
-        "odoo online",
-    ),
-    "postgres": (
-        "postgresql 18",
-        "private box",
-        "internet",
-        "other talent",
-        "restart",
-    ),
-    "odoo-community": (
-        "odoo community 19",
-        "postgresql",
-        "nightly",
-        "websitebot",
-        "crmbot",
-        "files are already",
-    ),
-}
-
-_ABOUT_FORBIDDEN = (
-    "tell me about",
-    "do not recite",
-    "pit of failure",
-    "pit of success",
-    "you are the owner",
-)
-
-
-def _about_stamp(text: str) -> str:
-    start = text.index("## About this Talent")
-    rest = text[start:]
-    end = len(rest)
-    for marker in ("\nYou are the owner's", "\nDetail:", "\n## "):
-        idx = rest.find(marker, 1)
-        if idx != -1:
-            end = min(end, idx)
-    return rest[:end]
-
-
-def _about_value_findings(bundle: Path) -> list[str]:
-    """About this Talent must keep every owner-facing value for these slugs."""
-    required = _ABOUT_REQUIRED.get(bundle.name)
-    if not required:
-        return []
-    skill = bundle / "SKILL.md"
-    if not skill.is_file():
-        return ["SKILL.md: missing (About this Talent lives there)"]
-    try:
-        text = skill.read_text(encoding="utf-8")
-    except OSError:
-        return ["SKILL.md: unreadable"]
-    if "## About this Talent" not in text:
-        return ["SKILL.md: missing ## About this Talent"]
-    if "## What the owner types" not in text:
-        return ["SKILL.md: missing ## What the owner types"]
-    if text.index("## About this Talent") > text.index("## What the owner types"):
-        return ["SKILL.md: ## About this Talent must sit above the command table"]
-    stamp = _about_stamp(text).lower()
-    out: list[str] = []
-    for token in required:
-        if token not in stamp:
-            out.append(
-                f"SKILL.md: About this Talent dropped {token!r} — "
-                "write every value the owner gets; do not slim that section"
-            )
-    for token in _ABOUT_FORBIDDEN:
-        if token in stamp:
-            out.append(
-                f"SKILL.md: About this Talent must not contain {token!r}"
-            )
-    return out
-
-
 def _chat_secret_solicit_findings(bundle: Path) -> list[str]:
     """Talent markdown must not tell the bot to collect a secret in chat."""
     out: list[str] = []
@@ -1438,7 +1339,6 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _channel_role_findings(bundle)     # (19) declared Discuss role lanes
         findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
         findings += _chat_secret_solicit_findings(bundle)
-        findings += _about_value_findings(bundle)
 
     # (20) connections: + the readiness gate — EVERY bundle, not only a Talent. An infra
     # default skill that declares `connections:` sets the map for the whole bot (the

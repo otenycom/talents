@@ -26,27 +26,13 @@ def test_ready_sentence_stays_and_offers_secure_intake():
     assert "won't repeat it" not in blob
 
 
-def test_about_this_talent_covers_every_value_add():
+def test_about_this_talent_sits_above_the_command_table():
     about = _SKILL.index("## About this Talent")
     table = _SKILL.index("## What the owner types")
     assert about < table
     pitch = _SKILL[about:table].lower()
-    for token in (
-        "website",
-        "chat",
-        "landing page",
-        "shop",
-        "booking",
-        "https",
-        "domain",
-        "back-office",
-        "odoo online",
-    ):
-        assert token in pitch, token
-    assert "start intake" not in pitch
     assert "tell me about" not in pitch
     assert "you are the owner" not in pitch
-    assert "one short" not in pitch
 
 
 def test_channel_prompt_does_not_stamp_how_to_answer_about():

@@ -30,7 +30,7 @@ long_md: |
   tells you the public link every time.
 version: 1.2.5   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
-                 # 1.2.5:  About this Talent keeps every value; lint fails a slim.
+                 # 1.2.5:  About this Talent keeps every value add.
                  # 1.2.0:  first-screen stack: Builds on postgres then odoo-community;
                  #         retired odoo-website/scripts/install_odoo.sh (zip + pgserver).
                  # 1.1.0:  every site ends with one small footer credit linking to

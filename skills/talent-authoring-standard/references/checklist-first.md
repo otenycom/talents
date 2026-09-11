@@ -72,8 +72,7 @@ Four output disciplines a full Talent layers on top of the shape:
   worked shape: [`audience-and-voice.md`](audience-and-voice.md).
 - **About this Talent.** The first page has `## About this Talent` with
   every value the owner gets, and no how-to-answer lines under it.
-  Do not slim this section to one paragraph. Full rule:
-  [`audience-and-voice.md`](audience-and-voice.md).
+  Full rule: [`audience-and-voice.md`](audience-and-voice.md).
 - **Speak to the user, not the expert — then fade jargon in.** Explain domain jargon
   (leucine / mTOR for food; P/E / RSI for stocks) in plain words **with why it matters**
   while the tenant is new, **gradually shifting to the bare term as they settle** — a
