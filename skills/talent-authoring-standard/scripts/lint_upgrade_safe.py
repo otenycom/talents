@@ -733,6 +733,42 @@ def _selector_twin_warnings(bundle: Path) -> list[str]:
     return out
 
 
+def _summary_check_warnings(bundle: Path) -> list[str]:
+    """(Snapshot check, soft) A bot that fills a third-party form — it ships a selector
+    manifest — must file from a record snapshot a compaction cannot take, and must compare
+    the portal's review page with that snapshot before any save.
+
+    On a real government filing in September 2026 three runs compacted, lost the record
+    they were filling from, and saved drafts with a guessed country, an invented date and
+    an invented person; the review page showed none of it, because the worker row was
+    collapsed. So: declare ``record_pin:`` in ``agent-profile.yaml`` (the platform pins the
+    record in the system prompt), and a ``summary_check:`` block with ``sections:`` in the
+    manifest (each label the review page prints, and the snapshot key it must equal).
+    Soft, because a bot with no irreversible save does not need it.
+    """
+    out: list[str] = []
+    profile = _profile_data(bundle)
+    pin = profile.get("record_pin") if isinstance(profile, dict) else None
+    has_pin = isinstance(pin, dict) and bool(pin.get("fields"))
+    for mf, data in _iter_selector_manifests(bundle):
+        rel = mf.relative_to(bundle)
+        if not has_pin:
+            out.append(
+                f"{rel}: this bot fills a form, but agent-profile.yaml declares no "
+                "`record_pin:` — pin the record it files, so a context compaction cannot "
+                "take it (business-bot-pattern §6)"
+            )
+        check = data.get("summary_check") if isinstance(data, dict) else None
+        sections = check.get("sections") if isinstance(check, dict) else None
+        if not (isinstance(sections, list) and sections):
+            out.append(
+                f"{rel}: no `summary_check:` with `sections:` — declare the fields the bot "
+                "compares with its record snapshot on the review page before any save, "
+                "every collapsed row expanded (business-bot-pattern §4e)"
+            )
+    return out
+
+
 def _neutralize_findings(bundle: Path) -> list[str]:
     """(13) An outbound-action Talent MUST ship a well-shaped neutralize.yaml that covers
     every declared required cron. A self-contained Talent with no outbound action needs
@@ -1388,6 +1424,7 @@ def checklist_warnings(bundle: Path) -> list[str]:
             "recently (D85)"
         )
     warnings += _selector_twin_warnings(bundle)  # (17, soft) manifest with no doc_twin
+    warnings += _summary_check_warnings(bundle)  # (soft) no pinned snapshot / no page check
     return warnings
 
 

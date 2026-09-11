@@ -334,6 +334,28 @@ the page). The record knob lives in `agent-profile.yaml` (`browser: record:` —
 off per bot. To turn one archived page into an offline fixture for your stub
 (`page-fixture-export`) you still need Oteny staff today — see the gaps table.
 
+**Pin the record your bot files: `record_pin:`.** A long run compacts its context, and a
+compaction prunes old tool results first — including the record your bot read with its
+first call. Declare the fields instead, in `agent-profile.yaml`:
+
+```yaml
+record_pin:
+  connection: client_erp        # a key of `connections`; default: your home connection
+  fields: [id, res_name, state_id, work_json]
+  max_chars: 24000
+```
+
+On every dispatched turn the platform reads those fields of the work header's record once,
+before the first model call, and pins them in the system prompt as a
+`[SOURCE RECORD SNAPSHOT — <model> #<id>, fetched …]` block that no compaction removes. A
+failed read pins `[SOURCE RECORD SNAPSHOT UNAVAILABLE — …]`; say in your skill what the bot
+does then. The lane's `preload_skills` ride the same system prompt, so your checklist survives
+a compaction too. Check it in a trace: every model request of the run carries the block. To
+prove it survives a compaction on a dev bot you need a lower compaction point
+(`compression.threshold_tokens`, dev bots only, floored at 80,000); setting it needs Oteny
+staff today. The pattern and its rule are in
+[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §6.
+
 **Grading a click: did it stick?** Since 2026-08-25 an action row carries more than
 "the tool returned success". It names the snapshot ref your bot acted on, what that ref
 resolved to on the page (`el_id` / `el_name` / `el_type`), and — for a radio or a

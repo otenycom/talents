@@ -1117,6 +1117,17 @@ label makes you assume.
   *unavailable*, or that cannot see the page, as a **defect on the fill path** to fix before the next
   attended run — not a step to work around.
 
+- **A summary page that collapses rows is not read until every row is expanded.** Many portals end
+  a wizard with a review page whose repeating rows (workers, line items, vehicles) show one line each
+  behind an *expand* button. Everything inside the row is absent from both the text and the tree until
+  the row is opened. On a real filing in September 2026 every wrong value sat inside such a row, and
+  the review page looked complete. So the check before the save expands every row first, then reads the
+  page's **visible text** (a tree can leave out values the text carries), then compares every field
+  with the pinned record snapshot (§6). Declare the comparison as data: a `summary_check:` block in
+  the selector manifest names each section, the label the page prints, and the snapshot key, plus a
+  closed `allowed:` list of differences that are not a mismatch. And make your double collapse the
+  row too, or the check goes green on the double and proves nothing about the real page.
+
 **Rule:** *observe first, declare second.* Every line of the runbook that says what a control **is** —
 its widget kind, its id class, its accessible name — is a recorded observation of the real page;
 anything you have not observed is an open unknown (§4d), not a guess you ship.
@@ -1955,18 +1966,42 @@ the run's addresses somewhere a compaction cannot reach. On Oteny that is a
 `context_pins:` list in your `agent-profile.yaml`, naming the records your write-back leg
 cannot do without; the platform pins the dispatch identifiers it already owns beside them.
 
-**Pin addresses, never values.** It is tempting to have the platform re-inject a copy of
-the record's data after a compaction. Do not ask for that. A person can edit the record
-while your run is in flight, so a replayed copy can be wrong in a way your bot cannot
-detect, and a confidently wrong value is worse than a missing one. Pin the addresses and
-**re-read** through them. A bot that re-reads before it writes back is correct at any
-context length; a bot that trusts a summary is correct only until the run gets long.
+**Pin the snapshot your bot files, and the addresses its write-back needs.** A record
+your bot reads with its own first tool call is an ordinary tool result, and a compaction
+prunes old tool results first. On a real government filing in September 2026 that is
+exactly what happened: three runs compacted at the same point, the record they were
+filling from was gone, and the bot typed a guessed country, an invented date and an
+invented person into the form.
 
-**Write your skill so the re-read is a rule, not a habit.** The rule reads: before any
-advance, escalate or irreversible action, re-read the record through the pinned
-identifiers and confirm it still matches what you are about to write. A good host will
-also tell you when a compaction has just happened, but your skill should not depend on
-being told.
+So declare the record as a snapshot:
+
+```yaml
+record_pin:
+  connection: client_erp      # a key of `connections`; default: your home connection
+  fields: [id, res_name, state_id, work_json]
+  max_chars: 24000
+```
+
+The platform reads those fields of the dispatched record **once, at dispatch, before the
+first model call**, and pins them in the run's system prompt in a
+`[SOURCE RECORD SNAPSHOT — <model> #<id>, fetched <UTC time>]` block. The system prompt
+rides every model call and no compaction removes it. The snapshot never enters a chat
+channel. If the read fails, the block reads `[SOURCE RECORD SNAPSHOT UNAVAILABLE — …]`,
+and your skill must say what the bot does then; for a filing, the answer is a hand-back.
+
+**The snapshot is what the bot files; it does not re-read the record to fill.** A bot
+that re-reads halfway through can file a mix of two versions, which is worse than one
+consistent snapshot. The write-back is different: the token check, the state and the
+advance act on the **live** record, through the pinned identifiers. So the rule your skill
+states is: *fill from the snapshot; before any advance, escalate or irreversible action,
+re-read the record's state through the pinned identifiers.*
+
+**Your checklist rides the system prompt too.** The skills a lane preloads are rendered
+into the same system prompt, not into the first user message, because that message
+survives one compaction only. Skills you load on demand with `skill_view` stay tool
+results; the host swaps a pruned one for a "reload with skill_view" marker. Keep the
+rules a run must never lose in the preloaded skills, and the long reference material in
+on-demand files.
 
 ### Every tool that writes into the client's form belongs on the audit tape
 

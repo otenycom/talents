@@ -468,6 +468,29 @@ def test_selector_manifest_without_doc_twin_warns_not_fails(tmp_path):
     assert any("doc_twin" in w and "unguarded" in w for w in lint.checklist_warnings(b))
 
 
+def test_a_form_filling_bot_without_a_pinned_snapshot_and_a_check_is_warned(tmp_path):
+    # A bot that fills a third-party form must file from a snapshot a compaction cannot
+    # take, and compare the review page with it before any save. Soft: never a FAIL.
+    b = _twin_bundle(tmp_path, manifest=_MANIFEST_MATCH, doc=_DOC_MATCH)
+    warns = lint.checklist_warnings(b)
+    assert any("record_pin" in w for w in warns)
+    assert any("summary_check" in w for w in warns)
+    assert not any("record_pin" in f or "summary_check" in f for f in lint.lint_bundle(b))
+
+
+def test_a_bot_that_declares_both_is_not_warned(tmp_path):
+    manifest = _MANIFEST_MATCH.replace(
+        "pages:\n",
+        "summary_check:\n  sections:\n    - section: One\n      keys:\n"
+        "        - {label: Name, key: name}\npages:\n", 1)
+    b = _twin_bundle(tmp_path, manifest=manifest, doc=_DOC_MATCH)
+    profile = b / "agent-profile.yaml"
+    profile.write_text(profile.read_text()
+                       + "record_pin:\n  fields: [id, work_json]\n")
+    warns = lint.checklist_warnings(b)
+    assert not any("record_pin" in w or "summary_check" in w for w in warns)
+
+
 def test_barney_manifest_twin_is_in_lockstep():
     # the shipped Barney bundle (radar) declares doc_twin and must stay drift-free.
     bundle = Path("/Users/ries/oteny/radar/cuneus_barney/talents/cuneus-hr-talent")
