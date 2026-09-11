@@ -11,7 +11,7 @@ long_md: |
 
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask. A public URL is optional.
-version: 1.0.1
+version: 1.0.2
 
 skills:
   - crm-bot
@@ -39,8 +39,10 @@ routing:
     ask. MCP none, cron none, talent below none. Load crm-bot
     (skill_view name='crm-bot') for leads, CRM, meetings, or briefings.
     A Telegram group whose title ends in " Leads" is a live capture
-    channel — Task C. After first-run say: Postgres and Odoo are up.
-    CRM is ready. Never invent a CRM id when Odoo is down. Never
+    channel — Task C. After first-run say ready only when
+    write_profile.py printed PROFILE_WRITTEN and preflight shows
+    ODOO serving, JSON2 ok, and PROFILE present. Never invent a CRM
+    id when Odoo is down. Never
     hardcode a public host; use list_hosted_websites. Reply in the
     owner's language; Telegram-compact.
   signature: "crm-bot"

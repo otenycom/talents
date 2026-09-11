@@ -33,7 +33,11 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-_BOT = "odoo-website"
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from website_paths import admin_candidates, existing_data_dir, home, profile_path, writable_data_dir
+
 _URL = "http://127.0.0.1:8069"
 _DB = "website"
 _DEFAULT_LOGIN = "admin"
@@ -46,14 +50,11 @@ _APIKEY_LINE = "api_" + "key="
 
 
 def _home() -> Path:
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+    return home()
 
 
 def _data_dir() -> Path:
-    override = os.environ.get("ODOO_WEBSITE_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / _BOT
+    return existing_data_dir()
 
 
 def _admin_path() -> Path:
@@ -70,7 +71,7 @@ def _odoo_site() -> Path:
 
 
 def _load_profile() -> dict:
-    path = _data_dir() / "profile.yaml"
+    path = profile_path()
     if not path.exists():
         return {}
     out: dict = {}
@@ -99,11 +100,11 @@ def _parse_admin_file(path: Path) -> tuple[str, str, str] | None:
 
 def _read_stored() -> tuple[str, str, str] | None:
     """Return ``(login, password, api_key)`` or None."""
-    path = _admin_path()
-    if path.exists():
-        parsed = _parse_admin_file(path)
-        if parsed:
-            return parsed
+    for path in admin_candidates():
+        if path.exists():
+            parsed = _parse_admin_file(path)
+            if parsed:
+                return parsed
     boot = _bootstrap_admin_path()
     if boot.exists():
         return _parse_admin_file(boot)
@@ -119,9 +120,8 @@ def _write_stored(login: str, password: str, api_key: str) -> None:
         os.chmod(boot, 0o600)
         wrote_boot = True
     try:
-        d = _data_dir()
-        d.mkdir(parents=True, exist_ok=True)
-        path = _admin_path()
+        d = writable_data_dir()
+        path = d / ".odoo-admin"
         path.write_text(text, encoding="utf-8")
         os.chmod(path, 0o600)
     except OSError:

@@ -26,7 +26,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-_BOT = "odoo-website"
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from website_paths import admin_candidates
+
 _URL = "http://127.0.0.1:8069"
 _DB = "website"
 _APIKEY_LINE = "api_" + "key="  # credential-file prefix; split for secret-lint
@@ -36,17 +40,10 @@ def _home() -> Path:
     return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
 
 
-def _data_dir() -> Path:
-    override = os.environ.get("ODOO_WEBSITE_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / _BOT
-
-
 def _load_admin() -> tuple[str, str]:
     """Return (login, api_key). Password is for /web/login only — not used here."""
-    path = _data_dir() / ".odoo-admin"
-    if not path.exists():
+    path = next((p for p in admin_candidates() if p.exists()), None)
+    if path is None:
         raise SystemExit(
             "SITE_RPC_FAILED no_admin — run setup_admin.py first "
             "(never invent passwords in shell)"

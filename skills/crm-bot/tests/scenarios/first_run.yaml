@@ -9,3 +9,4 @@ turns:
         not_contains:
           - "lead-bot.oteny.bot"
           - "nightly.odoo.com"
+          - "CRM is ready"

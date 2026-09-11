@@ -10,34 +10,24 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
-import os
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from crm_paths import admin_candidates
 
 _URL = "http://127.0.0.1:8069"
 _DB = "website"
 _APIKEY_LINE = "api_" + "key="
 
 
-def _home() -> Path:
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
-
-
-def _data_dir() -> Path:
-    override = os.environ.get("CRM_BOT_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / "crm-bot"
-
-
 def _load_key() -> str:
-    path = _data_dir() / ".odoo-admin"
-    # Reuse WebsiteBot's key when both share the same local Odoo.
-    if not path.exists():
-        alt = _home() / ".hermes" / "data" / "odoo-website" / ".odoo-admin"
-        path = alt if alt.exists() else path
-    if not path.exists():
+    path = next((p for p in admin_candidates() if p.exists()), None)
+    if path is None:
         raise RuntimeError("CRM_RPC_FAILED no_admin — run setup_admin.py first")
     key = ""
     for line in path.read_text(encoding="utf-8").splitlines():

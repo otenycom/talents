@@ -12,16 +12,30 @@ Hard stop until yes.
 
 ## Bot notes
 
-1. Load `odoo-community`. That Talent loads `postgres`.
-2. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`
-3. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh crm`
-4. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
-5. `register_service` name `postgres`, then name `odoo-community`.
-6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
-7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
-   Expect `ODOO: serving` and `JSON2: ok`.
+After yes, write the answers first. Do not use `write_file` for
+the profile. `write_profile.py` writes under `~/.hermes/data/crm-bot`
+when that folder is writable. When it is not, it writes
+`~/.hermes/crm-bot`.
 
-Then tell the owner: **Postgres and Odoo are up. CRM is ready.**
+1. `python3 ~/.hermes/skills/talents/crm-bot/scripts/write_profile.py`
+   `--event-name "<event>" --owner-email "<email>" --language "<lang>"`
+   Expect `PROFILE_WRITTEN`. If `PROFILE_WRITE_FAILED`, tell the
+   owner the CRM folder could not be created. Stop. Do not say
+   CRM is ready.
+2. Load `odoo-community`. That Talent loads `postgres`.
+3. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`
+4. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh crm`
+5. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
+6. `register_service` name `postgres`, then name `odoo-community`.
+7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
+   Expect `ADMIN_READY`.
+8. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
+   Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
+
+Tell the owner **Postgres and Odoo are up. CRM is ready.** only
+when all three of those preflight lines are true and
+`write_profile.py` printed `PROFILE_WRITTEN`. If any of those
+failed, say what failed. Do not say CRM is ready.
 
 `host_website` only if they also want a public URL. `ensure_cmd` is
 `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`.

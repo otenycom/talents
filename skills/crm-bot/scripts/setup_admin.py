@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """setup_admin.py — set CrmBot's Odoo admin once, mint a JSON-2 API key.
 
-Idempotent. Reads ``owner_email`` from ``~/.hermes/data/odoo-website/profile.yaml``,
+Idempotent. Reads ``owner_email`` from ``~/.hermes/data/crm-bot/profile.yaml``,
 ensures the admin user logs in with that email, stores the **password** (for the
 owner's ``/web/login``) and a **bearer API key** (for ``site_rpc.py`` / JSON-2)
 ONLY at ``~/.hermes/data/odoo-website/.odoo-admin`` (mode 0600). Never prints secrets.
@@ -32,7 +32,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-_BOT = "crm-bot"
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from crm_paths import admin_candidates, existing_data_dir, profile_path, writable_data_dir
+
 _URL = "http://127.0.0.1:8069"
 _DB = "website"
 _DEFAULT_LOGIN = "admin"
@@ -45,14 +49,12 @@ _APIKEY_LINE = "api_" + "key="
 
 
 def _home() -> Path:
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+    from crm_paths import home
+    return home()
 
 
 def _data_dir() -> Path:
-    override = os.environ.get("CRM_BOT_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / _BOT
+    return existing_data_dir()
 
 
 def _admin_path() -> Path:
@@ -76,7 +78,7 @@ def _db_cli_args(home: Path | None = None) -> list[str]:
 
 
 def _load_profile() -> dict:
-    path = _data_dir() / "profile.yaml"
+    path = profile_path()
     if not path.exists():
         return {}
     out: dict = {}
@@ -91,8 +93,8 @@ def _load_profile() -> dict:
 
 def _read_stored() -> tuple[str, str, str] | None:
     """Return ``(login, password, api_key)`` or None."""
-    path = _admin_path()
-    if not path.exists():
+    path = next((p for p in admin_candidates() if p.exists()), None)
+    if path is None:
         return None
     login = password = api_key = ""
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -108,9 +110,8 @@ def _read_stored() -> tuple[str, str, str] | None:
 
 
 def _write_stored(login: str, password: str, api_key: str) -> None:
-    d = _data_dir()
-    d.mkdir(parents=True, exist_ok=True)
-    path = _admin_path()
+    d = writable_data_dir()
+    path = d / ".odoo-admin"
     path.write_text(
         f"login={login}\npassword={password}\n{_APIKEY_LINE}{api_key}\n",
         encoding="utf-8",

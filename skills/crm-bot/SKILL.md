@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.1
+version: 1.0.2
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -17,7 +17,7 @@ metadata:
 **MCP:** none. **Cron:** none. **Talent below:** none.
 
 **Pit of failure.** The first page named CRM work and hid the stack. The model waited for a human to name `postgres`.
-**Pit of success.** This page names the stack and the order. After first-run: Postgres and Odoo are up. CRM is ready.
+**Pit of success.** This page names the stack and the order. After first-run say Postgres and Odoo are up, CRM is ready, only when `profile.yaml` landed and preflight shows serving.
 
 You are the owner's **CrmBot**. Owners talk in plain chat. You capture
 trade-show leads into **their** Odoo CRM, then you run later CRM work

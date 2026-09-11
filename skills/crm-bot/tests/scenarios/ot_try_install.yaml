@@ -1,0 +1,40 @@
+# Live e2e: owner asks like the first OT-TRY box (event, admin, language,
+# then yes). The bot must persist the profile with write_profile.py, not
+# write_file. Ready only when the file landed and the stack is up.
+# Run on a lab / dev OT-TRY box that can write ~/.hermes/data. Do not
+# point this at prod hh00538, hh00496, the locked four, or the empty
+# stack thirteen.
+bot: crm-bot
+live_only: true
+
+turns:
+  - user: "set up CRM for the booth"
+    reply_timeout: 360
+    expect:
+      reply:
+        contains_any: ["Odoo", "CRM", "Shall I", "install"]
+        not_contains:
+          - "lead-bot.oteny.bot"
+          - "nightly.odoo.com"
+          - "CRM is ready"
+          - "pgserver"
+      trace:
+        markers:
+          - "crm-bot"
+  - user: "OXP, ries@vriend.com, Dutch. yes"
+    reply_timeout: 2400
+    expect:
+      reply:
+        contains:
+          - "CRM is ready"
+        not_contains:
+          - "Permission denied"
+          - "PROFILE_WRITE_FAILED"
+          - "lead-bot.oteny.bot"
+          - "pgserver"
+          - "nightly.odoo.com"
+      trace:
+        markers:
+          - "write_profile.py"
+        absent:
+          - "Permission denied"

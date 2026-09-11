@@ -32,6 +32,11 @@ import sys
 import time
 from pathlib import Path
 
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from website_paths import existing_data_dir, home, profile_path
+
 _SLUG_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$")
 _ADDON_RE = re.compile(r"^[a-z][a-z0-9_]{1,60}$")
 _REFUSED_ROOT_NAMES = frozenset(
@@ -41,7 +46,11 @@ _REFUSED_SECRET_NAMES = (".odoo-admin", ".env", "id_rsa", "id_ed25519")
 
 
 def _home() -> Path:
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+    return home()
+
+
+def _data_dir() -> Path:
+    return existing_data_dir()
 
 
 def _base() -> Path:
@@ -52,15 +61,8 @@ def _addons() -> Path:
     return _base() / "addons"
 
 
-def _data_dir() -> Path:
-    override = os.environ.get("ODOO_WEBSITE_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / "odoo-website"
-
-
 def _load_profile() -> dict:
-    path = _data_dir() / "profile.yaml"
+    path = profile_path()
     if not path.exists():
         return {}
     out: dict = {}
@@ -292,7 +294,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     if (root / "__manifest__.py").exists() and not args.force:
         # Migrated site: files exist, git may not. Adopt without rewriting or starting Odoo.
         _ensure_git(root, f"chore: adopt {mod}")
-        prof = _data_dir() / "profile.yaml"
+        prof = profile_path()
         if prof.exists():
             text = prof.read_text(encoding="utf-8")
             addon = _resolve_addon(getattr(args, "addon", None))
@@ -317,7 +319,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     _write(root / "README.md", f"# {name}\n\nBot-owned WebsiteBot site module (`{mod}`).\n")
     _ensure_git(root, f"chore: scaffold {mod}")
     # Persist backend choice on profile if missing.
-    prof = _data_dir() / "profile.yaml"
+    prof = profile_path()
     if prof.exists():
         text = prof.read_text(encoding="utf-8")
         if "build_backend:" not in text:
@@ -490,7 +492,7 @@ def cmd_git_remote(args: argparse.Namespace) -> int:
     _git(root, "remote", "remove", "origin", check=False)
     _git(root, "remote", "add", "origin", url)
     push = _git(root, "push", "-u", "origin", "HEAD", check=False)
-    prof = _data_dir() / "profile.yaml"
+    prof = profile_path()
     if prof.exists():
         text = prof.read_text(encoding="utf-8")
         lines = []

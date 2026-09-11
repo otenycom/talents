@@ -18,27 +18,25 @@ Prints a compact parseable block:
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
-_BOT = "odoo-website"
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+from website_paths import home, profile_path
+
 _PORT = 8069
 _REQUIRED_FIELDS = ("site_name", "site_purpose", "site_slug", "owner_email", "language")
 
 
 def _home() -> Path:
     # HH_HOME lets tests / a relocated overlay stay hermetic (mirrors selfcheck.py).
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
-
-
-def _data_dir() -> Path:
-    override = os.environ.get("ODOO_WEBSITE_DATA_DIR")
-    if override:
-        return Path(override)
-    return _home() / ".hermes" / "data" / _BOT
+    return home()
 
 
 def _load_profile() -> dict:
-    path = _data_dir() / "profile.yaml"
+    path = profile_path()
     if not path.exists():
         return {}
     out: dict = {}

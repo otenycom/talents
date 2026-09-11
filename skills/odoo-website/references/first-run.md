@@ -47,20 +47,24 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 
 ### Save profile + identity
 
-Write `~/.hermes/data/odoo-website/profile.yaml` from
-`profile/profile.yaml.template` (every field), including:
+Do not use `write_file` for the profile. Run:
 
-- `odoo_locus`: `local` | `online` | `remote`
-- `build_backend`: `module` (local Max default) | `json2` (Online/remote or local opt-in)
-- `git_customer_facing`: `false` until they opt in
-- `git_remote_url`: `""` until set
+```
+python3 ~/.hermes/skills/talents/odoo-website/scripts/write_profile.py \
+  --site-name "<name>" --site-purpose "<purpose>" --site-slug "<slug>" \
+  --owner-email "<email>" --language "<lang>" --timezone "<tz>" \
+  --odoo-locus local --build-backend module --git-customer-facing false
+```
 
-Render:
+Expect `PROFILE_WRITTEN`. Fields match `profile/profile.yaml.template`
+(`odoo_locus`, `build_backend`, `git_customer_facing`, `git_remote_url`).
+If `PROFILE_WRITE_FAILED`, tell the owner the folder could not be
+created. Stop. Do not say the website engine is ready.
+
+Then render:
 
 - `~/.hermes/memories/USER.md` ← `profile/USER.md.template`
 - `~/.hermes/data/odoo-website/memory.md` ← `profile/memory.md.template`
-
-`mkdir -p ~/.hermes/data/odoo-website` if needed.
 
 **Online/remote:** skip local install below; continue JSON-2 BUILD in
 [`build-and-host.md`](build-and-host.md) (credentials via secure intake).
@@ -113,7 +117,9 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/site_module.py init \
   --slug <site_slug> --name "<site_name>"
 ```
 
-Then tell the owner **exactly**:
+Then tell the owner **exactly** this sentence, and only when
+`write_profile.py` printed `PROFILE_WRITTEN` and preflight shows
+`READY: yes`:
 
 **Postgres and Odoo are up. Your website engine is ready — what should the site say?**
 

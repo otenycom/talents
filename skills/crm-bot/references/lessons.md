@@ -17,6 +17,10 @@ install path and the wire. The lessons stay.
 6. `host_website` slugs can stay reserved after unhost. Pick another
    slug. Never hardcode one.
 7. `uv`/`pip` from a filtered `requirements.txt` is the venv path.
+8. Do not say CRM is ready when `profile.yaml` did not land.
+   `write_file` cannot create `~/.hermes/data/crm-bot` when that
+   parent is not writable. Run `write_profile.py`. Stop on
+   `PROFILE_WRITE_FAILED`.
 
 ## Pitfalls
 

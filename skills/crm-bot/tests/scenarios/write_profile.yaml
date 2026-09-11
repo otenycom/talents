@@ -1,0 +1,17 @@
+# Offline: the first-run script must land profile.yaml. The live
+# companion is first_run.yaml. This file never talks to a model.
+bot: crm-bot
+
+turns:
+  - user: "(no owner message — persist the booth answers)"
+    expect:
+      tool_calls:
+        - script: scripts/write_profile.py
+          args:
+            - --event-name
+            - OXP
+            - --owner-email
+            - ries@vriend.com
+            - --language
+            - nl
+    assert: tests/unit/test_write_profile.py::assert_sandbox_profile
