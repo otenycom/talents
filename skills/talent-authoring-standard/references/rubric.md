@@ -132,6 +132,10 @@ tells the bot to collect a secret in chat.
   on that first page so a short `skill_view` still names the stack. Detail:
   the standard's First-screen stack and
   [`first-run-authoring.md`](first-run-authoring.md).
+- Every Talent stamps **About this Talent** above the command table. A
+  general question gets the value story. Do not recite the table unless
+  they ask how or they ask to drill in. Detail: the standard's About this
+  Talent stamp and [`audience-and-voice.md`](audience-and-voice.md).
 
 ### 11. Runtime-operable by a weak model
 The Talent expansion of **the checklist-first bar**: the bundle must run day-to-day, not just

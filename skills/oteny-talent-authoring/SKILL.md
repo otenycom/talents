@@ -1,7 +1,7 @@
 ---
 name: oteny-talent-authoring
 description: "Create, edit, review, export, import, or publish a Talent."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -121,6 +121,8 @@ Talent alike.
    `"Log plants, watering, sunlight, and growth notes."`). A consumer Talent that
    sits on other Talents also stamps **`Builds on:`** / **`Do not start:`** /
    **`none`** on that first page (authoring standard, First-screen stack).
+   Every Talent also stamps **About this Talent** above the command table: a
+   general question gets the value story, not a laundry list.
 
 4. **To make it a publishable *Talent*, add a profile + a setup goal.** A skill becomes
    a Talent (installable, with a persona) when it ships:

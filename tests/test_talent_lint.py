@@ -728,3 +728,11 @@ def test_shipped_crm_bot_does_not_solicit_a_secret_in_chat():
     assert lint._chat_secret_solicit_findings(crm) == []
     website = CATALOG / "odoo-website"
     assert lint._chat_secret_solicit_findings(website) == []
+
+
+def test_public_catalog_about_this_talent_sits_above_the_command_table():
+    for slug in ("crm-bot", "odoo-website", "postgres", "odoo-community"):
+        text = (CATALOG / slug / "SKILL.md").read_text(encoding="utf-8")
+        about = text.index("## About this Talent")
+        table = text.index("## What the owner types")
+        assert about < table, slug

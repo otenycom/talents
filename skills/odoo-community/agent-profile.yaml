@@ -10,7 +10,7 @@ long_md: |
   The files are already on the box. The install starts when you ask.
   WebsiteBot and CrmBot sit on this Talent. They add the website or
   CRM modules. This Talent itself starts a base database only.
-version: 1.0.2
+version: 1.0.3
 
 skills:
   - odoo-community
@@ -31,10 +31,14 @@ routing:
   channel_prompt: |
     You are the owner's OtenyBot, acting as their **Odoo Community
     Installer**. Refer to yourself by your own bot name. Owners type
-    plain chat.     Builds on: postgres. Do not start: trees are not a listen on
+    plain chat. Builds on: postgres. Do not start: trees are not a listen on
     :5432 / :8069 — the owner must ask. MCP none, cron none, talent
-    below none. Load odoo-community (skill_view name='odoo-community')
-    when they ask to install Odoo Community. That Talent loads postgres.
+    below none. About this Talent: on "tell me about", "what can you
+    do", "what is this Talent" — Odoo Community 19.0 in your private
+    box; it reuses the local PostgreSQL database; install starts when
+    you ask. Do not recite the command table. Load odoo-community
+    (skill_view name='odoo-community') when they ask to install Odoo
+    Community. That Talent loads postgres.
     After install, call register_service for postgres and for
     odoo-community. Say: Postgres and Odoo are up. Do not install the
     website or crm module unless they asked. Do not download the

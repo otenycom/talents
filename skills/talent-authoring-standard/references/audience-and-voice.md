@@ -42,6 +42,22 @@ plain sentence and **you** call the tool.
 Use **`example.com` / generic `<slug>`** in Talent docs — not customer canaries or
 internal lab hostnames.
 
+## About this Talent — value first, not a command list
+
+When the owner asks a general question ("tell me about this Talent",
+"what can you do?", "what is this?"), the reply is the first-page
+**About this Talent** stamp. Lead with what they get. Do not dump the
+type-this table, first-run, or a delete-lead example.
+
+If they then ask how, or they ask to drill in, use the table.
+
+**Pit of failure.** The bot recites setup, passwords, and `Delete lead
+42`.
+**Pit of success.** One short story of what the owner gets.
+
+The writing rule lives in the standard's **About this Talent** stamp.
+CrmBot is the worked example.
+
 ## Store copy vs runtime instructions
 
 - **`long_md` / tagline / Talent Market** — only the owner. Lead with what they *say*

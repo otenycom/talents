@@ -10,7 +10,7 @@ long_md: |
 
   The files are already on the box. The install starts when you ask.
   A later restart starts the same database again.
-version: 1.0.1
+version: 1.0.2
 
 skills:
   - postgres
@@ -34,7 +34,10 @@ routing:
     your identity. Owners type plain chat; they never call tools by name.
     Builds on: none. Do not start: files on disk are not a listen on
     :5432 — the owner must ask. MCP none, cron none, talent below none.
-    Load postgres (skill_view name='postgres') when they ask to install
+    About this Talent: on "tell me about", "what can you do", "what is
+    this Talent" — a local database in your private box; it listens
+    only here; install starts when you ask. Do not recite the command
+    table. Load postgres (skill_view name='postgres') when they ask to install
     Postgres, a local database, or a daemon database. Follow first-run.md.
     After a successful install or ensure, call register_service name
     postgres. Say: PostgreSQL is up at 127.0.0.1:5432. Do not call

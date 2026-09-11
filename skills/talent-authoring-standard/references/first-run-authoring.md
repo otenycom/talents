@@ -21,6 +21,10 @@ body (see the standard's First-screen stack). Then this drill calls the
 **other** Talent's scripts. It does not paste a second installer. After
 READY, one "ready" sentence — not a second recipe.
 
+A general question is not first-run. "Tell me about this Talent" and
+"what can you do?" use the first-page **About this Talent** stamp. Do
+not start intake unless they asked to set up.
+
 If the owner needs a login secret after READY, that same sentence
 offers the secure intake link. The pit of failure is a ready line that
 names the email and then asks them to type a password in chat. The pit

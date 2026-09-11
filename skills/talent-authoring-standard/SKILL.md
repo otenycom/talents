@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.6
+version: 0.5.7
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -104,6 +104,12 @@ contract on the **first page**, before any other prose:
    have no password, mint or reuse the link. Do not collect the secret
    in Telegram, webchat, or Discuss. The lint fails a Talent that tells
    the bot to collect a secret in chat.
+7. **About this Talent.** After the stack and secrets stamps, and above
+   any "What the owner types" table, write one short value story. A
+   general question ("tell me about this Talent", "what can you do?")
+   gets that story. Do not recite the command table unless they ask
+   how or they ask to drill in. Installer Talents keep this to one or
+   two sentences.
 
 There is no `requires_talents:` key. Do not invent one. `requires:` in
 `agent-profile.yaml` is hardware (`substrate` / `min_tier`) only. Point with
@@ -112,6 +118,27 @@ under the other Talent. Worked stamps: [`postgres`](../postgres/),
 [`odoo-community`](../odoo-community/), [`odoo-website`](../odoo-website/),
 [`crm-bot`](../crm-bot/). Drill:
 [`references/first-run-authoring.md`](references/first-run-authoring.md).
+
+## About this Talent (first general question)
+
+The first page also answers "tell me about this Talent", "what can you
+do?", and "what is this?". Stamp **About this Talent** after
+`Builds on:` / `Do not start:` / secrets, and **above** any "What the
+owner types" table.
+
+Value first. One short story of what the owner gets, written from the
+owner's point of view. No command laundry list unless the owner asks
+how, or they ask to drill in. Commands stay for those turns.
+
+**Pit of failure.** The bot recites setup, the password door, and
+`Delete lead 42`.
+**Pit of success.** One short story of what the owner gets.
+
+Installer Talents (`postgres`, `odoo-community`) keep this to one or
+two value sentences. Do not invent extra product names.
+
+Worked stamp: [`crm-bot`](../crm-bot/). The same rule sits in
+[`audience-and-voice.md`](references/audience-and-voice.md).
 
 ## The checklist-first bar (the airline-pilot rule)
 
@@ -167,7 +194,7 @@ is in [references/rubric.md](references/rubric.md). Open it before grading. The 
 7. **7. Safety boundary (domain-appropriate)** — A boundary loaded with the voice: a "not professional advice" disclaimer, red-flag escalation for the domain (medical for food, financial for stocks), no invented facts about the user, and any sane hard limits.
 8. **8. Author in ENGLISH — the model localizes the reply on the fly (D148)** — **No per-tenant translation step.** Author every bundle in English; the model reads it and replies in the owner's own language, enforced every gateway AND cron turn (`_SYSTEM_DISCIPLINE` + hh-tools `pre_llm_call`).
 9. **9. Tool dependencies declared; charged tools stubbed** — External/charged tools are declared in the manifest.
-10. **10. Discovery & progressive disclosure** — `SKILL.md` opens with intent (plain language), then a **quick-reference index** that loads `references/` on demand. A consumer Talent also stamps **`Builds on:`** / **`Do not start:`** / **`none`** on that first page (First-screen stack).
+10. **10. Discovery & progressive disclosure** — `SKILL.md` opens with intent (plain language), then a **quick-reference index** that loads `references/` on demand. A consumer Talent also stamps **`Builds on:`** / **`Do not start:`** / **`none`** on that first page (First-screen stack). Every Talent stamps **About this Talent** above the command table (value first; no laundry list on a general question).
 11. **11. Runtime-operable by a weak model** — The Talent expansion of **the checklist-first bar**: the bundle must run day-to-day, not just install (check 3 is one-time setup; this is steady state).
 12. **12. Upgrade-safe (base/override split, D53)** — The bundle is **fully replaced on every `update-talents`/converge** — so it must carry **zero per-tenant state in its delivered files**.
 13. **13. In-box migrations (forward-only state reconciliation, D99)** — A Talent with **mutable live state** (a db, or agent-registered crons) reconciles a prior version's state **in-box, agent-driven** — never an operator editing the VM.
@@ -204,7 +231,7 @@ The exact output format is in
 ## Related
 
 - [`references/audience-and-voice.md`](references/audience-and-voice.md) — owner vs bot
-  vs author; type-this writing style.
+  vs author; type-this writing style; About this Talent (value first).
 - [`references/connections.md`](references/connections.md) — the four `connections:`
   kinds, the binding rules, and the readiness gate a `kind: saas` entry arms.
 - [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →
