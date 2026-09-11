@@ -2259,6 +2259,16 @@ Four rules make that true. **Every one of them must be bounded by wall clock** â
   superseded`; surface its message verbatim and leave the record where it is. (Queueing instead is worse
   than it looks: many identity providers rate-limit one-time codes hard â€” a queued second dance burns one of
   a small daily allowance and can lock the shared account.)
+- **Confirm names no window, and the platform checks it.** A person may close the sign-in screen and open
+  it again before they confirm, and a reopened screen does not hold the window id the first one received.
+  So hand over with `POST /v1/browser/session/login-handoff/finalize` and your portal's entry URL as
+  `check_url`, with no id. The platform finds your bot's own open login window, checks that it is signed
+  in, and donates it. It answers 409 `not_signed_in` when the page is not signed in (show its message), and
+  404 `no_open_login_session` when no login window is open. On the 404, check the status again: a run's
+  lingering window may carry the sign-in, and a wall means the person must sign in again. Read `donated` on
+  success, never `profile_set`, because saved sign-ins are off and no profile is ever set. A login window
+  closes 10 minutes after the last call about it (the mint, a status check, a re-open), so a screen left
+  open longer than that needs a fresh sign-in.
 - **Give the latch an OWNER, or every fence above is decorative.** This is the one that will bite you, and
   it is invisible in a single-user demo. The latch is per-**bot**; the screens that release it are
   per-**user** and per-**record**. So "stop the dance" must mean "stop **my** dance": mint an **epoch token**
