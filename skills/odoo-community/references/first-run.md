@@ -22,4 +22,9 @@ Expect `ODOO_INSTALLED` then `ODOO_UP`. The tree is a **shallow**
 git clone of branch `19.0`. Check `rev-parse --is-shallow-repository`
 is `true`. Check `odoo/release.py` is major 19.
 
+WebsiteBot and CrmBot load you. You still do not `-i website` or
+`-i crm`. You still do not install because the tree is missing.
+
+Then tell the owner: **Postgres and Odoo are up.**
+
 Do not `-i website`. Do not the nightly zip.

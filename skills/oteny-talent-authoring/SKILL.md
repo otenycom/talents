@@ -118,7 +118,9 @@ Talent alike.
    hard rules; push detail into `references/` (I load them on demand). The
    **`description` is the router** — I pick the skill from its first ~60 chars, so make
    it a sharp trigger naming the words a matching message contains (e.g.
-   `"Log plants, watering, sunlight, and growth notes."`).
+   `"Log plants, watering, sunlight, and growth notes."`). A consumer Talent that
+   sits on other Talents also stamps **`Builds on:`** / **`Do not start:`** /
+   **`none`** on that first page (authoring standard, First-screen stack).
 
 4. **To make it a publishable *Talent*, add a profile + a setup goal.** A skill becomes
    a Talent (installable, with a persona) when it ships:

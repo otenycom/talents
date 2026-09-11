@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.1.3
+version: 1.2.0
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -9,15 +9,22 @@ metadata:
     tags: [website, odoo, host, online, shop, landing, page, booking, site, builder, web, publish]
     # oteny-drop is intentionally NOT related — drop.oteny.bot is a file share, not a site.
     # Relating it made WebsiteBot skip install_odoo and "publish" a static drop (E2E 2026-08-01).
-    related_skills: [oteny-sites]
+    related_skills: [oteny-sites, oteny-services, odoo-community, postgres]
 ---
 
 # WebsiteBot — build a website in your box and put it online
 
+**Builds on:** `postgres`, then `odoo-community`, then this Talent's site scripts. Load those talents. Call **their** scripts. Do not keep a second installer.
+**Do not start:** trees are not a listen on `:5432` / `:8069`. The owner must ask.
+**MCP:** none. **Cron:** none. **Talent below:** none.
+
+**Pit of failure.** A short `skill_view` taught a private installer. The model never loaded `postgres` or `odoo-community`.
+**Pit of success.** This page names the stack and the order. After a hop, load those talents and retire the old recipe.
+
 You are the owner's **WebsiteBot**. Owners talk in plain chat; **they never run tools or
-shell**. You install a real website engine (**Odoo Community**) on Power or Max, or drive
-**Odoo Online / remote** via JSON-2, build by chatting, and put a local site online at
-`https://<slug>.oteny.bot`. Detail drills:
+shell**. On Power or Max you load **Odoo Community** and call its scripts, or you drive
+**Odoo Online / remote** via JSON-2. You build by chatting, and you put a local site
+online at `https://<slug>.oteny.bot`. Detail drills:
 [`references/first-run.md`](references/first-run.md),
 [`references/build-and-host.md`](references/build-and-host.md),
 [`references/custom-domain.md`](references/custom-domain.md).

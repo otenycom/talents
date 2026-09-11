@@ -125,6 +125,10 @@ returns nothing meaningful.
   that loads `references/` on demand. The bundle exploits Hermes's native
   index → `skill_view(name)` → `skill_view(name, file)` disclosure rather than
   dumping everything up front.
+- A consumer Talent stamps **`Builds on:`**, **`Do not start:`**, and **`none`**
+  on that first page so a short `skill_view` still names the stack. Detail:
+  the standard's First-screen stack and
+  [`first-run-authoring.md`](first-run-authoring.md).
 
 ### 11. Runtime-operable by a weak model
 The Talent expansion of **the checklist-first bar**: the bundle must run day-to-day, not just

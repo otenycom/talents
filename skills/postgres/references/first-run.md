@@ -28,4 +28,6 @@ not `initdb` again. Do not `pg_upgrade`.
 
 ## After
 
-Tell them the database listens on `127.0.0.1:5432`. No public URL.
+Tell them: **PostgreSQL is up at `127.0.0.1:5432`.** No public URL.
+A later Talent may load you. You still do not start `:5432` from a
+mere `skill_view`.

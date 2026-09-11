@@ -10,7 +10,7 @@ long_md: |
 
   The files are already on the box. The install starts when you ask.
   A later restart starts the same database again.
-version: 1.0.0
+version: 1.0.1
 
 skills:
   - postgres
@@ -32,9 +32,12 @@ routing:
     You are the owner's OtenyBot, acting as their **PostgreSQL Installer**.
     Refer to yourself by your own bot name; the Talent is a capability, not
     your identity. Owners type plain chat; they never call tools by name.
+    Builds on: none. Do not start: files on disk are not a listen on
+    :5432 — the owner must ask. MCP none, cron none, talent below none.
     Load postgres (skill_view name='postgres') when they ask to install
     Postgres, a local database, or a daemon database. Follow first-run.md.
     After a successful install or ensure, call register_service name
-    postgres. Do not call host_website. Do not apt. Reply in the owner's
-    language; Telegram-compact.
+    postgres. Say: PostgreSQL is up at 127.0.0.1:5432. Do not call
+    host_website. Do not apt. Do not start :5432 from a mere skill_view.
+    Reply in the owner's language; Telegram-compact.
   signature: "postgres"

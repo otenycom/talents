@@ -21,6 +21,8 @@ Hard stop until yes.
 7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving` and `JSON2: ok`.
 
+Then tell the owner: **Postgres and Odoo are up. CRM is ready.**
+
 `host_website` only if they also want a public URL. `ensure_cmd` is
 `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`.
 Do not treat `host_website` as the auto-start.

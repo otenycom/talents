@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.4
+version: 0.5.5
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -80,6 +80,33 @@ put `attach_site_domains(...)` only under a labelled **Bot notes** footer. Worke
 [`odoo-website`](../odoo-website/). Full rule:
 [`references/audience-and-voice.md`](references/audience-and-voice.md).
 
+## First-screen stack (`Builds on:`)
+
+A short `skill_view` of `SKILL.md` is what the model loads first. A 365-character
+prune once taught a private installer and hid the stack under it. Stamp the
+contract on the **first page**, before any other prose:
+
+1. **`Builds on:`** the installer Talents in order, then this Talent's own
+   scripts. Load those Talents. Call **their** scripts. Do not keep a second
+   installer. A Talent that owns the bottom layer writes `Builds on: none`.
+2. **`Do not start:`** trees on disk are not a listen on `:5432` / `:8069`.
+   The owner must ask.
+3. **Layers this Talent does not own** — write `none` for MCP, cron, and
+   "talent below" when this Talent does not own them. An empty line lets the
+   model invent a Pioneer-shape `pgserver`.
+4. **One "ready" sentence** after first-run (what the owner hears when the
+   stack is up).
+5. **No stale path** on the first page. Do not name a retired installer
+   script as the recipe.
+
+There is no `requires_talents:` key. Do not invent one. `requires:` in
+`agent-profile.yaml` is hardware (`substrate` / `min_tier`) only. Point with
+`related_skills`, this stamp, a first-run `skill_view`, and a script path
+under the other Talent. Worked stamps: [`postgres`](../postgres/),
+[`odoo-community`](../odoo-community/), [`odoo-website`](../odoo-website/),
+[`crm-bot`](../crm-bot/). Drill:
+[`references/first-run-authoring.md`](references/first-run-authoring.md).
+
 ## The checklist-first bar (the airline-pilot rule)
 
 The bot runs on the tier the Talent declares (`model_tier` in `agent-profile.yaml`;
@@ -134,7 +161,7 @@ is in [references/rubric.md](references/rubric.md). Open it before grading. The 
 7. **7. Safety boundary (domain-appropriate)** — A boundary loaded with the voice: a "not professional advice" disclaimer, red-flag escalation for the domain (medical for food, financial for stocks), no invented facts about the user, and any sane hard limits.
 8. **8. Author in ENGLISH — the model localizes the reply on the fly (D148)** — **No per-tenant translation step.** Author every bundle in English; the model reads it and replies in the owner's own language, enforced every gateway AND cron turn (`_SYSTEM_DISCIPLINE` + hh-tools `pre_llm_call`).
 9. **9. Tool dependencies declared; charged tools stubbed** — External/charged tools are declared in the manifest.
-10. **10. Discovery & progressive disclosure** — `SKILL.md` opens with intent (plain language), then a **quick-reference index** that loads `references/` on demand.
+10. **10. Discovery & progressive disclosure** — `SKILL.md` opens with intent (plain language), then a **quick-reference index** that loads `references/` on demand. A consumer Talent also stamps **`Builds on:`** / **`Do not start:`** / **`none`** on that first page (First-screen stack).
 11. **11. Runtime-operable by a weak model** — The Talent expansion of **the checklist-first bar**: the bundle must run day-to-day, not just install (check 3 is one-time setup; this is steady state).
 12. **12. Upgrade-safe (base/override split, D53)** — The bundle is **fully replaced on every `update-talents`/converge** — so it must carry **zero per-tenant state in its delivered files**.
 13. **13. In-box migrations (forward-only state reconciliation, D99)** — A Talent with **mutable live state** (a db, or agent-registered crons) reconciles a prior version's state **in-box, agent-driven** — never an operator editing the VM.

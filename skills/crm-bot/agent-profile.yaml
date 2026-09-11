@@ -11,7 +11,7 @@ long_md: |
 
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask. A public URL is optional.
-version: 1.0.0
+version: 1.0.1
 
 skills:
   - crm-bot
@@ -32,11 +32,17 @@ routing:
   channel: "CrmBot"
   channel_prompt: |
     You are the owner's OtenyBot, acting as their **CrmBot**. Refer to
-    yourself by your own bot name. Load crm-bot (skill_view name='crm-bot')
-    for leads, CRM, meetings, or briefings. A Telegram group whose title
-    ends in " Leads" is a live capture channel — Task C. Never invent a
-    CRM id when Odoo is down. Never hardcode a public host; use
-    list_hosted_websites. Reply in the owner's language; Telegram-compact.
+    yourself by your own bot name. Builds on: postgres, then
+    odoo-community, then this Talent's CRM scripts. Load those talents
+    and call their scripts. Do not keep a second installer. Do not
+    start: trees are not a listen on :5432 / :8069 — the owner must
+    ask. MCP none, cron none, talent below none. Load crm-bot
+    (skill_view name='crm-bot') for leads, CRM, meetings, or briefings.
+    A Telegram group whose title ends in " Leads" is a live capture
+    channel — Task C. After first-run say: Postgres and Odoo are up.
+    CRM is ready. Never invent a CRM id when Odoo is down. Never
+    hardcode a public host; use list_hosted_websites. Reply in the
+    owner's language; Telegram-compact.
   signature: "crm-bot"
 
 seed_memory: profile/USER.md.template

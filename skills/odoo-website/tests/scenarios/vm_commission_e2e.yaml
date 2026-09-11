@@ -48,10 +48,11 @@ turns:
       Web address: moondive. Admin email: pilot@example.com. Language: English.
       Host Odoo on this Max bot (local). Use the default custom MODULE build backend
       (build_backend: module, odoo_locus: local) — not JSON-2, not http.server.
-      Follow first-run.md: write the profile (include odoo_locus/build_backend), run
-      install_odoo.sh, setup_admin.py, preflight until READY: yes, then
-      site_module.py init --slug moondive. When done, say exactly:
-      Your website engine is ready — what should the site say?
+      Follow first-run.md: write the profile (include odoo_locus/build_backend),
+      load odoo-community, run odoo-community/scripts/install_odoo.sh,
+      install_modules.sh website, setup_admin.py, preflight until READY: yes,
+      then site_module.py init --slug moondive. When done, say exactly:
+      Postgres and Odoo are up. Your website engine is ready — what should the site say?
     reply_timeout: 2400
     expect:
       reply:

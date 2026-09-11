@@ -28,8 +28,10 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.1.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.0   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.0:  first-screen stack: Builds on postgres then odoo-community;
+                 #         retired odoo-website/scripts/install_odoo.sh (zip + pgserver).
                  # 1.1.0:  every site ends with one small footer credit linking to
                  #         oteny.com/business; removed on request, partner's credit first.
                  # 1.0.20: carried Postgres clusters (Max→Power) rewrite missing lc_* locales
@@ -74,8 +76,8 @@ model_tier: builder                      # installs software + reasons about hos
 # systemd supervises the app, Odoo's one-time init is minutes (no gofer tax), and the box has
 # its own egress IP. `min_tier` is the cheapest subscription that provides it today
 # (max → VM); the storefront renders "Requires the Max plan" and gates purchase, the deployer
-# warns on a mismatch, and install_odoo.sh/preflight refuse at runtime as a backstop. The lint
-# enforces substrate↔min_tier consistency.
+# warns on a mismatch, and odoo-community install_odoo.sh / this preflight refuse at
+# runtime as a backstop. The lint enforces substrate↔min_tier consistency.
 requires:
   # A container is enough: measured, the whole stack (agent + Odoo + Postgres) uses ~700 MB
   # and ~2 GB of disk against Power's 3 GB / 20 GB envelope, and the install recipe is
@@ -87,7 +89,7 @@ toolset_contribution: [terminal, execute_code, cron, send_message]   # unioned i
 # platform defaults (the hh-sites gateway plugin, delivered to every box) — declared here so
 # the store copy + the lint know the Talent depends on them (they are LIVE, never stubbed).
 tools:
-  required: [host_website, unhost_website, list_hosted_websites]
+  required: [register_service, unregister_service, list_services, host_website, unhost_website, list_hosted_websites]
 delivery: purchased                      # à-la-carte from the Talent Market (not baked into every box)
 price: free                              # free during the pilot (Q4: flip to paid at go-live)
 # Verify budget: the whole scenario-suite staging run must stay under this measured spend or
@@ -103,18 +105,24 @@ routing:
     (Odoo Community on Max locally, or JSON-2 against Odoo Online/remote) and host local sites
     at <slug>.oteny.bot. Refer to yourself by your own bot name; the Talent is a capability,
     not your identity. Owners type plain chat sentences; they never call tools by name — you
-    do. Load odoo-website (skill_view name='odoo-website') and follow its "What the owner
-    types" map + first-run.md / build-and-host.md / custom-domain.md. On FIRST message (no
-    profile yet) or "build me a website" / "what can you do?": FIRST reply = intake only
-    (site name, slug, admin email, language, local vs Online/remote, module vs JSON-2) —
-    do not build/publish/host/HTML/browser/drop. Default local Max → build_backend=module.
-    Odoo Online/remote → custom module impossible (JSON-2 only). Wants module but not Max →
-    tell them exactly: /oteny_subscribe upgrade max. "Put my site online" → confirm then
-    host_website port 8069. Custom domain → custom-domain.md (e.g. Attach my domain
-    example.com to site <slug> (include www).). Forbidden: oteny-drop, drop.oteny.bot,
-    python -m http.server, static HTML fakes, reusing *.oteny.bot while READY:no. Never
-    odoo-shell password resets. Confirm before first publish / take-down. Reply in the
-    owner's language; Telegram-compact.
+    do. Builds on: postgres, then odoo-community, then this Talent's site scripts. Load
+    those talents and call their scripts. Do not keep a second installer. Do not start:
+    trees are not a listen on :5432 / :8069 — the owner must ask. MCP none, cron none,
+    talent below none. Load odoo-website (skill_view name='odoo-website') and follow its
+    "What the owner types" map + first-run.md / build-and-host.md / custom-domain.md. On
+    FIRST message (no profile yet) or "build me a website" / "what can you do?": FIRST
+    reply = intake only (site name, slug, admin email, language, local vs Online/remote,
+    module vs JSON-2) — do not build/publish/host/HTML/browser/drop. Default local Max →
+    build_backend=module. Odoo Online/remote → custom module impossible (JSON-2 only).
+    Wants module but not Max → tell them exactly: /oteny_subscribe upgrade max. After a
+    local INSTALL, register_service for postgres and odoo-community, then say: Postgres
+    and Odoo are up. Your website engine is ready — what should the site say? "Put my
+    site online" → confirm then host_website port 8069. Custom domain → custom-domain.md
+    (e.g. Attach my domain example.com to site <slug> (include www).). Forbidden:
+    oteny-drop, drop.oteny.bot, python -m http.server, static HTML fakes, reusing
+    *.oteny.bot while READY:no, odoo-website/scripts/install_odoo.sh, pgserver, the
+    nightly zip. Never odoo-shell password resets. Confirm before first publish /
+    take-down. Reply in the owner's language; Telegram-compact.
   signature: "odoo-website"
 
 # Shared identity + this bot's domain memory.

@@ -65,22 +65,29 @@ Render:
 **Online/remote:** skip local install below; continue JSON-2 BUILD in
 [`build-and-host.md`](build-and-host.md) (credentials via secure intake).
 
-### Install Odoo (local Max only)
+### Install the local engine (Power or Max only)
 
-Tell them: "Setting up your website engine — usually a few minutes (~3–5, longer on a
-smaller box); I'll
-ping you when it's ready." Do **not** say 30 minutes. Then:
+Load `odoo-community` (`skill_view name='odoo-community'`). That Talent loads
+`postgres`. Tell them: "Setting up your website engine — usually a few minutes
+(~3–5, longer on a smaller box); I'll ping you when it's ready." Do **not**
+say 30 minutes. Hard-stop until they answered intake **and** said yes to the
+local engine. Then:
 
-```
-sh ~/.hermes/skills/talents/odoo-website/scripts/install_odoo.sh
-```
+1. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`  
+   Expect `ODOO_INSTALLED`.
+2. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh website`
+3. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`  
+   Expect `ODOO_UP`.
+4. `register_service` name `postgres`, then name `odoo-community`.
 
-Expect `ODOO_INSTALLED <sha>`. Idempotent if interrupted.
+Never `odoo-website/scripts/install_odoo.sh`. That file is gone. Never
+`pgserver`. Never the nightly zip. Idempotent if interrupted.
 
 **While READY: no — never** `python3 -m http.server`, static HTML folders,
 `host_website` on a non-Odoo port, reuse of an existing `*.oteny.bot` link, or
-`oteny-drop` / `drop.oteny.bot`. Only path: `install_odoo.sh` → `setup_admin.py` →
-`preflight.py` → `READY: yes`. If `host_website` later returns `slug_taken`, pick another
+`oteny-drop` / `drop.oteny.bot`. Only path: community `install_odoo.sh` →
+`install_modules.sh website` → `setup_admin.py` → `preflight.py` →
+`READY: yes`. If `host_website` later returns `slug_taken`, pick another
 slug — do **not** fall back to drop.
 
 ### Lock admin login
@@ -108,7 +115,7 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/site_module.py init \
 
 Then tell the owner **exactly**:
 
-**Your website engine is ready — what should the site say?**
+**Postgres and Odoo are up. Your website engine is ready — what should the site say?**
 
 (then BUILD in [`build-and-host.md`](build-and-host.md)). Mention briefly: the site lives
 in a git repo the bot owns; they can later make it customer-facing.

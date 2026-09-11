@@ -14,6 +14,13 @@ a **one-line guard** ("setup complete?" — READY ⇒ skip & act), covers **ever
 manifest class (create db → intake → register routing/cron), and **loops to a
 re-check** → READY.
 
+The **first page** of `SKILL.md` still carries the stack photo. A consumer
+Talent that only names installers in this drill leaves a short `skill_view`
+blind. Stamp **`Builds on:`**, **`Do not start:`**, and **`none`** on the
+body (see the standard's First-screen stack). Then this drill calls the
+**other** Talent's scripts. It does not paste a second installer. After
+READY, one "ready" sentence — not a second recipe.
+
 ## Declared scripts only — never improvised exec (D57)
 
 Create the schema via the shipped `scripts/init.sql` (`sqlite3 db < scripts/init.sql`)
