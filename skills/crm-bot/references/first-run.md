@@ -8,7 +8,13 @@ Site name is not required. Ask: event name (or use the `… Leads` group
 title), admin email, language. Then: "Shall I install Odoo Community
 and CRM in this box?"
 
-Hard stop until yes.
+Hard stop until this turn has an admin email (it contains `@`), a
+language, and an explicit yes. Do not take the box login, `USER.md`,
+or a found `.odoo-admin` as the admin email. The owner must type it.
+
+Trees already present, or preflight already serving, does not skip
+this ask. Do not say CRM is ready on a first sentence that only
+names the event.
 
 ## Bot notes
 

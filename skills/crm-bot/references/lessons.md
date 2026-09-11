@@ -21,6 +21,9 @@ install path and the wire. The lessons stay.
    `write_file` cannot create `~/.hermes/data/crm-bot` when that
    parent is not writable. Run `write_profile.py`. Stop on
    `PROFILE_WRITE_FAILED`.
+9. Do not take the box login, `USER.md`, or `.odoo-admin` as the
+   admin email. The owner must type it. A first sentence that only
+   names the event is an ask, not a ready.
 
 ## Pitfalls
 

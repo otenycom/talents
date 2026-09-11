@@ -1,9 +1,10 @@
 # Live e2e: owner asks like the first OT-TRY box (event, admin, language,
-# then yes). The bot must persist the profile with write_profile.py, not
-# write_file. Ready only when the file landed and the stack is up.
-# Run on a lab / dev OT-TRY box that can write ~/.hermes/data. Do not
-# point this at prod hh00538, hh00496, the locked four, or the empty
-# stack thirteen.
+# then yes). CLI oneshot is a new session each turn, so the yes turn
+# repeats the three answers. The bot must persist the profile with
+# write_profile.py, not write_file. Ready only when the file landed
+# and the stack is up. Run on a lab / dev OT-TRY box. Do not point
+# this at prod hh00538, hh00496, the locked four, or the empty-stack
+# thirteen.
 bot: crm-bot
 live_only: true
 
@@ -21,7 +22,7 @@ turns:
       trace:
         markers:
           - "crm-bot"
-  - user: "OXP, ries@vriend.com, Dutch. yes"
+  - user: "OXP, ries@vriend.com, Dutch. yes — install Odoo Community and CRM now"
     reply_timeout: 2400
     expect:
       reply:
