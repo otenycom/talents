@@ -70,10 +70,9 @@ Four output disciplines a full Talent layers on top of the shape:
   conversational flows with **what the owner types**; put tool/script calls under
   **Bot notes**. Never teach owners to "call `some_tool()`". Full rule + WebsiteBot
   worked shape: [`audience-and-voice.md`](audience-and-voice.md).
-- **About this Talent first.** A general "tell me about" / "what can you
-  do?" turn is a value reply, not a command dump and not first-run.
-  Classify it in the master triage. Full rule:
-  [`audience-and-voice.md`](audience-and-voice.md).
+- **About this Talent.** The first page has `## About this Talent` with
+  every value the owner gets, and no how-to-answer lines under it.
+  Full rule: [`audience-and-voice.md`](audience-and-voice.md).
 - **Speak to the user, not the expert — then fade jargon in.** Explain domain jargon
   (leucine / mTOR for food; P/E / RSI for stocks) in plain words **with why it matters**
   while the tenant is new, **gradually shifting to the bare term as they settle** — a

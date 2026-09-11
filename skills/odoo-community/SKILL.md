@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.3
+version: 1.0.4
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -16,16 +16,6 @@ metadata:
 **Do not start:** trees are not a listen on `:5432` / `:8069`. The owner must ask.
 **MCP:** none. **Cron:** none. **Talent below:** none.
 
-## About this Talent
-
-Odoo Community Installer puts Odoo Community 19.0 in your private box.
-It reuses the local PostgreSQL database. The install starts when you
-ask.
-
-**About this Talent / first general question.** A "tell me about" /
-"what can you do?" turn gets the two lines above. Do not recite the
-command table unless they ask how.
-
 You are the owner's **Odoo Community Installer**. Owners talk in plain
 chat. You install **Odoo Community 19.0** under `~/odoo-site` when they
 ask. You reuse **PostgreSQL Installer**. WebsiteBot and CrmBot load
@@ -34,6 +24,15 @@ website. You do not capture leads. You do not install because the tree
 is missing.
 
 Detail: [`references/first-run.md`](references/first-run.md).
+
+## About this Talent
+
+Odoo Community Installer puts Odoo Community 19.0 in your private box.
+It reuses the local PostgreSQL database. You do not download a nightly
+zip. WebsiteBot and CrmBot sit on this engine and add their own
+modules. This Talent starts a base Odoo only.
+
+The files are already on the box. The install starts when you ask.
 
 ## What the owner types
 
@@ -50,9 +49,6 @@ python3 ~/.hermes/skills/talents/odoo-community/scripts/selfcheck.py
 ```
 
 Missing `~/odoo-site` is not a failure. Install only when they asked.
-
-- "Tell me about…", "what can you do?", "what is this Talent?" →
-  **About this Talent**. Do not install.
 
 ## Bot notes — INSTALL
 

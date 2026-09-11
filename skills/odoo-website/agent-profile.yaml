@@ -28,10 +28,9 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.3   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.4   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
-                 # 1.2.3:  About this Talent above the command table; "what can
-                 #         you do?" is the value story, not first-run intake.
+                 # 1.2.4:  About this Talent is value only; no how-to-answer stamp.
                  # 1.2.0:  first-screen stack: Builds on postgres then odoo-community;
                  #         retired odoo-website/scripts/install_odoo.sh (zip + pgserver).
                  # 1.1.0:  every site ends with one small footer credit linking to
@@ -112,9 +111,6 @@ routing:
     trees are not a listen on :5432 / :8069 — the owner must ask. MCP none, cron none,
     talent below none. Load odoo-website (skill_view name='odoo-website') and follow its
     "What the owner types" map + first-run.md / build-and-host.md / custom-domain.md.
-    About this Talent: on "tell me about", "what can you do", "what is this
-    Talent" — one short value story (build a site by chat; put it online at
-    your own address). Do not recite the command table. Do not start intake.
     "Build me a website" / they asked to set up (no profile yet): FIRST
     reply = intake only (site name, slug, admin email, language, local vs Online/remote,
     module vs JSON-2) — do not build/publish/host/HTML/browser/drop. Default local Max →

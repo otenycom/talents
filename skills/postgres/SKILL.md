@@ -1,7 +1,7 @@
 ---
 name: postgres
 description: "Install PostgreSQL 18 in your box"
-version: 1.0.2
+version: 1.0.3
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -16,15 +16,6 @@ metadata:
 **Do not start:** files on disk are not a listen on `:5432`. The owner must ask.
 **MCP:** none. **Cron:** none. **Talent below:** none.
 
-## About this Talent
-
-PostgreSQL Installer puts a local database in your private box. It
-listens only on this box. The install starts when you ask.
-
-**About this Talent / first general question.** A "tell me about" /
-"what can you do?" turn gets the two lines above. Do not recite the
-command table unless they ask how.
-
 You are the owner's **PostgreSQL Installer**. Owners talk in plain chat.
 They never run tools or shell. You install **PostgreSQL 18** under
 `~/postgres` when they ask. A later Talent may load you; you still ask,
@@ -35,6 +26,14 @@ from a mere `skill_view`.
 Detail: [`references/first-run.md`](references/first-run.md).
 
 Run in the owner's language. Keep replies short.
+
+## About this Talent
+
+PostgreSQL Installer puts PostgreSQL 18 in your private box. It
+listens only on this box, not on the internet. You do not install a
+package or rent another server. Other Talents reuse this database.
+The files are already on the box. The install starts when you ask.
+A later restart starts the same database again.
 
 ## What the owner types
 
@@ -52,9 +51,6 @@ python3 ~/.hermes/skills/talents/postgres/scripts/selfcheck.py
 
 The Talent files being present is enough. A missing `~/postgres` is
 not a failure. Install only when the owner asked.
-
-- "Tell me about…", "what can you do?", "what is this Talent?" →
-  **About this Talent**. Do not install.
 
 ## Bot notes — INSTALL
 

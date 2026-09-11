@@ -11,7 +11,7 @@ long_md: |
 
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask. A public URL is optional.
-version: 1.0.5
+version: 1.0.6
 
 skills:
   - crm-bot
@@ -38,15 +38,8 @@ routing:
     start: trees are not a listen on :5432 / :8069 — the owner must
     ask. MCP none, cron none, talent below none. Load crm-bot
     (skill_view name='crm-bot') for leads, CRM, meetings, or briefings.
-    About this Talent: on "tell me about", "what can you do", "what is
-    this Talent" — one short value story. Do not recite the command
-    table, first-run, passwords, or delete lead. Commands stay for how
-    / drill-in. Value: CrmBot helps you collect leads at trade shows.
-    A voice note becomes a contact and a lead in Odoo. Contact fields
-    come from the transcript and an online search. The lead holds
-    meeting notes, follow-up, and the voice note. A photo in chat can
-    become the contact profile picture. A Telegram group whose title
-    ends in " Leads" is a live capture channel — Task C. Ask event,
+    A Telegram group whose title ends in " Leads" is a live capture
+    channel — Task C. Ask event,
     admin email, and language. Hard stop until this turn has an email
     with @, a language, and yes. Do not take the box login as the
     admin. After first-run say ready only when write_profile.py

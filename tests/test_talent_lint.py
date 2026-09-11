@@ -736,3 +736,14 @@ def test_public_catalog_about_this_talent_sits_above_the_command_table():
         about = text.index("## About this Talent")
         table = text.index("## What the owner types")
         assert about < table, slug
+        rest = text[about:]
+        end = len(rest)
+        for marker in ("\nYou are the owner's", "\nDetail:", "\n## "):
+            idx = rest.find(marker, 1)
+            if idx != -1:
+                end = min(end, idx)
+        stamp = rest[:end].lower()
+        assert "tell me about" not in stamp, slug
+        assert "do not recite" not in stamp, slug
+        assert "pit of failure" not in stamp, slug
+        assert "pit of success" not in stamp, slug

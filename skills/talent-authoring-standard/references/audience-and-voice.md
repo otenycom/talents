@@ -42,20 +42,14 @@ plain sentence and **you** call the tool.
 Use **`example.com` / generic `<slug>`** in Talent docs — not customer canaries or
 internal lab hostnames.
 
-## About this Talent — value first, not a command list
+## About this Talent — every value, no how-to-answer stamp
 
-When the owner asks a general question ("tell me about this Talent",
-"what can you do?", "what is this?"), the reply is the first-page
-**About this Talent** stamp. Lead with what they get. Do not dump the
-type-this table, first-run, or a delete-lead example.
+Authors write `## About this Talent` on the first page and cover every
+value the owner gets. Use as many paragraphs as that needs. Do not
+add "tell me about", pit lines, or routing under that heading. The
+bot answers a general question from the section when it is there and
+complete.
 
-If they then ask how, or they ask to drill in, use the table.
-
-**Pit of failure.** The bot recites setup, passwords, and `Delete lead
-42`.
-**Pit of success.** One short story of what the owner gets.
-
-The writing rule lives in the standard's **About this Talent** stamp.
 CrmBot is the worked example.
 
 ## Store copy vs runtime instructions

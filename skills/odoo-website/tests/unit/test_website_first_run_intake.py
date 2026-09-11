@@ -26,21 +26,35 @@ def test_ready_sentence_stays_and_offers_secure_intake():
     assert "won't repeat it" not in blob
 
 
-def test_about_this_talent_sits_above_the_command_table():
+def test_about_this_talent_covers_every_value_add():
     about = _SKILL.index("## About this Talent")
     table = _SKILL.index("## What the owner types")
     assert about < table
     pitch = _SKILL[about:table].lower()
-    assert "website" in pitch
-    assert "chat" in pitch
-    assert "start intake" in pitch
+    for token in (
+        "website",
+        "chat",
+        "landing page",
+        "shop",
+        "booking",
+        "https",
+        "domain",
+        "back-office",
+        "odoo online",
+    ):
+        assert token in pitch, token
+    assert "start intake" not in pitch
+    assert "tell me about" not in pitch
+    assert "you are the owner" not in pitch
 
 
-def test_channel_prompt_does_not_route_what_can_you_do_to_intake():
+def test_channel_prompt_does_not_stamp_how_to_answer_about():
     profile = (_BUNDLE / "agent-profile.yaml").read_text(encoding="utf-8")
-    prompt = re.sub(r"\s+", " ", profile).lower()
-    assert "about this talent" in prompt
-    assert "what can you do" in prompt
-    assert "do not start intake" in prompt
+    start = profile.index("channel_prompt:")
+    end = profile.index("signature:", start)
+    prompt = re.sub(r"\s+", " ", profile[start:end]).lower()
+    assert "tell me about" not in prompt
+    assert "do not start intake" not in prompt
+    assert "about this talent" not in prompt
     # The old standing instruction sent "what can you do?" into first-run.
     assert 'or "what can you do?": first' not in prompt
