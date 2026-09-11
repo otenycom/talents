@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.10
+version: 0.5.11
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -130,14 +130,6 @@ or "tell me about" routing under the heading.
 Worked stamp: [`crm-bot`](../crm-bot/). Author note:
 [`audience-and-voice.md`](references/audience-and-voice.md).
 
-## No leftover guards
-
-Do not add a lint, a frozen word list, or an extra test because a
-stale edit once trimmed a file. The fault is gone when the prose is
-right. A guard that lists today's words will rot and block the next
-honest rewrite. Write the rule. Do not belt a problem that is no
-longer there.
-
 ## The checklist-first bar (the airline-pilot rule)
 
 The bot runs on the tier the Talent declares (`model_tier` in `agent-profile.yaml`;
@@ -230,7 +222,6 @@ The exact output format is in
 
 - [`references/audience-and-voice.md`](references/audience-and-voice.md) — owner vs bot
   vs author; type-this writing style; About this Talent (every value).
-  No leftover guards: do not belt a fault that is already gone.
 - [`references/connections.md`](references/connections.md) — the four `connections:`
   kinds, the binding rules, and the readiness gate a `kind: saas` entry arms.
 - [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →

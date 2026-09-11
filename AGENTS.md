@@ -106,6 +106,10 @@ ships — but for routine owner edits, a direct push to `main` is fine; no featu
   demo/template bots, and bots explicitly **granted** — never an arbitrary customer's tenant. A
   clone lands with third-party secrets redacted; you can't extract another tenant's credentials.
 - **Tests are author-only.** A bundle's `tests/` is never delivered to a bot.
+- **No leftover guards.** Do not add a lint, a frozen word list, or an extra test
+  because a stale edit once trimmed a file. The fault is gone when the prose is
+  right. A guard that lists today's words will rot and block the next honest
+  rewrite. Write the rule. Do not belt a problem that is no longer there.
 
 ## Map
 
