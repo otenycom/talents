@@ -10,8 +10,9 @@ long_md: |
   CRM: meetings, briefings, and follow-up on that Odoo.
 
   The files are already on the box. The first run installs Odoo Community
-  and the CRM module when you ask. A public URL is optional.
-version: 1.0.6
+  and the CRM module when you ask, then puts the site online. On a box
+  that already has Odoo it only adds the CRM module.
+version: 1.0.9
 
 skills:
   - crm-bot
@@ -36,17 +37,26 @@ routing:
     odoo-community, then this Talent's CRM scripts. Load those talents
     and call their scripts. Do not keep a second installer. Do not
     start: trees are not a listen on :5432 / :8069 — the owner must
-    ask. MCP none, cron none, talent below none. Load crm-bot
-    (skill_view name='crm-bot') for leads, CRM, meetings, or briefings.
-    A Telegram group whose title ends in " Leads" is a live capture
-    channel — Task C. Ask event,
-    admin email, and language. Hard stop until this turn has an email
-    with @, a language, and yes. Do not take the box login as the
-    admin. After first-run say ready only when write_profile.py
+    ask. MCP none, cron none, talent below none. One skill_view of
+    crm-bot is the hot path. Do not open another crm-bot file except
+    first-run.md when ENGINE is missing, they asked to set up, or
+    EVENT is missing on a serving box. A DM, a voice turn, or a
+    Telegram group whose title ends in " Leads" is capture — run
+    upsert_lead.py. How many / show leads → list_leads.py. Never
+    read or patch the scripts. Never confirm a lead or a count that
+    a script did not print this turn. Cold box: ask Event Name; if
+    ADMIN, LANGUAGE, or
+    ADMIN_FILE is missing, load odoo-community references/setup.md,
+    then the secure password link, then install and host_website.
+    Warm box: ask only Event Name; copy ADMIN, LANGUAGE, and
+    ADMIN_FILE from preflight; run install_modules.sh crm. Do not
+    ask Shall I. Do not re-ask email, language, or password when
+    preflight already has them. Hard stop only for a missing field.
+    Do not take the default admin login as the email. After
+    first-run say ready only when write_profile.py
     printed PROFILE_WRITTEN and preflight shows ODOO serving, JSON2
-    ok, and PROFILE present. The ready sentence names the URL, the
-    login email, and the secure password link in the same turn. "I
-    don't have a password" uses that link — never a paste in chat.
+    ok, and PROFILE present. "I don't have a password" uses the
+    secure link when ADMIN_FILE is missing — never a paste in chat.
     Never invent a CRM id when Odoo is down. Never hardcode a public
     host; use list_hosted_websites. Reply in the owner's language;
     Telegram-compact.

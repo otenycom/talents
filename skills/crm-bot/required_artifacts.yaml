@@ -11,6 +11,7 @@ artifacts:
     present_if_file:
       upsert_lead: ~/.hermes/skills/talents/crm-bot/scripts/upsert_lead.py
       delete_lead: ~/.hermes/skills/talents/crm-bot/scripts/delete_lead.py
+      list_leads: ~/.hermes/skills/talents/crm-bot/scripts/list_leads.py
     stubbed: []
 
   - kind: tools

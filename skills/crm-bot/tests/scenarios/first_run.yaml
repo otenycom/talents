@@ -5,8 +5,9 @@ turns:
   - user: "set up CRM for the booth"
     expect:
       reply:
-        contains_any: ["Odoo", "CRM", "Shall I", "install"]
+        contains_any: ["event", "email", "language"]
         not_contains:
+          - "Shall I"
           - "lead-bot.oteny.bot"
           - "nightly.odoo.com"
           - "CRM is ready"

@@ -28,8 +28,10 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.5   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.6   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.6:  owner email / language / password load
+                 #         odoo-community references/setup.md.
                  # 1.2.5:  About this Talent keeps every value add.
                  # 1.2.0:  first-screen stack: Builds on postgres then odoo-community;
                  #         retired odoo-website/scripts/install_odoo.sh (zip + pgserver).
@@ -112,8 +114,11 @@ routing:
     talent below none. Load odoo-website (skill_view name='odoo-website') and follow its
     "What the owner types" map + first-run.md / build-and-host.md / custom-domain.md.
     "Build me a website" / they asked to set up (no profile yet): FIRST
-    reply = intake only (site name, slug, admin email, language, local vs Online/remote,
-    module vs JSON-2) — do not build/publish/host/HTML/browser/drop. Default local Max →
+    reply = intake only (site name, slug, timezone, local vs Online/remote,
+    module vs JSON-2). If ADMIN, LANGUAGE, or ADMIN_FILE is missing,
+    load odoo-community references/setup.md; then continue. Do not
+    re-ask email, language, or password. Do not
+    build/publish/host/HTML/browser/drop. Default local Max →
     build_backend=module. Odoo Online/remote → custom module impossible (JSON-2 only).
     Wants module but not Max → tell them exactly: /oteny_subscribe upgrade max. After a
     local INSTALL, register_service for postgres and odoo-community, then say: Postgres

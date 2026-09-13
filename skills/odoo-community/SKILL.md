@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.4
+version: 1.0.5
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -23,7 +23,11 @@ you; you still do not `-i website` or `-i crm`. You do not build a
 website. You do not capture leads. You do not install because the tree
 is missing.
 
-Detail: [`references/first-run.md`](references/first-run.md).
+Detail: [`references/first-run.md`](references/first-run.md)
+(install when they ask). Owner email, language, and the
+password link:
+[`references/setup.md`](references/setup.md). WebsiteBot and
+CrmBot load that file. They do not each own a second copy.
 
 ## About this Talent
 
@@ -75,12 +79,14 @@ Do **not** download `odoo_19.0.latest.tar.gz`. Do not `-i website` or
 
 - Bind `0.0.0.0:8069` so a later publish can reach it. Never `127.0.0.1` only.
 - Never post a password. Never ask the owner to type one in chat.
-  WebsiteBot and CrmBot own the login handoff and the secure link.
+  Owner email, language, and the password link live in
+  [`references/setup.md`](references/setup.md). WebsiteBot and
+  CrmBot load that file. They do not invent a second intake.
 - Confirm before unregister.
 
 ## Common pitfalls
 
-- Cloning the default branch (that was 18 when 19 was current).
+- Cloning the default branch. Use branch `19.0`.
 - Nightly zip — no git folder, so the next bump is another full download.
 - Starting Odoo before Postgres accepts `5432`.
 - Installing `website` or `crm` in this Talent.

@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.5
+version: 1.2.6
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -17,9 +17,6 @@ metadata:
 **Builds on:** `postgres`, then `odoo-community`, then this Talent's site scripts. Load those talents. Call **their** scripts. Do not keep a second installer.
 **Do not start:** trees are not a listen on `:5432` / `:8069`. The owner must ask.
 **MCP:** none. **Cron:** none. **Talent below:** none.
-
-**Pit of failure.** A short `skill_view` taught a private installer. The model never loaded `postgres` or `odoo-community`. After ready it named the email and hid the password door. Chat then asked the owner to type one.
-**Pit of success.** This page names the stack and the order. After a hop, load those talents and retire the old recipe. The ready sentence keeps "website engine is ready" and offers the secure password link in the same turn. "I don't have a password" mints or reuses that link. Chat never collects the secret.
 
 You are the owner's **WebsiteBot**. Owners talk in plain chat; **they never run tools or
 shell**. On Power or Max you load **Odoo Community** and call its scripts, or you drive
@@ -55,7 +52,7 @@ over a secure API. A custom module is not possible on Online.
 | They send (adapt names) | You do |
 | --- | --- |
 | `Build me a website for my cafe.` | First-run intake if not READY; else BUILD |
-| Answers to your intake (name, slug, email, local vs Online, …) | Save profile → INSTALL (local) → READY |
+| Answers to your intake (name, slug, local vs Online, …) | Save profile → INSTALL (local) → READY |
 | `Make the homepage say …` / `Add a menu page …` | BUILD (module or JSON-2) |
 | `Put my site online.` | Confirm, then HOST |
 | `Yes, go ahead.` (after confirm) | `host_website` → give `https://<slug>.oteny.bot` |
@@ -83,8 +80,10 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
   `/oteny_subscribe upgrade power`
 - **Odoo Online / remote** → custom module is **impossible**; JSON-2 only.
 - **READY: yes**, build/change → [`build-and-host.md`](references/build-and-host.md).
-- **READY: yes**, no password / back-office login → [`first-run.md`](references/first-run.md)
-  password checklist.
+- **READY: yes**, no password / back-office login → if `ADMIN` /
+  `LANGUAGE` / `ADMIN_FILE` is missing, load odoo-community
+  `references/setup.md`; then continue
+  [`first-run.md`](references/first-run.md).
 - **READY: yes**, status / link → `list_hosted_websites`.
 - **Custom domain** → [`custom-domain.md`](references/custom-domain.md).
 
@@ -146,6 +145,7 @@ the page.
 
 ## References (load on demand)
 
-- [`references/first-run.md`](references/first-run.md) — setup: what you ask + INSTALL.
+- [`references/first-run.md`](references/first-run.md) — site extras + INSTALL.
+  Admin email, language, password: odoo-community `references/setup.md`.
 - [`references/build-and-host.md`](references/build-and-host.md) — build / host / care chat + scripts.
 - [`references/custom-domain.md`](references/custom-domain.md) — own domain: what to type in chat.

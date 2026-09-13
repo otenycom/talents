@@ -36,6 +36,22 @@ def test_down_odoo_prints_null_lead_id(tmp_path, monkeypatch):
     assert "error" in payload
 
 
+def test_list_leads_down_odoo_prints_empty(tmp_path, monkeypatch):
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    (tmp_path / ".hermes" / "data" / "crm-bot").mkdir(parents=True)
+    r = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "list_leads.py")],
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+    assert r.returncode != 0
+    payload = json.loads(r.stdout.strip().splitlines()[-1])
+    assert payload["count"] == 0
+    assert payload["leads"] == []
+    assert "error" in payload
+
+
 def test_find_partner_signature_includes_phone():
     sys.path.insert(0, str(_SCRIPTS))
     import inspect

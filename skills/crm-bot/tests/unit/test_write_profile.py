@@ -6,11 +6,22 @@ from pathlib import Path
 
 import pytest
 
-_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "write_profile.py"
+_SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
+_SCRIPT = _SCRIPTS / "write_profile.py"
 
 
 def _load():
     spec = importlib.util.spec_from_file_location("crm_write_profile_under_test", _SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _load_paths():
+    spec = importlib.util.spec_from_file_location(
+        "crm_paths_under_test", _SCRIPTS / "crm_paths.py",
+    )
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(mod)
@@ -115,3 +126,71 @@ def test_preflight_prints_profile_missing_without_yaml(tmp_path, monkeypatch, ca
     assert mod.main() == 0
     out = capsys.readouterr().out
     assert "PROFILE: missing" in out
+    assert "EVENT: -" in out
+    assert "ADMIN: -" in out
+    assert "LANGUAGE: -" in out
+    assert "ADMIN_FILE: missing" in out
+    assert "CRM: unknown" in out
+    assert "password=" not in out.lower()
+
+
+def test_preflight_prints_sibling_website_admin_and_language(
+    tmp_path, monkeypatch, capsys,
+):
+    hermes = tmp_path / ".hermes"
+    website = hermes / "data" / "odoo-website"
+    website.mkdir(parents=True)
+    (website / "profile.yaml").write_text(
+        "owner_email: ries@vriend.com\nlanguage: nl\n", encoding="utf-8",
+    )
+    (website / ".odoo-admin").write_text(
+        "login=ries@vriend.com\npassword=secret-from-website\napi_key=k\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_warm",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0
+    out = capsys.readouterr().out
+    assert "ADMIN: ries@vriend.com" in out
+    assert "LANGUAGE: nl" in out
+    assert "ADMIN_FILE: present" in out
+    assert "EVENT: -" in out
+    assert "secret-from-website" not in out
+
+
+def test_write_profile_copies_sibling_email_when_flag_omitted(tmp_path, monkeypatch):
+    hermes = tmp_path / ".hermes"
+    website = hermes / "data" / "odoo-website"
+    website.mkdir(parents=True)
+    (website / "profile.yaml").write_text(
+        "owner_email: ries@vriend.com\nlanguage: nl\n", encoding="utf-8",
+    )
+    dest = hermes / "data" / "crm-bot"
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    path = _load().write_profile(event_name="OXP")
+    assert path == dest / "profile.yaml"
+    text = path.read_text(encoding="utf-8")
+    assert "event_name: OXP" in text
+    assert "owner_email: ries@vriend.com" in text
+    assert "language: nl" in text
+
+
+def test_implicit_setup_ignores_default_admin_login(tmp_path, monkeypatch):
+    dest = tmp_path / ".hermes" / "crm-bot"
+    dest.mkdir(parents=True)
+    (dest / ".odoo-admin").write_text(
+        "login=admin\npassword=admin\napi_key=k\n", encoding="utf-8",
+    )
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    implied = _load_paths().implicit_setup()
+    assert implied["owner_email"] == ""
+    assert implied["admin_file"] is True

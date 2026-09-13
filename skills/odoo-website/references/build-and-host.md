@@ -170,9 +170,8 @@ polish pass — retrofitting it means re-translating every page.
 ### Owner handoff (after first host, local)
 
 1. Facts (no secrets): public URL, `/web/login`, login **email** = `owner_email`.
-2. Password: `credential_status` env_var `ODOO_ADMIN_PASSWORD`, then
-   `connect_account` label `Website back-office password` when nothing
-   is connected. Send the URL in this same reply. Apply with
+2. Password: follow odoo-community `references/setup.md`. Label
+   `Website back-office password`. Apply with
    `setup_admin.py --from-env ODOO_ADMIN_PASSWORD`.
 3. "I don't have a password" is the same checklist. Never a paste in
    chat.

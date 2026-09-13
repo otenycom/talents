@@ -25,6 +25,23 @@ _DB = "website"
 _APIKEY_LINE = "api_" + "key="
 
 
+def _as_id(value):
+    """JSON-2 ``create`` returns a recordset, which the wire serialises as
+    ``[id]``. Search already returns a list of ints. Callers that need one
+    Many2one id must unwrap here — stuffing ``[id]`` into ``tag_ids`` or
+    ``source_id`` raises ``unhashable type: 'list'`` on ``crm.lead.create``.
+    """
+    if value in (None, False):
+        raise RuntimeError("CRM_RPC_FAILED empty_id")
+    if isinstance(value, list):
+        if not value:
+            raise RuntimeError("CRM_RPC_FAILED empty_id_list")
+        return _as_id(value[0])
+    if isinstance(value, dict) and value.get("id") is not None:
+        return int(value["id"])
+    return int(value)
+
+
 def _load_key() -> str:
     path = next((p for p in admin_candidates() if p.exists()), None)
     if path is None:
@@ -100,8 +117,8 @@ class OdooRPC:
     def get_or_create_by_name(self, model: str, name: str, extra: dict | None = None) -> int:
         ids = self.call(model, "search", [[("name", "=ilike", name)]], {"limit": 1})
         if ids:
-            return ids[0]
-        return self.call(model, "create", [{"name": name, **(extra or {})}])
+            return _as_id(ids)
+        return _as_id(self.call(model, "create", [{"name": name, **(extra or {})}]))
 
     def find_partner(self, name, company, email, phone=None):
         """Cross-staff dedupe: email, then phone, then name+company, then name."""
@@ -155,11 +172,11 @@ class OdooRPC:
             {"limit": 1},
         )
         if ids:
-            return ids[0]
-        return self.call("res.partner", "create", [{"name": company, "is_company": True}])
+            return _as_id(ids)
+        return _as_id(self.call("res.partner", "create", [{"name": company, "is_company": True}]))
 
     def create_partner(self, vals: dict) -> int:
-        return self.call("res.partner", "create", [vals])
+        return _as_id(self.call("res.partner", "create", [vals]))
 
     def write_partner(self, partner_id: int, vals: dict) -> bool:
         return self.call("res.partner", "write", [[partner_id], vals])
@@ -169,7 +186,7 @@ class OdooRPC:
         return rows[0]
 
     def create_lead(self, vals: dict) -> int:
-        return self.call("crm.lead", "create", [vals])
+        return _as_id(self.call("crm.lead", "create", [vals]))
 
     def write_lead(self, lead_id: int, vals: dict) -> bool:
         return self.call("crm.lead", "write", [[lead_id], vals])
@@ -226,7 +243,7 @@ class OdooRPC:
             raise ValueError(f"media file empty: {file_path}")
         filename = p.name
         mimetype = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-        att_id = self.call(
+        att_id = _as_id(self.call(
             "ir.attachment", "create", [{
                 "name": filename,
                 "datas": base64.b64encode(data).decode(),
@@ -234,7 +251,7 @@ class OdooRPC:
                 "res_id": lead_id,
                 "mimetype": mimetype,
             }]
-        )
+        ))
         caption = name or filename
         self.call(
             "crm.lead", "message_post", [[lead_id]],

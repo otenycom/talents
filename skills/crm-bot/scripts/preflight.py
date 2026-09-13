@@ -9,7 +9,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from crm_paths import profile_path
+from crm_paths import implicit_setup, profile_path
 
 _PORT = 8069
 
@@ -60,12 +60,35 @@ def _profile_present() -> bool:
     return path.is_file() and path.stat().st_size > 0
 
 
+def _crm_module() -> str:
+    if not _odoo_serving():
+        return "unknown"
+    try:
+        from odoo_rpc import OdooRPC
+        rpc = OdooRPC()
+        ids = rpc.call(
+            "ir.module.module",
+            "search",
+            [[("name", "=", "crm"), ("state", "=", "installed")]],
+            {"limit": 1},
+        )
+        return "installed" if ids else "missing"
+    except Exception:
+        return "unknown"
+
+
 def main() -> int:
+    implied = implicit_setup()
     print(f"ENGINE: {'installed' if _engine() else 'missing'}")
     print(f"ODOO: {'serving' if _odoo_serving() else 'down'}")
     print(f"POSTGRES: {'up' if _pg_up() else 'down'}")
     print(f"JSON2: {'ok' if _json2_ok() else 'down'}")
+    print(f"CRM: {_crm_module()}")
     print(f"PROFILE: {'present' if _profile_present() else 'missing'}")
+    print(f"EVENT: {implied['event_name'] or '-'}")
+    print(f"ADMIN: {implied['owner_email'] or '-'}")
+    print(f"LANGUAGE: {implied['language'] or '-'}")
+    print(f"ADMIN_FILE: {'present' if implied['admin_file'] else 'missing'}")
     print("PUBLIC: use list_hosted_websites — never a hardcoded host")
     return 0
 

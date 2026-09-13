@@ -11,6 +11,10 @@ not land.
     python3 …/scripts/write_profile.py --event-name OXP \\
         --owner-email owner@example.com --language nl
 
+    On a warm box the sibling WebsiteBot profile / ``.odoo-admin``
+    already hold email and language. Then ``--owner-email`` and
+    ``--language`` may be omitted.
+
 Exit 0 + ``PROFILE_WRITTEN <path>`` on success.
 Exit 1 + ``PROFILE_WRITE_FAILED …`` on failure.
 """
@@ -23,7 +27,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from crm_paths import writable_data_dir
+from crm_paths import implicit_setup, writable_data_dir
 
 _FIELDS = (
     "event_name",
@@ -37,21 +41,23 @@ _FIELDS = (
 
 def write_profile(
     *,
-    event_name: str,
-    owner_email: str,
-    language: str = "en",
+    event_name: str = "",
+    owner_email: str = "",
+    language: str = "",
     timezone: str = "",
     name: str = "",
     odoo_locus: str = "local",
 ) -> Path:
     """Write ``profile.yaml``. Raise OSError when the directory or file cannot land."""
-    email = (owner_email or "").strip()
+    implied = implicit_setup()
+    email = (owner_email or implied.get("owner_email") or "").strip()
     if not email or "@" not in email:
         raise ValueError("owner_email")
+    lang = (language or implied.get("language") or "en").strip() or "en"
     values = {
-        "event_name": (event_name or "").strip(),
+        "event_name": (event_name or implied.get("event_name") or "").strip(),
         "owner_email": email,
-        "language": (language or "en").strip() or "en",
+        "language": lang,
         "timezone": (timezone or "").strip(),
         "name": (name or "").strip(),
         "odoo_locus": (odoo_locus or "local").strip() or "local",
@@ -68,8 +74,8 @@ def write_profile(
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--event-name", default="")
-    p.add_argument("--owner-email", required=True)
-    p.add_argument("--language", default="en")
+    p.add_argument("--owner-email", default="")
+    p.add_argument("--language", default="")
     p.add_argument("--timezone", default="")
     p.add_argument("--name", default="")
     p.add_argument("--odoo-locus", default="local")

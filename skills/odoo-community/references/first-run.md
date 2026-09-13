@@ -2,6 +2,10 @@
 
 Do not install just because `~/odoo-site` is missing.
 
+This file is the install drill. It does not ask for admin
+email, language, or a password. Those facts live in
+[`setup.md`](setup.md). WebsiteBot and CrmBot load that file.
+
 ## What you ask
 
 "I can install Odoo Community 19.0 in this box. It needs a local

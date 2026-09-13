@@ -1,28 +1,38 @@
 # First-run — getting WebsiteBot ready
 
-Pulled only when `preflight.py` prints `READY: no`. Owners answer in chat; **they never
-run install commands**. You ask, save, install, then say the site engine is ready.
+Pulled only when `preflight.py` prints `READY: no`. Owners answer in
+chat; **they never run install commands**. You ask, save, install,
+then say the site engine is ready.
+
+Admin email, language, and the password link are **not** this file.
+They live in odoo-community
+[`references/setup.md`](../../odoo-community/references/setup.md).
+Load that file when `ENGINE` is missing, or when `ADMIN`,
+`LANGUAGE`, or `ADMIN_FILE` is missing. Then continue this file.
 
 ---
 
 ## What you ask the owner (send in chat — short messages)
 
-Greet them, say in one line that you build a real website and put it online at their own
-address, then ask — in one or two short messages — until you have answers:
+Greet them, say in one line that you build a real website and put it
+online at their own address, then ask — in one or two short messages
+— until you have answers:
 
-1. **What the site is** — name + one line of purpose  
+1. **What the site is** — name + one line of purpose
    (e.g. they reply: `Bella's Cafe — menu + opening hours`)
-2. **A web address name** — the `<name>` in `https://<name>.oteny.bot`  
-   (3–30 chars, lowercase letters, digits, hyphens; offer their bot id as default)
-3. **An email** for the site's admin login (back-office later — **never** ask for a
-   password in chat)
-4. **Language** and **timezone** (offer to detect / use what the profile already knows)
-5. **Where Odoo lives**
+2. **A web address name** — the `<name>` in
+   `https://<name>.oteny.bot`
+   (3–30 chars, lowercase letters, digits, hyphens; offer their bot
+   id as default)
+3. **Timezone** (offer to detect / use what the profile already
+   knows)
+4. **Where Odoo lives**
    - **On this bot (recommended)** → Max box
-   - **Odoo Online / their own Odoo URL** → remote; say clearly: **a custom Odoo module
-     is impossible** there (config via API only)
-6. **How to build** (local only) — if unsure, default to a **custom module**. If they want
-   a module but this bot's box is **too small**, stop and tell them to send exactly:
+   - **Odoo Online / their own Odoo URL** → remote; say clearly: **a
+     custom Odoo module is impossible** there (config via API only)
+5. **How to build** (local only) — if unsure, default to a **custom
+   module**. If they want a module but this bot's box is **too
+   small**, stop and tell them to send exactly:
 
    ```
    /oteny_subscribe upgrade power
@@ -30,8 +40,14 @@ address, then ask — in one or two short messages — until you have answers:
 
    Then come back. Do not install until the box is big enough.
 
-**Hard stop until they answer.** First reply = intake only — no install, no publish, no
-HTML, no browser, no `oteny-drop` / `drop.oteny.bot`.
+Do **not** ask admin email, language, or a password here. If
+`ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing, load odoo-community
+`references/setup.md` and ask only the missing field there. If
+community setup already has those three, skip them.
+
+**Hard stop until they answer.** First reply = intake only — no
+install, no publish, no HTML, no browser, no `oteny-drop` /
+`drop.oteny.bot`.
 
 ---
 
@@ -43,7 +59,17 @@ HTML, no browser, no `oteny-drop` / `drop.oteny.bot`.
 python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 ```
 
-`READY: yes` → skip this file, go to BUILD/CARE. `READY: no` → continue.
+`READY: yes` → skip this file, go to BUILD/CARE. `READY: no` →
+continue.
+
+If `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing (no owner email,
+no language, or no `.odoo-admin`), load
+
+```
+skill_view name='odoo-community' file_path='references/setup.md'
+```
+
+Then continue this file. Do not re-ask those three.
 
 ### Save profile + identity
 
@@ -56,10 +82,13 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/write_profile.py \
   --odoo-locus local --build-backend module --git-customer-facing false
 ```
 
-Expect `PROFILE_WRITTEN`. Fields match `profile/profile.yaml.template`
-(`odoo_locus`, `build_backend`, `git_customer_facing`, `git_remote_url`).
-If `PROFILE_WRITE_FAILED`, tell the owner the folder could not be
-created. Stop. Do not say the website engine is ready.
+Pass `--owner-email` and `--language` from community setup (or from
+the profile that already has them). Expect `PROFILE_WRITTEN`. Fields
+match `profile/profile.yaml.template`
+(`odoo_locus`, `build_backend`, `git_customer_facing`,
+`git_remote_url`). If `PROFILE_WRITE_FAILED`, tell the owner the
+folder could not be created. Stop. Do not say the website engine is
+ready.
 
 Then render:
 
@@ -67,32 +96,35 @@ Then render:
 - `~/.hermes/data/odoo-website/memory.md` ← `profile/memory.md.template`
 
 **Online/remote:** skip local install below; continue JSON-2 BUILD in
-[`build-and-host.md`](build-and-host.md) (credentials via secure intake).
+[`build-and-host.md`](build-and-host.md) (credentials via secure
+intake).
 
 ### Install the local engine (Power or Max only)
 
-Load `odoo-community` (`skill_view name='odoo-community'`). That Talent loads
-`postgres`. Tell them: "Setting up your website engine — usually a few minutes
-(~3–5, longer on a smaller box); I'll ping you when it's ready." Do **not**
-say 30 minutes. Hard-stop until they answered intake **and** said yes to the
-local engine. Then:
+Load `odoo-community` (`skill_view name='odoo-community'`). That
+Talent loads `postgres`. Tell them: "Setting up your website engine
+— usually a few minutes (~3–5, longer on a smaller box); I'll ping
+you when it's ready." Do **not** say 30 minutes. Hard-stop until
+they answered intake **and** said yes to the local engine. Then:
 
-1. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`  
+1. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`
    Expect `ODOO_INSTALLED`.
 2. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh website`
-3. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`  
+3. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
    Expect `ODOO_UP`.
 4. `register_service` name `postgres`, then name `odoo-community`.
 
-Never `odoo-website/scripts/install_odoo.sh`. That file is gone. Never
-`pgserver`. Never the nightly zip. Idempotent if interrupted.
+Do not call `odoo-website/scripts/install_odoo.sh`. Use the
+community scripts above. Never `pgserver`. Never the nightly zip.
+Idempotent if interrupted.
 
-**While READY: no — never** `python3 -m http.server`, static HTML folders,
-`host_website` on a non-Odoo port, reuse of an existing `*.oteny.bot` link, or
-`oteny-drop` / `drop.oteny.bot`. Only path: community `install_odoo.sh` →
-`install_modules.sh website` → `setup_admin.py` → `preflight.py` →
-`READY: yes`. If `host_website` later returns `slug_taken`, pick another
-slug — do **not** fall back to drop.
+**While READY: no — never** `python3 -m http.server`, static HTML
+folders, `host_website` on a non-Odoo port, reuse of an existing
+`*.oteny.bot` link, or `oteny-drop` / `drop.oteny.bot`. Only path:
+community `install_odoo.sh` → `install_modules.sh website` →
+`setup_admin.py` → `preflight.py` → `READY: yes`. If `host_website`
+later returns `slug_taken`, pick another slug — do **not** fall
+back to drop.
 
 ### Lock admin login
 
@@ -101,8 +133,12 @@ sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
 python3 ~/.hermes/skills/talents/odoo-website/scripts/setup_admin.py
 ```
 
-Expect `ADMIN_READY <owner_email>`. Never invent passwords in chat, never `odoo shell`
-resets. Details: [`build-and-host.md`](build-and-host.md).
+Expect `ADMIN_READY <owner_email>`. Never invent passwords in chat,
+never `odoo shell` resets. Password protocol:
+odoo-community `references/setup.md`. Label:
+`Website back-office password`. Apply with this Talent's
+`setup_admin.py --from-env ODOO_ADMIN_PASSWORD`. Details:
+[`build-and-host.md`](build-and-host.md).
 
 ### Re-check → READY
 
@@ -123,32 +159,33 @@ Then tell the owner **exactly** this sentence, and only when
 
 **Postgres and Odoo are up. Your website engine is ready — what should the site say?**
 
-Keep that sentence exact. In the **same turn**, offer the back-office
-login: the admin email plus the secure password link (Bot notes below).
-A first-page walk-through stays optional. Do not wait for them to ask.
-Do not ask them to type a password in chat.
+Keep that sentence exact. In the **same turn**, offer the
+back-office login: the admin email plus the secure password link
+(community setup). A first-page walk-through stays optional. Do not
+wait for them to ask. Do not ask them to type a password in chat.
 
-(then BUILD in [`build-and-host.md`](build-and-host.md)). Mention briefly: the site lives
-in a git repo the bot owns; they can later make it customer-facing.
+(then BUILD in [`build-and-host.md`](build-and-host.md)). Mention
+briefly: the site lives in a git repo the bot owns; they can later
+make it customer-facing.
 
 ## Bot notes — password (never in chat)
 
-The box already has a generated login. The owner does not.
+If `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing, load
+odoo-community `references/setup.md`. Then continue. Label the link
+`Website back-office password`. Apply with
 
-1. `credential_status` env_var `ODOO_ADMIN_PASSWORD`.
-2. `none` → `connect_account` label `Website back-office password`,
-   env_var `ODOO_ADMIN_PASSWORD`. Send the returned URL with the
-   ready sentence.
-3. `pending` → send that same URL again. Wait.
-4. `leased` or `submitted` → one sentence, then end the turn.
-5. `delivered` or `process_ready` →
-   `python3 ~/.hermes/skills/talents/odoo-website/scripts/setup_admin.py`
-   `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
+```
+python3 ~/.hermes/skills/talents/odoo-website/scripts/setup_admin.py
+--from-env ODOO_ADMIN_PASSWORD
+```
+
+Expect `ADMIN_READY`.
 
 ## Owner has no password
 
-Same checklist. "I don't have a password" and "I want the back-office
-login" are this path, not a request to paste in chat.
+Same path. "I don't have a password" and "I want the back-office
+login" load community setup. They are not a request to paste in
+chat.
 
 If `READY: no` persists:
 
