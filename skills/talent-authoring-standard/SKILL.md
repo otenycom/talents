@@ -1,7 +1,7 @@
 ---
 name: talent-authoring-standard
 description: "Author or grade an Oteny Talent bundle."
-version: 0.5.11
+version: 0.5.12
 author: Oteny
 license: Apache-2.0
 metadata:

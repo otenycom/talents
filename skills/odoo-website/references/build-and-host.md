@@ -167,11 +167,15 @@ polish pass — retrofitting it means re-translating every page.
    retries under a **different** slug each time, then ask the owner
    for a new name only if all three collide. Never repeat the call
    under the slug that just failed.
-3. Poll `list_hosted_websites` until `status: active` + `health_state: ok` (~1 min).
+3. Follow odoo-community `references/setup.md` "Bot notes —
+   public URL is live": `wait_for_public_dns.py` on the URL, then
+   `list_hosted_websites` until `edge_reachable`. Do not give the
+   URL yet. Do not sleep on your own.
 4. `site_rpc.py set-base-url --url https://<slug>.oteny.bot` — the
    slug that actually succeeded, not necessarily the one first typed.
-5. Give the public URL, then handoff below. If a retry changed the
-   address, say so plainly in the same message — never a silent swap.
+5. Give the public URL only after that recipe, then handoff below.
+   If a retry changed the address, say so plainly in the same
+   message — never a silent swap.
 6. Custom domain → [`custom-domain.md`](custom-domain.md).
 
 ### Owner handoff (after first host, local)

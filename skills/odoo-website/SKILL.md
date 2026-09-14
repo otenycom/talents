@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.8
+version: 1.2.9
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -101,11 +101,13 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
    site name taken": two silent random-3-digit-suffix retries, then
    ask the owner only if all three collide. Never repeat the call
    under the slug that just failed.
-6. Poll `list_hosted_websites` until `active` + `health_state: ok`, then
-   `site_rpc.py set-base-url --url https://<slug>.oteny.bot` — the
-   slug that actually succeeded.
-7. Give the public URL + owner handoff in `build-and-host.md`. If a
-   retry changed the address, say so plainly — never a silent swap.
+6. Follow odoo-community `references/setup.md` "Bot notes — public
+   URL is live" (`wait_for_public_dns.py` then `list_hosted_websites`
+   until `edge_reachable`). Then `site_rpc.py set-base-url --url
+   https://<slug>.oteny.bot` — the slug that actually succeeded.
+7. Give the public URL + owner handoff in `build-and-host.md` only
+   after that recipe. If a retry changed the address, say so
+   plainly — never a silent swap.
 
 ## Site credit — every site links back once
 

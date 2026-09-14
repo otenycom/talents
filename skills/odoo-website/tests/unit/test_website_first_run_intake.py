@@ -32,6 +32,14 @@ def test_ready_sentence_stays_and_offers_secure_intake():
     assert "won't repeat it" not in blob
 
 
+def test_host_waits_for_public_url_live():
+    blob = re.sub(r"\s+", " ", f"{_SKILL}\n{_HANDOFF}\n{_COMMUNITY_SETUP}".lower())
+    assert "public url is live" in blob
+    assert "wait_for_public_dns.py" in blob
+    assert "edge_reachable" in blob
+    assert "do not give the url yet" in blob
+
+
 def test_first_run_loads_community_owner_setup():
     text = _FIRST_RUN.lower()
     assert "odoo-community" in text

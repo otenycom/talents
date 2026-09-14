@@ -47,6 +47,10 @@ def test_first_run_asks_once_and_does_not_confirm_install():
     assert "ask only for that field" in text
     assert "host_website" in text
     assert "do not ask" in text
+    assert "public url is live" in text
+    assert "public_url_ready" in text
+    assert "edge_reachable" in text
+    assert "provisioning" in text
 
 
 def test_first_run_loads_community_owner_setup():

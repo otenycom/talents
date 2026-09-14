@@ -28,7 +28,7 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.8   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.9   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.2.8:  slug_taken retries twice on its own with a random 3-digit
                  #         suffix before ever asking the owner again (odoo-community
@@ -140,7 +140,9 @@ routing:
     site online" → confirm then host_website port 8069. On slug_taken, retry twice on
     your own with a random 3-digit suffix (never repeat the same failed slug), and only
     ask the owner for a new name if all three collide — odoo-community
-    references/setup.md "Bot notes — site name taken". Custom domain → custom-domain.md
+    references/setup.md "Bot notes — site name taken". After host, follow that file
+    "Bot notes — public URL is live" (wait_for_public_dns.py then edge_reachable)
+    before you give the URL. Custom domain → custom-domain.md
     (e.g. Attach my domain example.com to site <slug> (include www).). Forbidden:
     oteny-drop, drop.oteny.bot, python -m http.server, static HTML fakes, reusing
     *.oteny.bot while READY:no, odoo-website/scripts/install_odoo.sh, pgserver, the

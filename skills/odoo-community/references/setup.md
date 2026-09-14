@@ -155,3 +155,32 @@ Every other `host_website` failure (`bad_slug`, `reserved_slug`,
 covered by the existing rule: say what failed, never invent a
 host, never say "ready" on a failure. Only `slug_taken` gets this
 retry, because it is the only reason a different name fixes.
+
+## Bot notes — public URL is live
+
+`host_website` returns a URL while the public name is still
+being set up (`status: provisioning`). A laptop that opens that
+URL then caches a missing-name answer for minutes. Do not give
+the owner a clickable public URL until the name is live.
+
+1. After `host_website` succeeds, take the URL it returned. Do
+   not send that URL yet.
+2. Run
+   `python3 ~/.hermes/skills/talents/odoo-community/scripts/wait_for_public_dns.py <url>`
+   Expect `PUBLIC_URL_READY`. The script asks a public resolver
+   now, then again until the name exists or about a minute has
+   passed. It does not sleep first. Do not add your own sleep.
+   Do not `curl` the URL to decide.
+3. Then `list_hosted_websites`. The public name is live only when
+   `status` is `active` and `edge_reachable` is true.
+   `reachable_from_box_only` means the site answers inside the
+   box and not on the public name — do not give the URL.
+4. Give the URL in the ready message only when step 2 printed
+   `PUBLIC_URL_READY` and step 3 shows `edge_reachable`.
+5. If either check is still not live, say the name is reserved
+   and the public address is not open yet. Do not say the site
+   is live. Do not send them to click. They can ask "is it up?"
+   and you run this recipe again.
+
+This is the same one-shot spirit as the rest of setup: no extra
+question, and no link that poisons their DNS cache.

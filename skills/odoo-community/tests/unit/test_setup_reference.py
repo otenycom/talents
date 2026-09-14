@@ -35,3 +35,16 @@ def test_install_drill_does_not_own_owner_facts():
     text = _FIRST_RUN.lower()
     assert "does not ask for admin" in text
     assert "connect_account" not in text
+
+
+def test_setup_owns_public_url_live_recipe():
+    import re
+    text = re.sub(r"\s+", " ", _SETUP.lower())
+    assert "public url is live" in text
+    assert "wait_for_public_dns.py" in text
+    assert "public_url_ready" in text
+    assert "edge_reachable" in text
+    assert "reachable_from_box_only" in text
+    assert "do not send that url yet" in text
+    assert "do not add your own sleep" in text
+    assert "do not `curl`" in text or "do not curl" in text

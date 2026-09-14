@@ -31,6 +31,14 @@ names the email and then asks them to type a password in chat. The pit
 of success is the URL, the email, and the secure link in one turn.
 Never collect the secret in Telegram, webchat, or Discuss.
 
+A public site URL is a second pit. `host_website` returns a URL while
+the name is still `provisioning`. Relaying it then lets the owner's
+laptop cache a missing-name answer for minutes. After host, run the
+odoo-community `wait_for_public_dns.py` recipe and wait for
+`edge_reachable` before the ready sentence. Do not `sleep`. Do not
+`curl` the URL to decide. The shared recipe lives in odoo-community
+`references/setup.md` "Bot notes — public URL is live".
+
 ## Declared scripts only — never improvised exec (D57)
 
 Create the schema via the shipped `scripts/init.sql` (`sqlite3 db < scripts/init.sql`)

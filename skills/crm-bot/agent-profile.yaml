@@ -12,7 +12,7 @@ long_md: |
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask, then puts the site online. On a box
   that already has Odoo it only adds the CRM module.
-version: 1.0.11
+version: 1.0.12
 
 skills:
   - crm-bot
@@ -52,7 +52,11 @@ routing:
     secure password link, then install and host_website with that
     site_slug. On slug_taken, retry twice on your own with a random
     3-digit suffix before ever asking the owner again (odoo-community
-    references/setup.md "Bot notes — site name taken").
+    references/setup.md "Bot notes — site name taken"). After
+    host_website, run wait_for_public_dns.py then list_hosted_websites;
+    give the URL only when PUBLIC_URL_READY and edge_reachable
+    (odoo-community references/setup.md "Bot notes — public URL is
+    live").
     Warm box: ask only Event Name; copy ADMIN, LANGUAGE, and
     ADMIN_FILE from preflight; run install_modules.sh crm. A
     prewarmed box's ADMIN_FILE: bake_placeholder is the mint-time

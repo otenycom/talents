@@ -123,7 +123,9 @@ in order. Do not ask.
    On `slug_taken`, follow odoo-community `references/setup.md`
    "Bot notes — site name taken" — two silent random-suffix retries,
    then ask the owner only if all three collide. Do not pass a
-   made-up host. Use the URL the tool returns.
+   made-up host. Then follow that file "Bot notes — public URL is
+   live" before you give the owner any URL. Do not send the URL
+   `host_website` just returned.
 
 ## Bot notes — warm install (no ask)
 
@@ -145,27 +147,33 @@ not matter. After Event Name is saved, run this list. Do not ask.
    `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
 6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
-7. `list_hosted_websites`. If a site is active, use that URL. If
+7. `list_hosted_websites`. If a site is active, keep that URL. If
    none is hosted, `host_website` port `8069` with the same
    `ensure_cmd` as the cold list, and `site_slug` from `SITE_NAME`
    when preflight shows one (a sibling Talent's earlier cold
    install). Omit `site_slug` when `SITE_NAME` is `-` — the ref
    default, as today. On `slug_taken`, the same "Bot notes — site
-   name taken" recipe applies. Do not ask. Do not invent a host.
+   name taken" recipe applies. Then follow "Bot notes — public
+   URL is live" before you give any URL. Do not ask. Do not
+   invent a host.
 
 Tell the owner CRM is ready only when those preflight lines are
-true, `write_profile.py` printed `PROFILE_WRITTEN`, and you have a
-URL from `host_website` or `list_hosted_websites` (or you said no
-public site is up yet because the tool failed). If any of those
-failed, say what failed. Do not say CRM is ready.
+true, `write_profile.py` printed `PROFILE_WRITTEN`, and the public
+URL recipe printed `PUBLIC_URL_READY` with `edge_reachable` (or
+you said no public site is up yet because the tool or that recipe
+failed). If any of those failed, say what failed. Do not say CRM
+is ready.
 
 ## Ready sentence (same turn as the URL)
 
 After ready, tell the owner in one short message:
 
 1. Postgres and Odoo are up. CRM is ready.
-2. The public URL from `host_website` or `list_hosted_websites`.
-   Never invent a host.
+2. The public URL only after odoo-community
+   `references/setup.md` "Bot notes — public URL is live"
+   (`PUBLIC_URL_READY` and `edge_reachable`). Never invent a
+   host. Never give the URL while status is still
+   `provisioning`.
 3. Log in with the admin email (the one they typed, or preflight
    `ADMIN` on a warm box).
 4. They log in with the password they set on the secure password link

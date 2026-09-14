@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.11
+version: 1.0.12
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -232,10 +232,11 @@ read of that card plus `list_leads.py` if they asked about the show.
 ## Bot notes — public URL
 
 Never ship `lead-bot.oteny.bot` or `/odoo/crm/<id>` as a constant.
-After upsert, call `list_hosted_websites`. If a site is active, give
-`{public_url}/odoo/crm/{lead_id}`. If nothing is hosted, give the
-local `lead_id` only and say the public link appears after they ask
-to put CRM online.
+After upsert, call `list_hosted_websites`. If a site is
+`edge_reachable`, give `{public_url}/odoo/crm/{lead_id}`. If
+nothing is hosted or the public name is not live yet, give the
+local `lead_id` only and say the public link appears after the
+site is live.
 
 First-run hosts after the password on a cold box, and after Event
 Name on a warm box if nothing is hosted. A later `Put CRM online`
@@ -245,9 +246,10 @@ when preflight shows one, and `ensure_cmd`
 `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
 
 On `slug_taken`, follow odoo-community `references/setup.md`
-"Bot notes — site name taken". They already asked. Do not ask
-again. Do not load `oteny-sites` for that. Confirm before
-`unhost_website`.
+"Bot notes — site name taken". After a successful host, follow
+that file "Bot notes — public URL is live" before you give the
+URL. They already asked. Do not ask again. Do not load
+`oteny-sites` for that. Confirm before `unhost_website`.
 
 ## Safety boundary
 
@@ -279,6 +281,9 @@ again. Do not load `oteny-sites` for that. Confirm before
 - Never retry `host_website` under the exact name that just came back
   `slug_taken`. The platform reads a repeat as a collision against
   your own reservation, not as "this one is already yours."
+- Never give a public URL while `host_website` still says
+  `provisioning`, or while `wait_for_public_dns.py` printed
+  `PUBLIC_URL_PENDING`, or while `edge_reachable` is not true.
 - `ir.attachment` with only `res_model` / `res_id` is invisible on the
   Odoo 19 CRM form. The script posts `attachment_ids` on the chatter.
   Keep the real filename extension.

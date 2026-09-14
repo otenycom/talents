@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.7
+version: 1.0.8
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -70,7 +70,9 @@ Missing `~/odoo-site` is not a failure. Install only when they asked.
    (`sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`).
 5. Tell the owner Odoo answers on this box at `/`. A shop may
    disable `/web/login` on purpose. Do not invent a public URL.
-   `host_website` only if they asked for one.
+   `host_website` only if they asked for one. After a successful
+   host, follow [`references/setup.md`](references/setup.md)
+   "Bot notes — public URL is live" before you give that URL.
 
 Do **not** download `odoo_19.0.latest.tar.gz`. Do not `-i website` or
 `-i crm` here. A consumer Talent asks `install_modules.sh` for those.

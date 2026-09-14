@@ -91,3 +91,4 @@ def test_skill_tells_owner_origin_root():
     assert "answers on this box at `/`" in skill
     assert "curl `/web/login`" not in skill
     assert "answers on this box at `/web/login`" not in skill
+    assert "public URL is live" in skill
