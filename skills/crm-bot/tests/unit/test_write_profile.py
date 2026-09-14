@@ -225,3 +225,83 @@ def test_implicit_setup_ignores_default_admin_login(tmp_path, monkeypatch):
     implied = _load_paths().implicit_setup()
     assert implied["owner_email"] == ""
     assert implied["admin_file"] == "bake_placeholder"
+
+
+def test_write_profile_stores_site_slug(tmp_path, monkeypatch):
+    dest = tmp_path / "crm-bot"
+    monkeypatch.setenv("CRM_BOT_DATA_DIR", str(dest))
+    path = _load().write_profile(
+        event_name="OXP", owner_email="ries@vriend.com", language="nl",
+        site_slug="ries-cafe",
+    )
+    assert "site_slug: ries-cafe" in path.read_text(encoding="utf-8")
+
+
+def test_write_profile_copies_sibling_site_slug_when_flag_omitted(
+    tmp_path, monkeypatch,
+):
+    """A prior WebsiteBot cold install already claimed a name — CrmBot must
+    reuse it, not silently default to the tenant ref, when the owner's own
+    profile does not have one yet."""
+    hermes = tmp_path / ".hermes"
+    website = hermes / "data" / "odoo-website"
+    website.mkdir(parents=True)
+    (website / "profile.yaml").write_text(
+        "owner_email: ries@vriend.com\nlanguage: nl\nsite_slug: ries-cafe\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    path = _load().write_profile(event_name="OXP")
+    assert "site_slug: ries-cafe" in path.read_text(encoding="utf-8")
+
+
+def test_implicit_setup_reads_own_site_slug(tmp_path, monkeypatch):
+    dest = tmp_path / ".hermes" / "crm-bot"
+    dest.mkdir(parents=True)
+    (dest / "profile.yaml").write_text("site_slug: ries-cafe\n", encoding="utf-8")
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    assert _load_paths().implicit_setup()["site_slug"] == "ries-cafe"
+
+
+def test_implicit_setup_falls_back_to_sibling_site_slug(tmp_path, monkeypatch):
+    hermes = tmp_path / ".hermes"
+    website = hermes / "data" / "odoo-website"
+    website.mkdir(parents=True)
+    (website / "profile.yaml").write_text(
+        "owner_email: ries@vriend.com\nsite_slug: ries-cafe\n", encoding="utf-8",
+    )
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    assert _load_paths().implicit_setup()["site_slug"] == "ries-cafe"
+
+
+def test_preflight_prints_site_name_when_known(tmp_path, monkeypatch, capsys):
+    dest = tmp_path / ".hermes" / "crm-bot"
+    dest.mkdir(parents=True)
+    (dest / "profile.yaml").write_text("site_slug: ries-cafe\n", encoding="utf-8")
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_site_name",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0
+    assert "SITE_NAME: ries-cafe" in capsys.readouterr().out
+
+
+def test_preflight_prints_site_name_dash_when_unknown(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_no_site_name",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0
+    assert "SITE_NAME: -" in capsys.readouterr().out

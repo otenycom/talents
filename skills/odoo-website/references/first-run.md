@@ -29,7 +29,9 @@ online at their own address, then ask — in one or two short messages
 2. **A web address name** — the `<name>` in
    `https://<name>.oteny.bot`
    (3–30 chars, lowercase letters, digits, hyphens; offer their bot
-   id as default)
+   id as default). Skip this question when preflight's `PROFILE`
+   line already shows a `site_slug` — a sibling CrmBot cold install
+   on this box already claimed one. Reuse it; do not ask again.
 3. **Timezone** (offer to detect / use what the profile already
    knows)
 4. **Where Odoo lives**
@@ -91,8 +93,10 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/write_profile.py \
   --odoo-locus local --build-backend module --git-customer-facing false
 ```
 
-Pass `--owner-email` and `--language` from community setup (or from
-the profile that already has them). Expect `PROFILE_WRITTEN`. Fields
+Pass `--owner-email` and `--language` from community setup, and
+`--site-slug` from preflight's `PROFILE` line (your own answer or a
+sibling CrmBot's), or from the profile that already has them. Expect
+`PROFILE_WRITTEN`. Fields
 match `profile/profile.yaml.template`
 (`odoo_locus`, `build_backend`, `git_customer_facing`,
 `git_remote_url`). If `PROFILE_WRITE_FAILED`, tell the owner the
@@ -132,8 +136,9 @@ folders, `host_website` on a non-Odoo port, reuse of an existing
 `*.oteny.bot` link, or `oteny-drop` / `drop.oteny.bot`. Only path:
 community `install_odoo.sh` → `install_modules.sh website` →
 `setup_admin.py` → `preflight.py` → `READY: yes`. If `host_website`
-later returns `slug_taken`, pick another slug — do **not** fall
-back to drop.
+later returns `slug_taken`, follow odoo-community
+`references/setup.md` "Bot notes — site name taken" — do **not**
+fall back to drop.
 
 ### Lock admin login
 

@@ -9,11 +9,13 @@ that folder is writable. When it is not, it writes
 not land.
 
     python3 …/scripts/write_profile.py --event-name OXP \\
-        --owner-email owner@example.com --language nl
+        --owner-email owner@example.com --language nl --site-slug ries-cafe
 
     On a warm box the sibling WebsiteBot profile / ``.odoo-admin``
     already hold email and language. Then ``--owner-email`` and
-    ``--language`` may be omitted.
+    ``--language`` may be omitted. ``--site-slug`` is a cold-install
+    fact only (odoo-community ``references/setup.md``) — omit it on a
+    warm box.
 
 Exit 0 + ``PROFILE_WRITTEN <path>`` on success.
 Exit 1 + ``PROFILE_WRITE_FAILED …`` on failure.
@@ -33,6 +35,7 @@ _FIELDS = (
     "event_name",
     "owner_email",
     "language",
+    "site_slug",
     "timezone",
     "name",
     "odoo_locus",
@@ -44,6 +47,7 @@ def write_profile(
     event_name: str = "",
     owner_email: str = "",
     language: str = "",
+    site_slug: str = "",
     timezone: str = "",
     name: str = "",
     odoo_locus: str = "local",
@@ -58,6 +62,7 @@ def write_profile(
         "event_name": (event_name or implied.get("event_name") or "").strip(),
         "owner_email": email,
         "language": lang,
+        "site_slug": (site_slug or implied.get("site_slug") or "").strip(),
         "timezone": (timezone or "").strip(),
         "name": (name or "").strip(),
         "odoo_locus": (odoo_locus or "local").strip() or "local",
@@ -76,6 +81,7 @@ def main() -> int:
     p.add_argument("--event-name", default="")
     p.add_argument("--owner-email", default="")
     p.add_argument("--language", default="")
+    p.add_argument("--site-slug", default="")
     p.add_argument("--timezone", default="")
     p.add_argument("--name", default="")
     p.add_argument("--odoo-locus", default="local")
@@ -85,6 +91,7 @@ def main() -> int:
             event_name=args.event_name,
             owner_email=args.owner_email,
             language=args.language,
+            site_slug=args.site_slug,
             timezone=args.timezone,
             name=args.name,
             odoo_locus=args.odoo_locus,

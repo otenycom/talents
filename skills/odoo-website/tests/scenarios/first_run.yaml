@@ -16,6 +16,7 @@ turns:
         # (asks for the site name/purpose, a subdomain name, and an admin email) — does NOT
         # start installing or publishing before the owner has answered.
         contains_any: ["name", "address", "email"]
+        not_contains: ["slug"]
       trace:
         # the bundle name reaches the log through the preflight call that opens every turn
         markers: ["odoo-website"]

@@ -58,6 +58,42 @@ def admin_candidates() -> list[Path]:
     return [dest / ".odoo-admin" for dest in data_dir_candidates()]
 
 
+def _parse_simple_yaml(path: Path) -> dict:
+    if not path.is_file() or not path.stat().st_size:
+        return {}
+    out: dict = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        out[key.strip()] = value.strip().strip('"').strip("'")
+    return out
+
+
+def crm_bot_profile_path() -> Path | None:
+    """CrmBot's sibling ``profile.yaml``, if this box has one.
+
+    Mirrors CrmBot's own ``crm_paths.website_profile_path`` in reverse — a
+    box where CrmBot ran the cold install first already has an owner email,
+    language, and site name WebsiteBot must not re-ask for.
+    """
+    root = home() / ".hermes"
+    for dest in (root / "data" / "crm-bot", root / "crm-bot"):
+        path = dest / "profile.yaml"
+        if path.is_file() and path.stat().st_size:
+            return path
+    return None
+
+
+def sibling_site_slug() -> str:
+    """CrmBot's already-claimed site name, or ``""`` when none is known."""
+    path = crm_bot_profile_path()
+    if not path:
+        return ""
+    return (_parse_simple_yaml(path).get("site_slug") or "").strip()
+
+
 def admin_login_and_file() -> tuple[str, str]:
     """Return ``(login, admin_file_state)``. Never the password.
 

@@ -28,8 +28,15 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.7   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.8   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.8:  slug_taken retries twice on its own with a random 3-digit
+                 #         suffix before ever asking the owner again (odoo-community
+                 #         references/setup.md "Bot notes — site name taken"); a
+                 #         sibling CrmBot's site name is reused, never re-asked.
+                 # 1.2.7:  ADMIN_FILE is owner_set/bake_placeholder/missing, not a
+                 #         present/missing boolean — a prewarmed box's mint-rotated
+                 #         .odoo-admin is never a password the owner has seen.
                  # 1.2.6:  owner email / language / password load
                  #         odoo-community references/setup.md.
                  # 1.2.5:  About this Talent keeps every value add.
@@ -115,7 +122,9 @@ routing:
     "What the owner types" map + first-run.md / build-and-host.md / custom-domain.md.
     "Build me a website" / they asked to set up (no profile yet): FIRST
     reply = intake only (site name, slug, timezone, local vs Online/remote,
-    module vs JSON-2). If ADMIN or LANGUAGE is missing, or ADMIN_FILE
+    module vs JSON-2). Skip the slug question when preflight already
+    shows a site_slug — a sibling CrmBot cold install on this box
+    already claimed one; reuse it. If ADMIN or LANGUAGE is missing, or ADMIN_FILE
     is not owner_set, load odoo-community references/setup.md; then
     continue. A prewarmed box's ADMIN_FILE: bake_placeholder is the
     mint-time secret rotation, never a password the owner has seen —
@@ -128,7 +137,10 @@ routing:
     and Odoo are up. Your website engine is ready — what should the site say? In the
     same turn offer the back-office email plus the secure password link. "I don't
     have a password" uses that link — never a paste in chat. "Put my
-    site online" → confirm then host_website port 8069. Custom domain → custom-domain.md
+    site online" → confirm then host_website port 8069. On slug_taken, retry twice on
+    your own with a random 3-digit suffix (never repeat the same failed slug), and only
+    ask the owner for a new name if all three collide — odoo-community
+    references/setup.md "Bot notes — site name taken". Custom domain → custom-domain.md
     (e.g. Attach my domain example.com to site <slug> (include www).). Forbidden:
     oteny-drop, drop.oteny.bot, python -m http.server, static HTML fakes, reusing
     *.oteny.bot while READY:no, odoo-website/scripts/install_odoo.sh, pgserver, the

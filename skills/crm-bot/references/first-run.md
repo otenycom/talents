@@ -13,8 +13,8 @@ Do not ask "Shall I install?", "Shall I start?", or "Shall I
 publish?". Asking to set up CRM is the go. No further yes after the
 fields you still need.
 
-Admin email, language, and the password link are **not** this file.
-They live in odoo-community
+Admin email, language, the site name, and the password link are
+**not** this file. They live in odoo-community
 [`references/setup.md`](../../odoo-community/references/setup.md).
 
 If `ENGINE` is missing, `ADMIN` or `LANGUAGE` is missing, or
@@ -38,8 +38,8 @@ missing, ask only for that field. Do not start a new full confirm.
 ### Cold — no Odoo (`ENGINE: missing`)
 
 Load odoo-community `references/setup.md` for admin email, language,
-and the password link. Ask Event Name here. Do not ask those three
-here.
+the site name, and the password link. Ask Event Name here. Do not ask
+those facts here.
 
 When the password is stored, install everything and put the site
 online. No further yes.
@@ -81,10 +81,10 @@ python3 ~/.hermes/skills/talents/crm-bot/scripts/write_profile.py
 --event-name "<event>"
 ```
 
-Cold box: also pass `--owner-email` and `--language` from community
-setup. Expect `PROFILE_WRITTEN`. If `PROFILE_WRITE_FAILED`, tell the
-owner the CRM folder could not be created. Stop. Do not say CRM is
-ready.
+Cold box: also pass `--owner-email`, `--language`, and `--site-slug`
+from community setup. Expect `PROFILE_WRITTEN`. If
+`PROFILE_WRITE_FAILED`, tell the owner the CRM folder could not be
+created. Stop. Do not say CRM is ready.
 
 ## Bot notes — password (never in chat)
 
@@ -117,10 +117,13 @@ in order. Do not ask.
    `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
 6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
-7. `host_website` port `8069`. `ensure_cmd` is
+7. `host_website` port `8069`, `site_slug` from the site name just
+   collected. `ensure_cmd` is
    `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`.
-   Do not pass a made-up host. Do not ask. Use the URL the tool
-   returns.
+   On `slug_taken`, follow odoo-community `references/setup.md`
+   "Bot notes — site name taken" — two silent random-suffix retries,
+   then ask the owner only if all three collide. Do not pass a
+   made-up host. Use the URL the tool returns.
 
 ## Bot notes — warm install (no ask)
 
@@ -144,7 +147,11 @@ not matter. After Event Name is saved, run this list. Do not ask.
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
 7. `list_hosted_websites`. If a site is active, use that URL. If
    none is hosted, `host_website` port `8069` with the same
-   `ensure_cmd` as the cold list. Do not ask. Do not invent a host.
+   `ensure_cmd` as the cold list, and `site_slug` from `SITE_NAME`
+   when preflight shows one (a sibling Talent's earlier cold
+   install). Omit `site_slug` when `SITE_NAME` is `-` — the ref
+   default, as today. On `slug_taken`, the same "Bot notes — site
+   name taken" recipe applies. Do not ask. Do not invent a host.
 
 Tell the owner CRM is ready only when those preflight lines are
 true, `write_profile.py` printed `PROFILE_WRITTEN`, and you have a

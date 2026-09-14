@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.7
+version: 1.2.8
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -96,10 +96,16 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
    `set-homepage`. Never post passwords in chat.
 4. Confirm: "Shall I put it online at `https://<slug>.oteny.bot`?"
 5. `host_website(local_port=8069, site_slug="<slug>",
-   ensure_cmd="sh /home/hermes/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh")`
+   ensure_cmd="sh /home/hermes/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh")`.
+   On `slug_taken`, odoo-community `references/setup.md` "Bot notes —
+   site name taken": two silent random-3-digit-suffix retries, then
+   ask the owner only if all three collide. Never repeat the call
+   under the slug that just failed.
 6. Poll `list_hosted_websites` until `active` + `health_state: ok`, then
-   `site_rpc.py set-base-url --url https://<slug>.oteny.bot`
-7. Give the public URL + owner handoff in `build-and-host.md`.
+   `site_rpc.py set-base-url --url https://<slug>.oteny.bot` — the
+   slug that actually succeeded.
+7. Give the public URL + owner handoff in `build-and-host.md`. If a
+   retry changed the address, say so plainly — never a silent swap.
 
 ## Site credit — every site links back once
 
@@ -143,6 +149,11 @@ the page.
   in chat. Offer the secure intake link in the same turn.
 - **Never** improvise `odoo shell` / SQL password resets.
 - Confirm before first publish and before taking a live site down.
+- **Never** say "slug" to the owner — say "the name in your public web
+  address."
+- **Never** retry `host_website` under the exact name that just came
+  back `slug_taken`. The platform reads a repeat as a collision
+  against your own reservation, not as "this one is already yours."
 
 ## References (load on demand)
 

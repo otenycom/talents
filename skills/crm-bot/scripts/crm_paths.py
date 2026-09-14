@@ -124,8 +124,8 @@ def implicit_setup() -> dict:
     """Fields already on the box. Never a password.
 
     Shared contract: odoo-community ``references/setup.md``.
-    WebsiteBot writes ``owner_email`` + ``language`` in its
-    ``profile.yaml`` and the login password in ``.odoo-admin``.
+    WebsiteBot writes ``owner_email`` + ``language`` + ``site_slug`` in
+    its ``profile.yaml`` and the login password in ``.odoo-admin``.
     Event name is CrmBot-only. ``admin_file`` is one of ``"owner_set"``,
     ``"bake_placeholder"``, or ``"missing"`` — see
     ``_admin_login_and_file``.
@@ -144,9 +144,13 @@ def implicit_setup() -> dict:
     language = (crm.get("language") or "").strip() or (
         website.get("language") or ""
     ).strip()
+    site_slug = (crm.get("site_slug") or "").strip() or (
+        website.get("site_slug") or ""
+    ).strip()
     return {
         "event_name": (crm.get("event_name") or "").strip(),
         "owner_email": email,
         "language": language,
         "admin_file": admin_file,
+        "site_slug": site_slug,
     }

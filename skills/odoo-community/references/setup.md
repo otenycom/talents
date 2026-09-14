@@ -1,7 +1,9 @@
-# Owner setup — admin email, language, password
+# Owner setup — admin email, language, password, site name
 
-This file owns the three owner facts every Odoo module Talent
-shares. Install is a different file:
+This file owns the owner facts every Odoo module Talent shares:
+admin email, language, and password always; the public site name
+only on a fresh install (no other Talent asks it once this file
+has). Install is a different file:
 [`first-run.md`](first-run.md). That file starts Odoo when the
 owner asks. This file does not install.
 
@@ -19,13 +21,19 @@ Do not start a new full confirm.
    Never treat `admin` as the owner email.
 2. **Language** — offer to detect / use what the profile already
    knows.
+3. **Site name** — only when `ENGINE` is missing (a fresh
+   install). Ask for "the name in your public web address" —
+   never say "slug." Offer the tenant ref as a default if they
+   have no preference. On a warm box, do not ask this; the
+   address (if any) already exists.
 
 Then send the secure password link. Never ask them to type a
 password in chat.
 
 A module Talent must not re-ask a field this file already has.
-Event Name, site title, hostname, and other extras stay on that
-Talent.
+Event Name and other module-specific extras stay on that Talent.
+The site's public name is covered here, cold installs only — see
+below.
 
 ## Where those facts live
 
@@ -44,6 +52,11 @@ implicit. Do not re-ask it.
   `~/.hermes/data/odoo-website/.odoo-admin`. CrmBot
   `setup_admin.py` uses the same file shape. CrmBot also reads
   the WebsiteBot sibling file.
+- **Site name** sits as `site_slug` in the same `profile.yaml` as
+  email and language. A later Talent prints `SITE_NAME`. A
+  sibling Talent's already-claimed name counts as implicit too —
+  do not ask again just because this Talent's own profile is
+  the one still missing it.
 
 Never treat `login=admin` as the owner email. A later Talent
 prints `ADMIN`, `LANGUAGE`, and `ADMIN_FILE`. A printed email
@@ -101,3 +114,44 @@ not a request to paste in chat.
 
 Do not invent a password. Do not post one. Do not ask them to
 type one in chat.
+
+## Bot notes — site name taken
+
+`host_website` refuses a name already claimed by another tenant:
+`{"ok": false, "reason": "slug_taken", "site_slug": "<name>"}`.
+This is the platform's own global uniqueness check — there is no
+separate availability check to call first. Only react to it when
+it actually happens.
+
+1. First `host_website` call uses the owner's own name, exactly
+   as given. Success ends this — the one-shot path is unchanged.
+2. On `slug_taken`, retry **silently, with no question to the
+   owner**: append a random 3-digit number (`<name>-482`) and
+   call `host_website` again. If that also comes back
+   `slug_taken`, retry once more with a **different** random
+   3-digit number (`<name>-107`). Two silent retries total,
+   always under a name that was not just refused — a repeat call
+   under the same name reads as a collision against your own
+   reservation, not as "this one is already yours." If the base
+   name is already at the 30-character limit, shorten it before
+   appending the suffix.
+3. The moment any call succeeds — first try or either retry —
+   bring the site online and say clearly, in the same ready
+   message, which public address the owner actually got. A
+   silent retry is not a silent substitution: always name the
+   final address, even when the owner was never asked in between.
+4. Only if all three calls (the original name plus both random
+   retries) come back `slug_taken` do you ask the owner for a
+   different name — a real question, asked after the rest of
+   setup has already finished, not before. Their answer restarts
+   this same recipe from step 1.
+5. The owner can change their mind later: `unhost_website` then
+   `host_website` under a new name already does this. Nothing
+   else to build for that — mention it in passing if they ask
+   about changing the address.
+
+Every other `host_website` failure (`bad_slug`, `reserved_slug`,
+`reserved_prefix`, `too_many_sites`, `disabled`, `no_tenant`) is
+covered by the existing rule: say what failed, never invent a
+host, never say "ready" on a failure. Only `slug_taken` gets this
+retry, because it is the only reason a different name fixes.

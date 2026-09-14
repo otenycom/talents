@@ -89,6 +89,7 @@ def main() -> int:
     print(f"ADMIN: {implied['owner_email'] or '-'}")
     print(f"LANGUAGE: {implied['language'] or '-'}")
     print(f"ADMIN_FILE: {implied['admin_file']}")
+    print(f"SITE_NAME: {implied['site_slug'] or '-'}")
     print("PUBLIC: use list_hosted_websites — never a hardcoded host")
     return 0
 

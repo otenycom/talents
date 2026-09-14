@@ -124,3 +124,32 @@ def test_admin_file_missing_without_any_odoo_admin(tmp_path, monkeypatch, capsys
     monkeypatch.setenv("HH_HOME", str(_fake_home(tmp_path)))
     _load().main()
     assert "ADMIN_FILE: missing" in capsys.readouterr().out
+
+
+def test_site_slug_reuses_sibling_crm_bot_claim(tmp_path, monkeypatch, capsys):
+    """A CrmBot cold install on this box already claimed a site name — WebsiteBot
+    must reuse it (READY, not blocked on its own missing site_slug), never
+    re-ask and never silently fall back to the tenant ref."""
+    profile = {k: v for k, v in _FULL_PROFILE.items() if k != "site_slug"}
+    home = _fake_home(tmp_path, installed=True, profile=profile)
+    crm = home / ".hermes" / "data" / "crm-bot"
+    crm.mkdir(parents=True)
+    (crm / "profile.yaml").write_text("site_slug: ries-cafe\n", encoding="utf-8")
+    monkeypatch.setenv("HH_HOME", str(home))
+    rc = _load().main()
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "READY: yes" in out
+    assert "site_slug=ries-cafe" in out
+    assert "MISSING" not in out
+
+
+def test_site_slug_missing_without_own_or_sibling_claim(tmp_path, monkeypatch, capsys):
+    profile = {k: v for k, v in _FULL_PROFILE.items() if k != "site_slug"}
+    home = _fake_home(tmp_path, installed=True, profile=profile)
+    monkeypatch.setenv("HH_HOME", str(home))
+    _load().main()
+    out = capsys.readouterr().out
+    assert "READY: no" in out
+    assert "site_slug" in out
+    assert "site_slug=-" in out

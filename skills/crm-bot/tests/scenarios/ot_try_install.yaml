@@ -1,10 +1,16 @@
 # Live e2e: cold box. Owner asks to set up. First turn is intake
-# (event, admin email, language). Second turn sends the three
-# answers. The bot must persist the profile with write_profile.py,
-# not write_file, and send the secure password link. Install and
-# online wait until the password is stored. Do not point this at
-# prod hh00538, hh00496, the locked four, or the empty-stack
-# thirteen.
+# (event, admin email, language, site name). Second turn sends the
+# four answers. The bot must persist the profile with
+# write_profile.py, not write_file, and send the secure password
+# link. Install and online wait until the password is stored. Do not
+# point this at prod hh00538, hh00496, the locked four, or the
+# empty-stack thirteen.
+#
+# This does not cover the slug_taken retry (odoo-community
+# references/setup.md "Bot notes — site name taken"): forcing a real
+# collision needs a second tenant to already hold the exact name, which
+# this single-bot scenario schema cannot stage. Verify that path by
+# hand through the dev loop against a name a lab tenant already holds.
 bot: crm-bot
 live_only: true
 
@@ -14,8 +20,10 @@ turns:
     expect:
       reply:
         contains_any: ["event", "email", "language"]
+        contains: ["web address"]
         not_contains:
           - "Shall I"
+          - "slug"
           - "lead-bot.oteny.bot"
           - "nightly.odoo.com"
           - "CRM is ready"
@@ -23,13 +31,14 @@ turns:
       trace:
         markers:
           - "crm-bot"
-  - user: "OXP, ries@vriend.com, Dutch"
+  - user: "OXP, ries@vriend.com, Dutch, ries-oxp-booth"
     reply_timeout: 2400
     expect:
       reply:
         contains_any: ["secure", "link"]
         not_contains:
           - "Shall I"
+          - "slug"
           - "Permission denied"
           - "PROFILE_WRITE_FAILED"
           - "lead-bot.oteny.bot"

@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.10
+version: 1.0.11
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -239,12 +239,15 @@ to put CRM online.
 
 First-run hosts after the password on a cold box, and after Event
 Name on a warm box if nothing is hosted. A later `Put CRM online`
-→ `host_website` with port `8069` and `ensure_cmd`
+→ `host_website` with port `8069`, `site_slug` from `SITE_NAME`
+when preflight shows one, and `ensure_cmd`
 
 `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
 
-They already asked. Do not ask again. Do not load `oteny-sites`
-for that. Confirm before `unhost_website`.
+On `slug_taken`, follow odoo-community `references/setup.md`
+"Bot notes — site name taken". They already asked. Do not ask
+again. Do not load `oteny-sites` for that. Confirm before
+`unhost_website`.
 
 ## Safety boundary
 
@@ -271,6 +274,11 @@ for that. Confirm before `unhost_website`.
 - Do not take the box login, `USER.md`, or the default `admin` login
   as the admin email. A sibling `.odoo-admin` `login=` with `@` is
   the existing owner email. Use it on a warm box. Do not ask again.
+- Never say "slug" to the owner — say "the name in your public web
+  address."
+- Never retry `host_website` under the exact name that just came back
+  `slug_taken`. The platform reads a repeat as a collision against
+  your own reservation, not as "this one is already yours."
 - `ir.attachment` with only `res_model` / `res_id` is invisible on the
   Odoo 19 CRM form. The script posts `attachment_ids` on the chatter.
   Keep the real filename extension.

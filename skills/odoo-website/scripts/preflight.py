@@ -12,7 +12,8 @@ terminal call look failed).
 Prints a compact parseable block:
   READY   — yes|no  (Odoo installed + profile fields set)
   ODOO    — serving|down  (is Odoo answering on 127.0.0.1:8069 right now?)
-  PROFILE — site_name / site_slug / language (so the triage never re-reads profile.yaml)
+  PROFILE — site_name / site_slug / language (so the triage never re-reads profile.yaml;
+            site_slug falls back to a sibling CrmBot's already-claimed name)
   ADMIN      — the owner's email, once set (odoo-community's shared contract)
   ADMIN_FILE — owner_set|bake_placeholder|missing (see website_paths.admin_login_and_file)
   MISSING — the blocking artifacts when READY is no
@@ -26,7 +27,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from website_paths import admin_login_and_file, home, profile_path
+from website_paths import admin_login_and_file, home, profile_path, sibling_site_slug
 
 _PORT = 8069
 _REQUIRED_FIELDS = ("site_name", "site_purpose", "site_slug", "owner_email", "language")
@@ -108,10 +109,17 @@ def _substrate() -> str:
 
 def main() -> int:
     profile = _load_profile()
+    site_slug = (profile.get("site_slug") or "").strip()
+    if not site_slug:
+        site_slug = sibling_site_slug()  # a CrmBot cold install already claimed one
     missing = []
     if not _installed():
         missing.append("odoo_install")
-    unset = [f for f in _REQUIRED_FIELDS if not (profile.get(f) or "").strip()]
+    unset = []
+    for f in _REQUIRED_FIELDS:
+        value = site_slug if f == "site_slug" else (profile.get(f) or "").strip()
+        if not value:
+            unset.append(f)
     if unset:
         missing.append("profile:" + ",".join(unset))
     ready = not missing
@@ -123,7 +131,7 @@ def main() -> int:
     print(f"ODOO: {'serving' if _odoo_serving() else 'down'}")
     print("PROFILE: "
           f"site_name={profile.get('site_name') or '-'} "
-          f"site_slug={profile.get('site_slug') or '-'} "
+          f"site_slug={site_slug or '-'} "
           f"language={profile.get('language') or '-'}")
     print(f"ADMIN: {admin_email or '-'}")
     print(f"ADMIN_FILE: {admin_file}")
