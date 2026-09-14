@@ -47,21 +47,37 @@ implicit. Do not re-ask it.
 
 Never treat `login=admin` as the owner email. A later Talent
 prints `ADMIN`, `LANGUAGE`, and `ADMIN_FILE`. A printed email
-with `@` is implicit. `ADMIN_FILE: present` means the password
-file is already there.
+with `@` is implicit. `ADMIN_FILE` is one of three states:
+
+- `owner_set` — the stored login is a real email. Only this state
+  means the owner already has a password. Skip the intake.
+- `bake_placeholder` — a `.odoo-admin` exists and parses, but the
+  login is not an email. Every prewarmed box ships this file:
+  mint time rotates the shared bake password to a fresh, unknown
+  value for security, but the login stays the literal `admin`,
+  because no owner is known yet. Nobody has seen that password.
+  Treat this exactly like `missing`.
+- `missing` — no `.odoo-admin` parses at all.
+
+A `bake_placeholder` file is not evidence of a finished setup. It
+is proof the opposite is true: this box has never had an owner
+password. Always run the intake below when `ADMIN_FILE` is
+`bake_placeholder` or `missing`, the same as on a genuinely fresh
+box.
 
 ## Bot notes — when to load this file
 
-A module Talent loads this file when `ENGINE` is missing, or
-when `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing. Then it
-continues its own setup.
+A module Talent loads this file when `ENGINE` is missing, `ADMIN`
+or `LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`.
+Then it continues its own setup.
 
 ```
 skill_view name='odoo-community' file_path='references/setup.md'
 ```
 
-Do not load this file after those three facts are present,
-unless they said they have no password.
+Do not load this file once `ADMIN` and `LANGUAGE` are set and
+`ADMIN_FILE` is `owner_set`, unless they said they have no
+password.
 
 ## Bot notes — password (never in chat)
 

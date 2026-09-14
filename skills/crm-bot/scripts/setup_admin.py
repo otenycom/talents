@@ -24,8 +24,6 @@ import argparse
 import http.cookiejar
 import json
 import os
-import secrets
-import string
 import subprocess
 import sys
 import urllib.error
@@ -117,11 +115,6 @@ def _write_stored(login: str, password: str, api_key: str) -> None:
         encoding="utf-8",
     )
     os.chmod(path, 0o600)
-
-
-def _gen_password(n: int = 24) -> str:
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
 def _opener() -> urllib.request.OpenerDirector:
@@ -382,9 +375,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    new_password = owner_chosen or (
-        stored_password if stored and stored_login == login else _gen_password()
-    )
+    if not owner_chosen and not (stored and stored_login == login):
+        print(
+            "ADMIN_SETUP_FAILED owner_password_required — stored login "
+            f"{stored_login!r} does not match {login!r}; pass --from-env or "
+            "--password-file with the owner's secure-link password instead "
+            "of inventing one",
+            file=sys.stderr,
+        )
+        return 1
+
+    new_password = owner_chosen or stored_password
     password_unchanged = (
         stored
         and stored_login == login

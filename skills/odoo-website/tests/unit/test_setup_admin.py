@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import os
 from pathlib import Path
 
@@ -95,6 +96,26 @@ def test_write_odoo_conf_sets_proxy_mode_and_stays_0600(home):
     assert "admin_passwd = master-secret" in text
     assert "proxy_mode = True" in text
     assert oct(path.stat().st_mode & 0o777) == "0o600"
+
+
+def test_refuses_to_invent_a_password_on_bake_placeholder(home, monkeypatch):
+    """A mint-rotated ``login=admin`` file must never be silently reused to set
+    the owner's real login without a --from-env/--password-file secret. This is
+    the defense-in-depth backstop for the bake-placeholder fix: skill prose must
+    always route through the secure link first, but the script itself must
+    refuse rather than invent a password nobody has seen if that prose is ever
+    bypassed. ``--rotate-clone-secrets`` (the mint-time call) is unaffected."""
+    tmp_path, data = home
+    (data / "profile.yaml").write_text("owner_email: ries@example.com\n", encoding="utf-8")
+    mod = _load()
+    mod._write_stored("admin", "mint-rotated-secret", "k")
+    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(b""))
+    monkeypatch.setattr(mod, "_session_authenticate", lambda opener, login, password: 2)
+
+    rc = mod.main([])
+
+    assert rc == 1
+    assert mod._read_stored() == ("admin", "mint-rotated-secret", "k")
 
 
 def test_rotate_clone_secrets_skips_ready_short_circuit(home, monkeypatch):

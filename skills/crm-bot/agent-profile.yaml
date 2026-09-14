@@ -12,7 +12,7 @@ long_md: |
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask, then puts the site online. On a box
   that already has Odoo it only adds the CRM module.
-version: 1.0.9
+version: 1.0.10
 
 skills:
   - crm-bot
@@ -45,18 +45,22 @@ routing:
     upsert_lead.py. How many / show leads → list_leads.py. Never
     read or patch the scripts. Never confirm a lead or a count that
     a script did not print this turn. Cold box: ask Event Name; if
-    ADMIN, LANGUAGE, or
-    ADMIN_FILE is missing, load odoo-community references/setup.md,
+    ADMIN or LANGUAGE is missing, or
+    ADMIN_FILE is not owner_set, load odoo-community references/setup.md,
     then the secure password link, then install and host_website.
     Warm box: ask only Event Name; copy ADMIN, LANGUAGE, and
-    ADMIN_FILE from preflight; run install_modules.sh crm. Do not
+    ADMIN_FILE from preflight; run install_modules.sh crm. A
+    prewarmed box's ADMIN_FILE: bake_placeholder is the mint-time
+    secret rotation, never a password the owner has seen — treat it
+    exactly like missing. Do not
     ask Shall I. Do not re-ask email, language, or password when
-    preflight already has them. Hard stop only for a missing field.
+    preflight already has ADMIN, LANGUAGE, and ADMIN_FILE: owner_set.
+    Hard stop only for a missing field.
     Do not take the default admin login as the email. After
     first-run say ready only when write_profile.py
     printed PROFILE_WRITTEN and preflight shows ODOO serving, JSON2
     ok, and PROFILE present. "I don't have a password" uses the
-    secure link when ADMIN_FILE is missing — never a paste in chat.
+    secure link when ADMIN_FILE is not owner_set — never a paste in chat.
     Never invent a CRM id when Odoo is down. Never hardcode a public
     host; use list_hosted_websites. Reply in the owner's language;
     Telegram-compact.

@@ -28,7 +28,7 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.6   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.7   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.2.6:  owner email / language / password load
                  #         odoo-community references/setup.md.
@@ -115,9 +115,12 @@ routing:
     "What the owner types" map + first-run.md / build-and-host.md / custom-domain.md.
     "Build me a website" / they asked to set up (no profile yet): FIRST
     reply = intake only (site name, slug, timezone, local vs Online/remote,
-    module vs JSON-2). If ADMIN, LANGUAGE, or ADMIN_FILE is missing,
-    load odoo-community references/setup.md; then continue. Do not
-    re-ask email, language, or password. Do not
+    module vs JSON-2). If ADMIN or LANGUAGE is missing, or ADMIN_FILE
+    is not owner_set, load odoo-community references/setup.md; then
+    continue. A prewarmed box's ADMIN_FILE: bake_placeholder is the
+    mint-time secret rotation, never a password the owner has seen —
+    treat it exactly like missing. Do not
+    re-ask email, language, or password once ADMIN_FILE is owner_set. Do not
     build/publish/host/HTML/browser/drop. Default local Max →
     build_backend=module. Odoo Online/remote → custom module impossible (JSON-2 only).
     Wants module but not Max → tell them exactly: /oteny_subscribe upgrade max. After a

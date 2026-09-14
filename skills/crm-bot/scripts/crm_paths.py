@@ -87,12 +87,22 @@ def website_profile_path() -> Path | None:
     return None
 
 
-def _admin_login_and_file() -> tuple[str, bool]:
-    """Return ``(login, file_present)``. Never the password.
+def _admin_login_and_file() -> tuple[str, str]:
+    """Return ``(login, admin_file_state)``. Never the password.
 
-    ``login`` is set only when it contains ``@``. A default ``admin``
-    login is not the owner email. ``file_present`` is true when a
-    sibling or CrmBot ``.odoo-admin`` holds both login and password.
+    ``admin_file_state`` is one of:
+
+    - ``"owner_set"`` — a stored ``login`` is a real email. The owner (or a
+      prior ``setup_admin.py`` run on their behalf) put it there.
+    - ``"bake_placeholder"`` — a sibling or CrmBot ``.odoo-admin`` holds a
+      login and password, but the login is not an email (the mint-time
+      clone-secret rotation always writes ``login=admin``). This is never a
+      password the owner has seen. Treat it exactly like ``"missing"`` for
+      every "has the owner set up" decision.
+    - ``"missing"`` — no candidate file parses at all.
+
+    ``login`` (the return value's first element) is set only for
+    ``"owner_set"``; a default ``admin`` login is never the owner email.
     """
     for path in admin_candidates():
         if not path.is_file() or not path.stat().st_size:
@@ -104,9 +114,10 @@ def _admin_login_and_file() -> tuple[str, bool]:
             elif line.startswith("password="):
                 password = line.split("=", 1)[1].strip()
         if login and password:
-            email = login if "@" in login else ""
-            return email, True
-    return "", False
+            if "@" in login:
+                return login, "owner_set"
+            return "", "bake_placeholder"
+    return "", "missing"
 
 
 def implicit_setup() -> dict:
@@ -115,7 +126,9 @@ def implicit_setup() -> dict:
     Shared contract: odoo-community ``references/setup.md``.
     WebsiteBot writes ``owner_email`` + ``language`` in its
     ``profile.yaml`` and the login password in ``.odoo-admin``.
-    Event name is CrmBot-only.
+    Event name is CrmBot-only. ``admin_file`` is one of ``"owner_set"``,
+    ``"bake_placeholder"``, or ``"missing"`` — see
+    ``_admin_login_and_file``.
     """
     crm = _parse_simple_yaml(profile_path())
     sibling = website_profile_path()

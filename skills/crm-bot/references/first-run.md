@@ -17,10 +17,15 @@ Admin email, language, and the password link are **not** this file.
 They live in odoo-community
 [`references/setup.md`](../../odoo-community/references/setup.md).
 
-If `ENGINE` is missing, or `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is
-missing, load that file first
+If `ENGINE` is missing, `ADMIN` or `LANGUAGE` is missing, or
+`ADMIN_FILE` is not `owner_set`, load that file first
 (`skill_view name='odoo-community' file_path='references/setup.md'`).
 Then continue this file. Do not re-ask those three.
+
+`ADMIN_FILE: bake_placeholder` is not a finished setup. Every
+prewarmed box ships a `.odoo-admin` with `login=admin` from the
+mint-time secret rotation — a password nobody has seen. Treat
+`bake_placeholder` exactly like `missing`.
 
 ## What you ask
 
@@ -41,13 +46,13 @@ online. No further yes.
 
 ### Warm — Odoo already on the box (`ENGINE: installed`)
 
-If community setup is already done (`ADMIN`, `LANGUAGE`, and
-`ADMIN_FILE` present), skip those three. Ask only Event Name when
-`EVENT` is `-`.
+If community setup is already done (`ADMIN` and `LANGUAGE` are
+set, and `ADMIN_FILE` is `owner_set`), skip those three. Ask only
+Event Name when `EVENT` is `-`.
 
-If `ADMIN` is `-`, or `LANGUAGE` is `-`, or `ADMIN_FILE` is
-`missing`, load odoo-community `references/setup.md`. Do not invent
-a full intake.
+If `ADMIN` is `-`, `LANGUAGE` is `-`, or `ADMIN_FILE` is
+`bake_placeholder` or `missing`, load odoo-community
+`references/setup.md`. Do not invent a full intake.
 
 Then install the CRM module only. Do not reinstall the engine. Do not
 ask. If a site is already hosted, keep that URL. If none is hosted,
@@ -62,8 +67,9 @@ Do not `skill_view` `postgres` or `oteny-sites`. Do not load
 odoo-community `references/first-run.md`. That file is the install
 drill. Call the scripts below by path. Do not `tool_describe`.
 
-When `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing, load
-odoo-community `references/setup.md`. Then continue.
+When `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
+`owner_set`, load odoo-community `references/setup.md`. Then
+continue.
 
 Do not use `write_file` for the profile. `write_profile.py` writes
 under `~/.hermes/data/crm-bot` when that folder is writable. When it
@@ -82,12 +88,18 @@ ready.
 
 ## Bot notes — password (never in chat)
 
-If `ADMIN`, `LANGUAGE`, or `ADMIN_FILE` is missing, load
-odoo-community `references/setup.md`. Then continue. Label the link
-`CRM login password`. Apply with this Talent's `setup_admin.py`.
+If `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
+`owner_set`, load odoo-community `references/setup.md`. Then
+continue. Label the link `CRM login password`. Apply with this
+Talent's `setup_admin.py`.
 
-Skip that load when preflight says `ADMIN_FILE: present`, unless they
-said they have no password.
+Skip that load only when preflight says `ADMIN_FILE: owner_set`.
+`bake_placeholder` is the mint-time clone-secret rotation, not a
+password the owner has ever seen — always send the secure link for
+it, the same as for `missing`. Do not run `setup_admin.py` without
+`--from-env ODOO_ADMIN_PASSWORD` while `ADMIN_FILE` is
+`bake_placeholder`; the script itself now refuses that call and
+prints `ADMIN_SETUP_FAILED owner_password_required`.
 
 "I don't have a password" is community setup, not a request to paste
 in chat.
@@ -124,10 +136,10 @@ not matter. After Event Name is saved, run this list. Do not ask.
 4. `register_service` name `postgres`, then name `odoo-community`, if
    `list_services` does not already have them.
 5. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
-   with no `--from-env` when `ADMIN_FILE: present`. It reuses the
-   sibling login. When `ADMIN_FILE: missing` and the password is
-   stored, pass `--from-env ODOO_ADMIN_PASSWORD`. Expect
-   `ADMIN_READY`.
+   with no `--from-env` when `ADMIN_FILE: owner_set`. It reuses the
+   sibling login. When `ADMIN_FILE` is `bake_placeholder` or
+   `missing` and the password is stored, pass
+   `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
 6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
 7. `list_hosted_websites`. If a site is active, use that URL. If
@@ -149,10 +161,11 @@ After ready, tell the owner in one short message:
    Never invent a host.
 3. Log in with the admin email (the one they typed, or preflight
    `ADMIN` on a warm box).
-4. On a cold box they log in with the password they set on the
-   secure password link. On a warm box they already have that
-   password. Do not repeat the secret. Do not send the link again
-   unless `ADMIN_FILE` is `missing` and status is still `none` or
+4. They log in with the password they set on the secure password link
+   — the one they got on this ask, or (only when `ADMIN_FILE` was
+   already `owner_set` this turn) one they set earlier. Do not repeat
+   the secret. Do not send the link again unless `ADMIN_FILE` is
+   `bake_placeholder` or `missing` and status is still `none` or
    `pending`.
 5. A first-lead walk-through is optional after that.
 

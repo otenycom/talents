@@ -56,3 +56,37 @@ def profile_path() -> Path:
 
 def admin_candidates() -> list[Path]:
     return [dest / ".odoo-admin" for dest in data_dir_candidates()]
+
+
+def admin_login_and_file() -> tuple[str, str]:
+    """Return ``(login, admin_file_state)``. Never the password.
+
+    Mirrors CrmBot's ``crm_paths._admin_login_and_file``. ``admin_file_state``
+    is one of:
+
+    - ``"owner_set"`` — a stored ``login`` is a real email. The owner (or a
+      prior ``setup_admin.py`` run on their behalf) put it there.
+    - ``"bake_placeholder"`` — a ``.odoo-admin`` holds a login and password,
+      but the login is not an email. The mint-time clone-secret rotation
+      always writes ``login=admin``, never a password the owner has seen.
+      Treat it exactly like ``"missing"`` for every "has the owner set up"
+      decision.
+    - ``"missing"`` — no candidate file parses at all.
+
+    ``login`` (the return value's first element) is set only for
+    ``"owner_set"``; a default ``admin`` login is never the owner email.
+    """
+    for path in admin_candidates():
+        if not path.is_file() or not path.stat().st_size:
+            continue
+        login = password = ""
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("login="):
+                login = line.split("=", 1)[1].strip()
+            elif line.startswith("password="):
+                password = line.split("=", 1)[1].strip()
+        if login and password:
+            if "@" in login:
+                return login, "owner_set"
+            return "", "bake_placeholder"
+    return "", "missing"

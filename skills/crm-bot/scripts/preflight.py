@@ -88,7 +88,7 @@ def main() -> int:
     print(f"EVENT: {implied['event_name'] or '-'}")
     print(f"ADMIN: {implied['owner_email'] or '-'}")
     print(f"LANGUAGE: {implied['language'] or '-'}")
-    print(f"ADMIN_FILE: {'present' if implied['admin_file'] else 'missing'}")
+    print(f"ADMIN_FILE: {implied['admin_file']}")
     print("PUBLIC: use list_hosted_websites — never a hardcoded host")
     return 0
 

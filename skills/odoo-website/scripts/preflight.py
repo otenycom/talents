@@ -13,6 +13,8 @@ Prints a compact parseable block:
   READY   — yes|no  (Odoo installed + profile fields set)
   ODOO    — serving|down  (is Odoo answering on 127.0.0.1:8069 right now?)
   PROFILE — site_name / site_slug / language (so the triage never re-reads profile.yaml)
+  ADMIN      — the owner's email, once set (odoo-community's shared contract)
+  ADMIN_FILE — owner_set|bake_placeholder|missing (see website_paths.admin_login_and_file)
   MISSING — the blocking artifacts when READY is no
 """
 from __future__ import annotations
@@ -24,7 +26,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from website_paths import home, profile_path
+from website_paths import admin_login_and_file, home, profile_path
 
 _PORT = 8069
 _REQUIRED_FIELDS = ("site_name", "site_purpose", "site_slug", "owner_email", "language")
@@ -113,12 +115,18 @@ def main() -> int:
     if unset:
         missing.append("profile:" + ",".join(unset))
     ready = not missing
+    admin_login, admin_file = admin_login_and_file()
+    admin_email = (profile.get("owner_email") or "").strip()
+    if "@" not in admin_email:
+        admin_email = admin_login
     print(f"READY: {'yes' if ready else 'no'}")
     print(f"ODOO: {'serving' if _odoo_serving() else 'down'}")
     print("PROFILE: "
           f"site_name={profile.get('site_name') or '-'} "
           f"site_slug={profile.get('site_slug') or '-'} "
           f"language={profile.get('language') or '-'}")
+    print(f"ADMIN: {admin_email or '-'}")
+    print(f"ADMIN_FILE: {admin_file}")
     # The effective envelope — so the persona (and install_odoo.sh) can refuse a box that
     # is genuinely too small. The bar is MEMORY (~2 GB), not the substrate: a Power
     # container holds the whole stack with room to spare.

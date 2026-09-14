@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.6
+version: 1.2.7
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -80,8 +80,9 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
   `/oteny_subscribe upgrade power`
 - **Odoo Online / remote** → custom module is **impossible**; JSON-2 only.
 - **READY: yes**, build/change → [`build-and-host.md`](references/build-and-host.md).
-- **READY: yes**, no password / back-office login → if `ADMIN` /
-  `LANGUAGE` / `ADMIN_FILE` is missing, load odoo-community
+- **READY: yes**, no password / back-office login → if `ADMIN` or
+  `LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`
+  (`bake_placeholder` counts), load odoo-community
   `references/setup.md`; then continue
   [`first-run.md`](references/first-run.md).
 - **READY: yes**, status / link → `list_hosted_websites`.

@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.9
+version: 1.0.10
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -26,9 +26,12 @@ that same confirm.
 
 Setup lives in [`references/first-run.md`](references/first-run.md). Load
 that file when preflight says `ENGINE: missing`, they asked to set up /
-want the CRM login, or `EVENT` is `-` on a serving box. If `ADMIN`,
-`LANGUAGE`, or `ADMIN_FILE` is missing, that file loads odoo-community
-`references/setup.md` first. After ready, do not load it again.
+want the CRM login, or `EVENT` is `-` on a serving box. If `ADMIN` or
+`LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`, that file loads
+odoo-community `references/setup.md` first. After ready, do not load it
+again. A prewarmed box's `ADMIN_FILE: bake_placeholder` is not a finished
+setup — it is the mint-time secret rotation, a password the owner has
+never seen.
 
 ## About this Talent
 
@@ -74,8 +77,9 @@ python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py
   serving box → [`first-run.md`](references/first-run.md). Stop. Do
   not capture yet.
 - **ODOO: down** → ensure the stack. **Do not invent a lead id.**
-- No password / want the CRM login, and `ADMIN_FILE` is `missing` →
-  load odoo-community `references/setup.md`; then continue
+- No password / want the CRM login, and `ADMIN_FILE` is not `owner_set`
+  (`bake_placeholder` counts) → load odoo-community
+  `references/setup.md`; then continue
   [`first-run.md`](references/first-run.md).
 - Count / list / "how many" → List below.
 - A person, a badge, a voice note, a DM, or a group title that ends in

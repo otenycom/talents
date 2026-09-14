@@ -10,7 +10,7 @@ long_md: |
   The files are already on the box. The install starts when you ask.
   WebsiteBot and CrmBot sit on this Talent. They add the website or
   CRM modules. This Talent itself starts a base database only.
-version: 1.0.5
+version: 1.0.6
 
 skills:
   - odoo-community

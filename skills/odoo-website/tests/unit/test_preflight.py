@@ -89,3 +89,38 @@ def test_substrate_unknown_without_a_signal(tmp_path, monkeypatch, capsys):
     monkeypatch.delenv("OTENY_SUBSTRATE", raising=False)
     _load().main()
     assert "SUBSTRATE: unknown" in capsys.readouterr().out
+
+
+def test_admin_file_owner_set_when_login_is_a_real_email(tmp_path, monkeypatch, capsys):
+    home = _fake_home(tmp_path, profile={"owner_email": "ries@vriend.com"})
+    (home / ".hermes" / "data" / "odoo-website" / ".odoo-admin").write_text(
+        "login=ries@vriend.com\npassword=s3cret\napi_key=k\n", encoding="utf-8",
+    )
+    monkeypatch.setenv("HH_HOME", str(home))
+    _load().main()
+    out = capsys.readouterr().out
+    assert "ADMIN: ries@vriend.com" in out
+    assert "ADMIN_FILE: owner_set" in out
+    assert "s3cret" not in out
+
+
+def test_admin_file_bake_placeholder_not_owner_set(tmp_path, monkeypatch, capsys):
+    """Every prewarmed box ships a ``.odoo-admin`` with ``login=admin`` from the
+    mint-time clone-secret rotation. That is never a password the owner has
+    seen, so it must report ``bake_placeholder``, not ``owner_set``."""
+    home = _fake_home(tmp_path)
+    (home / ".hermes" / "data" / "odoo-website" / ".odoo-admin").write_text(
+        "login=admin\npassword=mint-rotated-secret\napi_key=k\n", encoding="utf-8",
+    )
+    monkeypatch.setenv("HH_HOME", str(home))
+    _load().main()
+    out = capsys.readouterr().out
+    assert "ADMIN: -" in out
+    assert "ADMIN_FILE: bake_placeholder" in out
+    assert "mint-rotated-secret" not in out
+
+
+def test_admin_file_missing_without_any_odoo_admin(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HH_HOME", str(_fake_home(tmp_path)))
+    _load().main()
+    assert "ADMIN_FILE: missing" in capsys.readouterr().out

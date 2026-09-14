@@ -478,10 +478,22 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    if (
+        not args.rotate_clone_secrets
+        and not owner_chosen
+        and not (stored and stored_login == login)
+    ):
+        print(
+            "ADMIN_SETUP_FAILED owner_password_required — stored login "
+            f"{stored_login!r} does not match {login!r}; pass --from-env or "
+            "--password-file with the owner's secure-link password instead "
+            "of inventing one",
+            file=sys.stderr,
+        )
+        return 1
+
     new_password = owner_chosen or (
-        _gen_password()
-        if args.rotate_clone_secrets
-        else (stored_password if stored and stored_login == login else _gen_password())
+        _gen_password() if args.rotate_clone_secrets else stored_password
     )
     password_unchanged = (
         not args.rotate_clone_secrets
