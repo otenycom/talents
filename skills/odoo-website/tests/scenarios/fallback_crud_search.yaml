@@ -1,0 +1,14 @@
+# An ask this table does not name (a generic record search) must fall back
+# to odoo-community's local-odoo-client.md and crud.py search, never a
+# site-build script bent to a job it does not do. Live-only: reply routing
+# is not judged on mock.
+bot: odoo-website
+
+turns:
+  - user: "Find partners named Schenk."
+    expect:
+      reply:
+        contains_any: ["crud.py", "local-odoo-client"]
+        not_contains:
+          - "host_website"
+          - "wait_for_public_dns.py"

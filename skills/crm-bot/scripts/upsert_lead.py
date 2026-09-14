@@ -160,6 +160,70 @@ def get_or_create_source(rpc: OdooRPC, event_name: str) -> int:
     return rpc.get_or_create_by_name("utm.source", event_name)
 
 
+_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
+_PHOTO_LABEL_RE = re.compile(r"photo|badge|image", re.I)
+
+
+def _is_photo_media(item: dict) -> bool:
+    """A photo label (``photo`` / ``badge`` / ``image``), or a still-image
+    file suffix when the label says nothing. Voice/other files never match."""
+    label = str(item.get("label") or "")
+    if _PHOTO_LABEL_RE.search(label):
+        return True
+    return Path(str(item.get("path") or "")).suffix.lower() in _IMAGE_SUFFIXES
+
+
+def _partner_has_avatar(rpc: OdooRPC, partner_id: int) -> bool:
+    """``bin_size`` context so this is a cheap presence check, not a full
+    base64 image download."""
+    rows = rpc.call(
+        "res.partner", "read", [[partner_id]],
+        {"fields": ["image_1920"], "context": {"bin_size": True}},
+    )
+    return bool(rows and rows[0].get("image_1920"))
+
+
+def attach_media(
+    rpc: OdooRPC,
+    lead_id: int,
+    partner_id: int,
+    company_id: int | None,
+    media: list[dict],
+    correction: bool,
+) -> tuple[bool, list[str], list[str]]:
+    """Attach every media item to the lead's chatter; write the first photo
+    onto the person partner's ``image_1920`` (never the company placeholder
+    — image bytes stay on the person). A missing/unreadable file is recorded
+    in ``media_errors`` and does NOT abort the rest of the capture — one bad
+    path must not lose the other files or the lead write itself."""
+    attached: list[str] = []
+    errors: list[str] = []
+    avatar_set = False
+    can_set_avatar = partner_id != company_id
+    for item in media:
+        path = item.get("path")
+        if not path:
+            continue
+        filename = Path(str(path)).name
+        if (
+            can_set_avatar
+            and not avatar_set
+            and _is_photo_media(item)
+            and (correction or not _partner_has_avatar(rpc, partner_id))
+        ):
+            try:
+                rpc.set_partner_avatar(partner_id, path)
+                avatar_set = True
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{filename}: avatar {exc}")
+        try:
+            rpc.attach_file(lead_id, path, name=item.get("label"))
+            attached.append(filename)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{filename}: {exc}")
+    return avatar_set, attached, errors
+
+
 def ensure_partner(rpc: OdooRPC, payload: dict, addr: dict) -> tuple[int, int | None]:
     """The prospect partner, with its company partner linked as parent.
 
@@ -314,8 +378,9 @@ def upsert_prospect(rpc: OdooRPC, payload: dict) -> dict:
         lead_id = rpc.create_lead(lead_vals)
         action = "created"
 
-    for m in payload.get("media", []):
-        rpc.attach_file(lead_id, m["path"], name=m.get("label"))
+    avatar_set, attached, media_errors = attach_media(
+        rpc, lead_id, partner_id, company_id, payload.get("media", []), correction,
+    )
 
     activity_id = book_followup(rpc, lead_id, payload, owner_id)
 
@@ -333,6 +398,9 @@ def upsert_prospect(rpc: OdooRPC, payload: dict) -> dict:
         "activity_id": activity_id,
         "action": action,
         "url": _public_lead_url(lead_id),
+        "avatar_set": avatar_set,
+        "attached": attached,
+        "media_errors": media_errors,
     }
 
 

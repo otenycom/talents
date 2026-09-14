@@ -8,6 +8,12 @@ with the bearer ``api_key`` from ``.odoo-admin`` (created by ``setup_admin.py``)
 Odoo 19: ``POST /json/2/<model>/<method>`` with ``Authorization: bearer <key>``.
 XML-RPC / JSON-RPC are deprecated — do not use them.
 
+The wire (bearer POST, the ``call`` kwargs map) lives in odoo-community's
+``local_odoo_rpc.py`` — see that module's docstring for why: CrmBot's
+``odoo_rpc.py`` used to duplicate this same HTTP stack byte-for-byte. This
+file keeps only the ``ping`` / ``set-homepage`` / ``set-base-url`` CLI
+subcommands.
+
 Examples:
 
     python3 …/scripts/site_rpc.py ping
@@ -22,7 +28,6 @@ import argparse
 import json
 import os
 import sys
-import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -31,77 +36,50 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 from website_paths import admin_candidates
 
-_URL = "http://127.0.0.1:8069"
-_DB = "website"
-_APIKEY_LINE = "api_" + "key="  # credential-file prefix; split for secret-lint
 
-
-def _home() -> Path:
-    return Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
-
-
-def _load_admin() -> tuple[str, str]:
-    """Return (login, api_key). Password is for /web/login only — not used here."""
-    path = next((p for p in admin_candidates() if p.exists()), None)
-    if path is None:
-        raise SystemExit(
-            "SITE_RPC_FAILED no_admin — run setup_admin.py first "
-            "(never invent passwords in shell)"
-        )
-    login = api_key = ""
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.startswith("login="):
-            login = line.split("=", 1)[1].strip()
-        elif line.startswith(_APIKEY_LINE):
-            api_key = line[len(_APIKEY_LINE) :].strip()
-    if not api_key:
-        raise SystemExit(
-            "SITE_RPC_FAILED no_api_key — re-run setup_admin.py to mint a JSON-2 key "
-            "(legacy password-only .odoo-admin is not enough)"
-        )
-    return login, api_key
-
-
-def _json2(model: str, method: str, api_key: str, **kwargs) -> object:
-    body = json.dumps(kwargs).encode("utf-8")
-    req = urllib.request.Request(
-        f"{_URL}/json/2/{model}/{method}",
-        data=body,
-        headers={
-            "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"bearer {api_key}",
-            "X-Odoo-Database": _DB,
-            "User-Agent": "WebsiteBot-site_rpc",
-        },
-        method="POST",
+def _find_community_scripts() -> Path:
+    """Locate odoo-community's ``scripts/`` dir: env var → catalog sibling
+    (this checkout) → box path (``HH_HOME`` when set). Raises when community
+    was never delivered."""
+    override = os.environ.get("ODOO_COMMUNITY_SCRIPTS")
+    candidates = [Path(override)] if override else []
+    candidates.append(Path(__file__).resolve().parents[2] / "odoo-community" / "scripts")
+    candidates.append(
+        Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+        / ".hermes" / "skills" / "talents" / "odoo-community" / "scripts"
     )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            raw = resp.read().decode("utf-8")
-            return json.loads(raw) if raw else None
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode("utf-8", errors="replace")
-        if exc.code in (401, 403):
-            raise SystemExit(
-                "SITE_RPC_FAILED auth — api_key in .odoo-admin rejected; "
-                "re-run setup_admin.py (do not reset via shell)"
-            ) from exc
-        try:
-            detail = json.loads(raw) if raw else {}
-        except json.JSONDecodeError:
-            detail = {"message": raw}
-        msg = detail.get("message") if isinstance(detail, dict) else raw
-        raise RuntimeError(f"json2 {model}.{method} HTTP {exc.code}: {msg}") from exc
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    raise RuntimeError("ODOO_RPC_FAILED no_community_scripts — community was not delivered")
+
+
+_COMMUNITY_SCRIPTS = _find_community_scripts()
+if str(_COMMUNITY_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_COMMUNITY_SCRIPTS))
+from local_odoo_rpc import OdooRPC as _CommunityOdooRPC
+
+_URL = "http://127.0.0.1:8069"
+
+
+class OdooRPC(_CommunityOdooRPC):
+    user_agent = "WebsiteBot-site_rpc"
+
+    def __init__(self):
+        # WebsiteBot's own admin_candidates() honors ODOO_WEBSITE_DATA_DIR
+        # first, then falls back to the community-wide list — see that
+        # module for why the community default alone is not enough here.
+        super().__init__(admin_candidates=admin_candidates)
 
 
 def cmd_ping(_: argparse.Namespace) -> int:
-    _, api_key = _load_admin()
+    rpc = OdooRPC()
     try:
         with urllib.request.urlopen(f"{_URL}/web/version", timeout=15) as resp:
             ver = json.loads(resp.read().decode("utf-8"))
     except Exception:  # noqa: BLE001
         ver = {}
-    n = _json2("website.page", "search_count", api_key, domain=[])
+    n = rpc.call("website.page", "search_count", kwargs={"domain": []})
     print(
         f"SITE_RPC_OK ping version={ver.get('version', '?')} pages={n}"
     )
@@ -109,25 +87,27 @@ def cmd_ping(_: argparse.Namespace) -> int:
 
 
 def cmd_set_homepage(ns: argparse.Namespace) -> int:
-    _, api_key = _load_admin()
+    rpc = OdooRPC()
     title = ns.title.strip()
     body = ns.body_html
-    pages = _json2(
+    pages = rpc.call(
         "website.page",
         "search_read",
-        api_key,
-        domain=[["is_published", "=", True], ["url", "in", ["/", "/homepage", ""]]],
-        fields=["id", "view_id", "url"],
-        limit=1,
+        kwargs={
+            "domain": [["is_published", "=", True], ["url", "in", ["/", "/homepage", ""]]],
+            "fields": ["id", "view_id", "url"],
+            "limit": 1,
+        },
     )
     if not pages:
-        pages = _json2(
+        pages = rpc.call(
             "website.page",
             "search_read",
-            api_key,
-            domain=[["url", "=", "/"]],
-            fields=["id", "view_id", "url"],
-            limit=1,
+            kwargs={
+                "domain": [["url", "=", "/"]],
+                "fields": ["id", "view_id", "url"],
+                "limit": 1,
+            },
         )
     if not isinstance(pages, list) or not pages:
         print("SITE_RPC_FAILED no_homepage_page", file=sys.stderr)
@@ -149,36 +129,30 @@ def cmd_set_homepage(ns: argparse.Namespace) -> int:
         f'</t>'
     )
     if view_id:
-        _json2(
+        rpc.call(
             "ir.ui.view",
             "write",
-            api_key,
-            ids=[view_id],
-            vals={"arch": arch, "name": title},
+            kwargs={"ids": [view_id], "vals": {"arch": arch, "name": title}},
         )
-    _json2(
+    rpc.call(
         "website.page",
         "write",
-        api_key,
-        ids=[page["id"]],
-        vals={"name": title, "is_published": True},
+        kwargs={"ids": [page["id"]], "vals": {"name": title, "is_published": True}},
     )
     print(f"SITE_RPC_OK homepage id={page['id']} title={title!r}")
     return 0
 
 
 def cmd_set_base_url(ns: argparse.Namespace) -> int:
-    _, api_key = _load_admin()
+    rpc = OdooRPC()
     url = ns.url.strip().rstrip("/")
     if not url.startswith("https://"):
         print("SITE_RPC_FAILED base_url_must_be_https", file=sys.stderr)
         return 1
-    _json2(
+    rpc.call(
         "ir.config_parameter",
         "set_param",
-        api_key,
-        key="web.base.url",
-        value=url,
+        kwargs={"key": "web.base.url", "value": url},
     )
     print(f"SITE_RPC_OK base_url={url}")
     return 0

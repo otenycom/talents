@@ -4,15 +4,15 @@
 Auth is the bearer key setup_admin.py mints into
 ``~/.hermes/data/crm-bot/.odoo-admin``. Same database name ``website``
 as odoo-community (a carried cluster needs no rename).
+
+The wire (bearer POST, ``as_id`` create-unwrap, ``call`` kwargs map,
+``attach_file``) lives in odoo-community's ``local_odoo_rpc.py`` — see that
+module's docstring. This file keeps CrmBot's own lead/partner helpers on a
+thin subclass.
 """
 from __future__ import annotations
 
-import base64
-import json
-import mimetypes
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parent
@@ -20,95 +20,44 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 from crm_paths import admin_candidates
 
-_URL = "http://127.0.0.1:8069"
-_DB = "website"
-_APIKEY_LINE = "api_" + "key="
+
+def _find_community_scripts() -> Path:
+    """Locate odoo-community's ``scripts/`` dir: env var → catalog sibling
+    (this checkout) → box path (``HH_HOME`` when set). Raises when community
+    was never delivered."""
+    import os
+
+    override = os.environ.get("ODOO_COMMUNITY_SCRIPTS")
+    candidates = [Path(override)] if override else []
+    candidates.append(Path(__file__).resolve().parents[2] / "odoo-community" / "scripts")
+    candidates.append(
+        Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+        / ".hermes" / "skills" / "talents" / "odoo-community" / "scripts"
+    )
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    raise RuntimeError("ODOO_RPC_FAILED no_community_scripts — community was not delivered")
 
 
-def _as_id(value):
-    """JSON-2 ``create`` returns a recordset, which the wire serialises as
-    ``[id]``. Search already returns a list of ints. Callers that need one
-    Many2one id must unwrap here — stuffing ``[id]`` into ``tag_ids`` or
-    ``source_id`` raises ``unhashable type: 'list'`` on ``crm.lead.create``.
-    """
-    if value in (None, False):
-        raise RuntimeError("CRM_RPC_FAILED empty_id")
-    if isinstance(value, list):
-        if not value:
-            raise RuntimeError("CRM_RPC_FAILED empty_id_list")
-        return _as_id(value[0])
-    if isinstance(value, dict) and value.get("id") is not None:
-        return int(value["id"])
-    return int(value)
+_COMMUNITY_SCRIPTS = _find_community_scripts()
+if str(_COMMUNITY_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_COMMUNITY_SCRIPTS))
+from local_odoo_rpc import OdooRPC as _CommunityOdooRPC, as_id
+
+# ``_as_id`` is directly unit-tested (test_odoo_rpc_uid.py) — re-bind the
+# community name so that contract keeps holding on this module.
+_as_id = as_id
 
 
-def _load_key() -> str:
-    path = next((p for p in admin_candidates() if p.exists()), None)
-    if path is None:
-        raise RuntimeError("CRM_RPC_FAILED no_admin — run setup_admin.py first")
-    key = ""
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.startswith(_APIKEY_LINE):
-            key = line[len(_APIKEY_LINE) :].strip()
-    if not key:
-        raise RuntimeError("CRM_RPC_FAILED no_api_key")
-    return key
+class OdooRPC(_CommunityOdooRPC):
+    user_agent = "CrmBot-odoo_rpc"
 
-
-class OdooRPC:
     def __init__(self):
-        self.apikey = _load_key()
-        self.uid = 0
-        # setup_admin rotates login away from ``admin`` to owner_email.
-        # context_get is the bearer session; a search for login=admin is empty.
-        ctx = self._json2("res.users", "context_get")
-        if isinstance(ctx, dict) and ctx.get("uid"):
-            self.uid = int(ctx["uid"])
-        if not self.uid:
-            raise RuntimeError("CRM_RPC_FAILED auth — /json/2/ rejected the key")
-
-    def _json2(self, model: str, method: str, **kwargs):
-        body = json.dumps(kwargs).encode("utf-8")
-        req = urllib.request.Request(
-            f"{_URL}/json/2/{model}/{method}",
-            data=body,
-            headers={
-                "Content-Type": "application/json; charset=utf-8",
-                "Authorization": f"bearer {self.apikey}",
-                "X-Odoo-Database": _DB,
-                "User-Agent": "CrmBot-odoo_rpc",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                raw = resp.read().decode("utf-8")
-                return json.loads(raw) if raw else None
-        except urllib.error.HTTPError as exc:
-            raw = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"json2 {model}.{method} HTTP {exc.code}: {raw}") from exc
-        except OSError as exc:
-            raise RuntimeError(f"CRM_RPC_FAILED odoo_down: {exc}") from exc
-
-    def call(self, model, method, args=None, kwargs=None):
-        args = list(args or [])
-        kw = dict(kwargs or {})
-        if method in ("search", "search_count", "search_read") and args:
-            kw.setdefault("domain", args[0])
-        elif method == "create" and args:
-            payload = args[0]
-            kw.setdefault("vals_list", [payload] if isinstance(payload, dict) else payload)
-        elif method == "write" and len(args) >= 2:
-            ids = args[0] if isinstance(args[0], list) else [args[0]]
-            kw.setdefault("ids", ids)
-            kw.setdefault("vals", args[1])
-        elif method == "read" and args:
-            kw.setdefault("ids", args[0] if isinstance(args[0], list) else [args[0]])
-        elif method in ("message_post", "activity_schedule") and args:
-            kw.setdefault("ids", args[0] if isinstance(args[0], list) else [args[0]])
-        elif method == "unlink" and args:
-            kw.setdefault("ids", args[0] if isinstance(args[0], list) else [args[0]])
-        return self._json2(model, method, **kw)
+        # CrmBot's own admin_candidates() honors CRM_BOT_DATA_DIR first, then
+        # falls back to the community-wide list — see that module for why
+        # the community default alone is not enough here.
+        super().__init__(admin_candidates=admin_candidates)
 
     def find_user(self, login: str):
         ids = self.call("res.users", "search", [[("login", "=", login)]], {"limit": 1})
@@ -235,31 +184,19 @@ class OdooRPC:
         )
 
     def attach_file(self, lead_id: int, file_path: str, name: str | None = None):
+        return super().attach_file("crm.lead", lead_id, file_path, caption=name)
+
+    def set_partner_avatar(self, partner_id: int, file_path: str) -> None:
+        """Write ``res.partner.image_1920`` from a photo file (base64). CRM-
+        specific business rule (when a photo becomes the contact picture) —
+        see ``upsert_lead.py`` for the caller-side decision of *when* to call
+        this. The community base has no avatar concept of its own."""
+        import base64
+
         p = Path(file_path)
         if not p.is_file():
             raise FileNotFoundError(f"media file missing: {file_path}")
         data = p.read_bytes()
         if not data:
             raise ValueError(f"media file empty: {file_path}")
-        filename = p.name
-        mimetype = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-        att_id = _as_id(self.call(
-            "ir.attachment", "create", [{
-                "name": filename,
-                "datas": base64.b64encode(data).decode(),
-                "res_model": "crm.lead",
-                "res_id": lead_id,
-                "mimetype": mimetype,
-            }]
-        ))
-        caption = name or filename
-        self.call(
-            "crm.lead", "message_post", [[lead_id]],
-            {
-                "body": caption,
-                "message_type": "comment",
-                "subtype_xmlid": "mail.mt_comment",
-                "attachment_ids": [att_id],
-            },
-        )
-        return att_id
+        self.write_partner(partner_id, {"image_1920": base64.b64encode(data).decode()})

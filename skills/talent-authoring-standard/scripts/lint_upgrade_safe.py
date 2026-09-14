@@ -88,8 +88,11 @@ spend):
      VM, D204). The Talent declares a CAPABILITY, never a raw customer tier as its contract; the
      platform resolves the tier (storefront gate + runtime self-gate). (Needs PyYAML.)
  18. UV RUNTIME LOCK — a Talent whose tenant scripts import a third-party module (not
-     stdlib, not a same-bundle module, not the platform-baked ``yaml``) MUST ship
-     ``pyproject.toml`` + ``uv.lock`` (+ ``.python-version``). When ``uv`` is on PATH,
+     stdlib, not a same-bundle module, not a sibling catalog Talent's ``scripts/*.py``, not
+     the platform-baked ``yaml``) MUST ship ``pyproject.toml`` + ``uv.lock`` (+
+     ``.python-version``). A deliberate import of a sibling bundle's published module (e.g.
+     odoo-community's shared JSON-2 wire) ships inside this reviewed catalog and is not an
+     unvetted dependency, so it does not trigger this check. When ``uv`` is on PATH,
      ``uv lock --check`` must pass. Authors invoke feature scripts via ``talent-run`` /
      ``uv run --project``; readiness scripts stay on bare ``python3`` (stdlib only).
  16. PER-TASK MODEL ESCALATION — ``task_escalations:`` is an OPTIONAL list mapping a named,
@@ -931,6 +934,31 @@ def _local_module_names(bundle: Path) -> set[str]:
     return names
 
 
+def _catalog_sibling_module_names(bundle: Path) -> set[str]:
+    """Top-level module names resolvable as ``scripts/*.py`` in a SIBLING bundle under the
+    same catalog root (``skills/<other>/scripts/``).
+
+    A consumer Talent may deliberately import a shared wire another Talent publishes — e.g.
+    ``odoo-community``'s ``local_odoo_rpc.py`` / ``local_odoo_paths.py``, which CrmBot and
+    WebsiteBot both import after inserting that sibling's ``scripts/`` dir onto ``sys.path``
+    (env var → catalog-sibling walk → box path). That module ships inside this open catalog,
+    reviewed the same as the consumer's own code — it is not an unvetted pip dependency, so
+    it must not trip the UV RUNTIME LOCK check (18) below. Scoped to ``scripts/`` (not a
+    bundle's ``tests/``) because that is the only tree the platform delivers to a box."""
+    names: set[str] = set()
+    catalog = bundle.parent
+    if not catalog.is_dir():
+        return names
+    for sibling in catalog.iterdir():
+        if sibling == bundle or not sibling.is_dir():
+            continue
+        scripts_dir = sibling / "scripts"
+        if not scripts_dir.is_dir():
+            continue
+        names.update(p.stem for p in scripts_dir.glob("*.py"))
+    return names
+
+
 def _third_party_imports_in_bundle(bundle: Path) -> dict[str, set[str]]:
     """Map relpath → non-stdlib / non-local / non-platform import tops.
 
@@ -939,7 +967,7 @@ def _third_party_imports_in_bundle(bundle: Path) -> dict[str, set[str]]:
     if not hasattr(sys, "stdlib_module_names"):
         return {}
     stdlib = set(sys.stdlib_module_names) | {"__future__"}
-    local = _local_module_names(bundle)
+    local = _local_module_names(bundle) | _catalog_sibling_module_names(bundle)
     out: dict[str, set[str]] = {}
     for p in sorted(bundle.rglob("*.py")):
         if "tests" in p.parts or "__pycache__" in p.parts:

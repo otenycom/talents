@@ -1,0 +1,17 @@
+# A photo+voice booth turn must route to one script and carry this turn's
+# file paths through — not a `session_search` / `vision_analyze` hunt.
+# Live-only: the mock backend cannot judge routing, so `expect.reply` skips
+# there and this scenario is proven by the live backend.
+bot: crm-bot
+
+turns:
+  - user: >-
+      "Angela Schenk, sales manager at Odoo." [Image attached at:
+      /home/hermes/.hermes/cache/images/img_test0a1b2c3d.jpg]
+    expect:
+      reply:
+        contains: ["img_test0a1b2c3d.jpg"]
+        contains_any: ["upsert_lead", "lead_id"]
+        not_contains:
+          - "session_search"
+          - "vision_analyze"

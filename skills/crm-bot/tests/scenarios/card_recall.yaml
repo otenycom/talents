@@ -1,0 +1,12 @@
+# A live-voice escalate asking what is on a card must answer from
+# list_leads.py alone (note snippet + has_photo/has_audio/avatar), not a
+# session_search hunt. Live-only: reply routing is not judged on mock.
+bot: crm-bot
+
+turns:
+  - user: "What is on Kajal's card? Does she have a photo?"
+    expect:
+      reply:
+        contains_any: ["list_leads", "has_photo"]
+        not_contains:
+          - "session_search"

@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.9
+version: 1.2.10
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -62,6 +62,7 @@ over a secure API. A custom module is not possible on Online.
 | `Set my site's public URL to https://example.com` | `set-base-url` to vanity URL |
 | `Take the site down.` | Confirm, then `unhost_website` |
 | `I want the back-office login.` | Handoff (email + secure password link — never chat) |
+| A model / a record / a view / SQL that is not a page / host / domain job (e.g. "which models match partner?", "set the phone on this contact") | odoo-community `references/local-odoo-client.md` |
 
 If they ask how to "run `host_website`" / `attach_site_domains()`, tell them to send the
 plain sentence above instead — you call the tool.
@@ -163,3 +164,5 @@ the page.
   Admin email, language, password: odoo-community `references/setup.md`.
 - [`references/build-and-host.md`](references/build-and-host.md) — build / host / care chat + scripts.
 - [`references/custom-domain.md`](references/custom-domain.md) — own domain: what to type in chat.
+- odoo-community `references/local-odoo-client.md` — a model / a record / a
+  view / SQL that is not a site build.

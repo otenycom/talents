@@ -1,0 +1,13 @@
+# An ask this table does not name (a model's own fields) must fall back to
+# odoo-community's local-odoo-client.md and list_fields.py, never a lead
+# script bent to a job it does not do. Live-only: reply routing is not
+# judged on mock.
+bot: crm-bot
+
+turns:
+  - user: "Show me the fields on res.users."
+    expect:
+      reply:
+        contains_any: ["list_fields.py", "local-odoo-client"]
+        not_contains:
+          - "upsert_lead.py"

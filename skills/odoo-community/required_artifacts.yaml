@@ -16,6 +16,18 @@ artifacts:
     stubbed: []
 
   - kind: tools
+    present_if_file:
+      local_odoo_rpc: ~/.hermes/skills/talents/odoo-community/scripts/local_odoo_rpc.py
+      local_odoo_paths: ~/.hermes/skills/talents/odoo-community/scripts/local_odoo_paths.py
+      crud: ~/.hermes/skills/talents/odoo-community/scripts/crud.py
+      rpc: ~/.hermes/skills/talents/odoo-community/scripts/rpc.py
+      sql: ~/.hermes/skills/talents/odoo-community/scripts/sql.py
+      list_models: ~/.hermes/skills/talents/odoo-community/scripts/list_models.py
+      list_fields: ~/.hermes/skills/talents/odoo-community/scripts/list_fields.py
+      list_views: ~/.hermes/skills/talents/odoo-community/scripts/list_views.py
+    stubbed: []
+
+  - kind: tools
     blocking: false
     present_if_file:
       odoo_tree: ~/odoo-site/odoo/odoo

@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.9
+version: 1.0.10
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -45,6 +45,7 @@ The files are already on the box. The install starts when you ask.
 | `Install Odoo Community.` | INSTALL if the tree is missing |
 | `Is Odoo up?` | curl `/` + `list_services` |
 | `Stop the local Odoo.` | Confirm, then `unregister_service` name `odoo-community` |
+| A model / a record / a view / SQL the active Talent's own table does not name | `skill_view` [`references/local-odoo-client.md`](references/local-odoo-client.md) |
 
 ## Every message — triage first
 

@@ -7,10 +7,40 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 _BOT = "odoo-website"
 _ENV = "ODOO_WEBSITE_DATA_DIR"
+
+
+def _find_community_scripts() -> Path:
+    """Locate odoo-community's ``scripts/`` dir: env var → catalog sibling
+    (this checkout) → box path (``HH_HOME`` when set). See
+    odoo-community's ``local_odoo_rpc.py`` for the shared client this
+    unlocks. Raises when community was never delivered."""
+    override = os.environ.get("ODOO_COMMUNITY_SCRIPTS")
+    candidates = [Path(override)] if override else []
+    candidates.append(Path(__file__).resolve().parents[2] / "odoo-community" / "scripts")
+    candidates.append(
+        Path(os.environ.get("HH_HOME") or os.path.expanduser("~"))
+        / ".hermes" / "skills" / "talents" / "odoo-community" / "scripts"
+    )
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    raise RuntimeError("ODOO_RPC_FAILED no_community_scripts — community was not delivered")
+
+
+def _community_admin_candidates() -> list[Path]:
+    """Lazy import — only ``admin_candidates()`` below needs community, so a
+    caller that only wants ``profile_path()`` / ``writable_data_dir()`` does
+    not fail just because community was not delivered to this box."""
+    scripts = _find_community_scripts()
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    from local_odoo_paths import admin_candidates
+    return admin_candidates()
 
 
 def home() -> Path:
@@ -55,7 +85,16 @@ def profile_path() -> Path:
 
 
 def admin_candidates() -> list[Path]:
-    return [dest / ".odoo-admin" for dest in data_dir_candidates()]
+    """Own candidates first (honors ``ODOO_WEBSITE_DATA_DIR``), then whatever
+    the community-wide fallback (crm-bot, odoo-website, odoo-community) adds
+    that is not already covered. Before this, WebsiteBot only ever saw its
+    own admin file; it now also sees a CrmBot sibling — the same rule
+    CrmBot's ``admin_candidates()`` already uses the other way."""
+    paths = [dest / ".odoo-admin" for dest in data_dir_candidates()]
+    for path in _community_admin_candidates():
+        if path not in paths:
+            paths.append(path)
+    return paths
 
 
 def _parse_simple_yaml(path: Path) -> dict:

@@ -1,10 +1,17 @@
-"""site_rpc.py — admin file + JSON-2 helpers (offline)."""
+"""site_rpc.py — admin file + JSON-2 helpers (offline).
+
+``site_rpc.OdooRPC`` is a thin subclass of odoo-community's shared
+``local_odoo_rpc.OdooRPC`` (see that module and the plan's §6a "One JSON-2
+client"). The wire — reading ``api_key=``, the bearer POST, the ``call``
+kwargs map — lives on the community base and is exercised here through the
+subclass, not through a private ``site_rpc._load_admin`` / ``_json2`` that no
+longer exist.
+"""
 from __future__ import annotations
 
 import importlib.util
 import json
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
@@ -28,52 +35,81 @@ def home(tmp_path, monkeypatch):
     return tmp_path, data
 
 
-def test_load_admin_requires_api_key(home):
+class _Resp:
+    """A ``urlopen`` context-manager stub returning one JSON payload."""
+
+    def __init__(self, payload):
+        self._payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return json.dumps(self._payload).encode()
+
+
+def _fake_urlopen(calls: list[dict], *, uid: int = 2, other=3):
+    """A stub good for both the constructor's ``context_get`` call and one
+    caller-issued ``call()`` — the same shape every OdooRPC construction
+    needs, so each test below only supplies the ``other`` return value."""
+
+    def fake_urlopen(req, timeout=60):
+        body = json.loads(req.data.decode())
+        calls.append({
+            "url": req.full_url,
+            "auth": req.get_header("Authorization"),
+            "body": body,
+        })
+        if req.full_url.endswith("/json/2/res.users/context_get"):
+            return _Resp({"uid": uid})
+        return _Resp(other)
+
+    return fake_urlopen
+
+
+def test_odoo_rpc_requires_api_key(home):
     _, data = home
     (data / ".odoo-admin").write_text(
         "login=a@b.c\npassword=secret\n", encoding="utf-8",
     )
     mod = _load()
-    with pytest.raises(SystemExit, match="no_api_key"):
-        mod._load_admin()
+    with pytest.raises(RuntimeError, match="no_api_key"):
+        mod.OdooRPC()
 
 
-def test_load_admin_ok(home):
+def test_odoo_rpc_reads_api_key_and_db(home, monkeypatch):
     _, data = home
     (data / ".odoo-admin").write_text(
         "login=a@b.c\npassword=secret\n" + "api_key=" + "k123\n", encoding="utf-8",
     )
     mod = _load()
-    assert mod._load_admin() == ("a@b.c", "k123")
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        mod.urllib.request, "urlopen", _fake_urlopen(calls),
+    )
+    rpc = mod.OdooRPC()
+    assert rpc.apikey == "k123"
+    assert rpc.db == "website"
+    assert rpc.uid == 2
 
 
-def test_json2_sends_bearer(home, monkeypatch):
+def test_odoo_rpc_sends_bearer_on_the_community_client(home, monkeypatch):
     _, data = home
     (data / ".odoo-admin").write_text(
         "login=a@b.c\npassword=secret\n" + "api_key=" + "k123\n", encoding="utf-8",
     )
     mod = _load()
-    captured: dict = {}
-
-    class _Resp:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-        def read(self):
-            return b"3"
-
-    def fake_urlopen(req, timeout=60):
-        captured["url"] = req.full_url
-        captured["auth"] = req.get_header("Authorization")
-        captured["body"] = json.loads(req.data.decode())
-        return _Resp()
-
-    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
-    out = mod._json2("website.page", "search_count", "k123", domain=[])
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        mod.urllib.request, "urlopen", _fake_urlopen(calls, other=3),
+    )
+    rpc = mod.OdooRPC()
+    out = rpc.call("website.page", "search_count", kwargs={"domain": []})
     assert out == 3
-    assert captured["url"].endswith("/json/2/website.page/search_count")
-    assert captured["auth"] == "bearer k123"
-    assert captured["body"] == {"domain": []}
+    last = calls[-1]
+    assert last["url"].endswith("/json/2/website.page/search_count")
+    assert last["auth"] == "bearer k123"
+    assert last["body"] == {"domain": []}

@@ -12,7 +12,7 @@ long_md: |
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask, then puts the site online. On a box
   that already has Odoo it only adds the CRM module.
-version: 1.0.13
+version: 1.0.14
 
 skills:
   - crm-bot
@@ -38,18 +38,32 @@ routing:
     and call their scripts. Do not keep a second installer. Do not
     start: trees are not a listen on :5432 / :8069 — the owner must
     ask. MCP none, cron none, talent below none. One skill_view of
-    crm-bot is the hot path. Do not open another crm-bot file except
-    first-run.md when ENGINE is missing, they asked to set up, or
-    EVENT is missing on a serving box. If preflight says CRM_HOME:
-    discuss, run pin_crm_home.py --require-crm then continue. A DM, a voice turn, or a
-    Telegram group whose title ends in " Leads" is capture — run
-    upsert_lead.py. How many / show leads → list_leads.py. Never
-    read or patch the scripts. Never confirm a lead or a count that
-    a script did not print this turn. Cold box: ask Event Name; if
-    ADMIN or LANGUAGE is missing, or
+    crm-bot is the hot path. Open another crm-bot file only for
+    first-run.md (ENGINE missing, they asked to set up, or EVENT
+    missing on a serving box) or the named reference for a task this
+    page sends you to. If preflight says CRM_HOME: discuss, run
+    pin_crm_home.py --require-crm then continue.
+    Capture: quoted voice text goes in transcript; an audio path alone
+    → transcribe_audio first; a person photo path goes in media with
+    label photo — the script sets the contact picture; a badge/card
+    photo → parse_document first, then upsert with that path in media.
+    Run upsert_lead.py once per turn with every field and file path you
+    have. A wrong card → the same script with correction: true (and
+    replace for a wrong word), never a second lead. Once you have a
+    full name and/or company, web_search then a second upsert with the
+    new fields — never search a bare given name. How many / show leads
+    / what is on a card / does she have a photo → list_leads.py (it
+    carries a note snippet plus has_photo / has_audio / avatar per
+    row). Delete → confirm, then delete_lead.py. A model / record /
+    view / SQL this page does not name → skill_view odoo-community
+    references/local-odoo-client.md, then that page's script — never
+    on a booth capture. A failed script: show its error, then stop.
+    Confirm only a lead_id, a count, or a URL a script printed this
+    turn.
+    Cold box: ask Event Name; if ADMIN or LANGUAGE is missing, or
     ADMIN_FILE is not owner_set, load odoo-community references/setup.md
-    (also where the site's public name is asked, cold only — never say
-    "slug," say "the name in your public web address"), then the
+    (also where the site's public name is asked, cold only — call it
+    "the name in your public web address," never "slug"), then the
     secure password link, then install and host_website with that
     site_slug. On slug_taken, retry twice on your own with a random
     3-digit suffix before ever asking the owner again (odoo-community
@@ -68,7 +82,7 @@ routing:
     ask Shall I. Do not re-ask email, language, or password when
     preflight already has ADMIN, LANGUAGE, and ADMIN_FILE: owner_set.
     Hard stop only for a missing field.
-    Do not take the default admin login as the email. After
+    The default admin login is never the owner email. After
     first-run say ready only when write_profile.py
     printed PROFILE_WRITTEN and preflight shows ODOO serving, JSON2
     ok, and PROFILE present. "I don't have a password" uses the

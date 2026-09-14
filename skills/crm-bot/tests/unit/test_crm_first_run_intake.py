@@ -101,9 +101,14 @@ def test_hot_path_is_one_skill_file():
     assert "list_leads.py" in text
     assert "crm_home: discuss" in text
     assert "pin_crm_home.py" in text
-    assert "do not `skill_view`" in text or "do not skill_view" in text
-    assert "do not `read_file`" in text or "do not read_file" in text
-    assert "bare personal name" in text
+    # The plan's "Skill: one tool per scenario" rewrite drops the whole
+    # `## Never` block — a ban list left the model to invent its own hunt on
+    # the prod walk. The scenario → script table and the capture checklist
+    # replace it with positive routing; no new guard takes the ban's place.
+    assert "## never" not in text
+    assert "scenario → script or tool" in text or "scenario -> script or tool" in text
+    assert "capture checklist" in text
+    assert "local-odoo-client.md" in text
     assert "name-only" in text
     assert "partner_id" in text
     assert '"correction": true' in _SKILL
