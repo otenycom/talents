@@ -36,3 +36,7 @@ sh "$HERE/ensure_odoo.sh" --init-only
   $DB_ARGS --data-dir="$BASE/odoo-data" --http-port="$PORT" --http-interface=0.0.0.0 \
   --workers=0 >> "$BASE/odoo.log" 2>&1
 echo "ODOO_MODULES $mods"
+# CRM ships behind Discuss. Pin it first so /odoo opens the pipeline.
+case ",$mods," in
+  *,crm,*) python3 "$HERE/pin_crm_home.py" --require-crm ;;
+esac

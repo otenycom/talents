@@ -111,13 +111,17 @@ in order. Do not ask.
 
 1. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh`
 2. `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh crm`
-3. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
-4. `register_service` name `postgres`, then name `odoo-community`.
-5. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
+3. `python3 ~/.hermes/skills/talents/odoo-community/scripts/pin_crm_home.py`
+   `--require-crm`. Expect `CRM_HOME_PINNED`. Odoo ships Discuss first.
+   This pin puts CRM first in the app menu, so `/odoo` opens the
+   pipeline.
+4. `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`
+5. `register_service` name `postgres`, then name `odoo-community`.
+6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
    `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
-6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
+7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
-7. `host_website` port `8069`, `site_slug` from the site name just
+8. `host_website` port `8069`, `site_slug` from the site name just
    collected. `ensure_cmd` is
    `sh ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh`.
    On `slug_taken`, follow odoo-community `references/setup.md`
@@ -138,16 +142,20 @@ not matter. After Event Name is saved, run this list. Do not ask.
    `sh ~/.hermes/skills/talents/odoo-community/scripts/install_modules.sh crm`
    Do not run `install_odoo.sh`.
 3. When `CRM` is `installed` and `EVENT` is saved: skip that script.
-4. `register_service` name `postgres`, then name `odoo-community`, if
+4. `python3 ~/.hermes/skills/talents/odoo-community/scripts/pin_crm_home.py`
+   `--require-crm`. Expect `CRM_HOME_PINNED`. Run this even when you
+   skipped `install_modules.sh`. A box that already has CRM still
+   opens Discuss until this pin runs.
+5. `register_service` name `postgres`, then name `odoo-community`, if
    `list_services` does not already have them.
-5. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
+6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
    with no `--from-env` when `ADMIN_FILE: owner_set`. It reuses the
    sibling login. When `ADMIN_FILE` is `bake_placeholder` or
    `missing` and the password is stored, pass
    `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
-6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
+7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
-7. `list_hosted_websites`. If a site is active, keep that URL. If
+8. `list_hosted_websites`. If a site is active, keep that URL. If
    none is hosted, `host_website` port `8069` with the same
    `ensure_cmd` as the cold list, and `site_slug` from `SITE_NAME`
    when preflight shows one (a sibling Talent's earlier cold

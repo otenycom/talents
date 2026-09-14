@@ -131,6 +131,7 @@ def test_preflight_prints_profile_missing_without_yaml(tmp_path, monkeypatch, ca
     assert "LANGUAGE: -" in out
     assert "ADMIN_FILE: missing" in out
     assert "CRM: unknown" in out
+    assert "CRM_HOME: -" in out
     assert "password=" not in out.lower()
 
 
@@ -305,3 +306,56 @@ def test_preflight_prints_site_name_dash_when_unknown(tmp_path, monkeypatch, cap
     spec.loader.exec_module(mod)
     assert mod.main() == 0
     assert "SITE_NAME: -" in capsys.readouterr().out
+
+
+class _FakeRpc:
+    def __init__(self, xmlids):
+        self.xmlids = xmlids
+
+    def call(self, model, method, args=None, kwargs=None):
+        args = list(args or [])
+        if model == "ir.model.data" and method == "search_read":
+            domain = args[0]
+            module = next(v for k, _, v in domain if k == "module")
+            name = next(v for k, _, v in domain if k == "name")
+            xmlid = f"{module}.{name}"
+            if xmlid not in self.xmlids:
+                return []
+            return [{"res_id": self.xmlids[xmlid][0]}]
+        if model == "ir.ui.menu" and method == "read":
+            mid = args[0][0]
+            for _xmlid, (rid, seq) in self.xmlids.items():
+                if rid == mid:
+                    return [{"id": mid, "sequence": seq}]
+            return []
+        raise AssertionError((model, method))
+
+
+def test_crm_home_state_is_discuss_when_crm_sequence_is_higher():
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_home_discuss",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    rpc = _FakeRpc({
+        "crm.crm_menu_root": (10, 25),
+        "mail.menu_root_discuss": (11, 5),
+    })
+    assert mod.crm_home_state(rpc) == "discuss"
+
+
+def test_crm_home_state_is_first_after_pin():
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_home_first",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    rpc = _FakeRpc({
+        "crm.crm_menu_root": (10, 1),
+        "mail.menu_root_discuss": (11, 5),
+    })
+    assert mod.crm_home_state(rpc) == "first"

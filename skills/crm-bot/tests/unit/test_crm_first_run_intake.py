@@ -68,6 +68,8 @@ def test_first_run_splits_cold_and_warm():
     assert "cold" in text
     assert "warm" in text
     assert "install_modules.sh crm" in text
+    assert "pin_crm_home.py" in text
+    assert "crm_home_pinned" in text
     assert "do not run `install_odoo.sh`" in text or "do not run install_odoo.sh" in text
     assert "event name" in text
     assert "admin_file" in text
@@ -76,6 +78,7 @@ def test_first_run_splits_cold_and_warm():
     assert "hard stop until this turn has an email" not in prompt
     assert "warm box" in prompt
     assert "install_modules.sh crm" in prompt
+    assert "pin_crm_home.py" in prompt
 
 
 def test_about_this_talent_sits_above_the_command_table():
@@ -96,6 +99,8 @@ def test_hot_path_is_one_skill_file():
     assert "lessons.md" not in text
     assert "upsert_lead.py" in text
     assert "list_leads.py" in text
+    assert "crm_home: discuss" in text
+    assert "pin_crm_home.py" in text
     assert "do not `skill_view`" in text or "do not skill_view" in text
     assert "do not `read_file`" in text or "do not read_file" in text
     assert "bare personal name" in text

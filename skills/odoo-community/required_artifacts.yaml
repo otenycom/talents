@@ -12,6 +12,7 @@ artifacts:
       ensure_odoo: ~/.hermes/skills/talents/odoo-community/scripts/ensure_odoo.sh
       install_odoo: ~/.hermes/skills/talents/odoo-community/scripts/install_odoo.sh
       wait_for_public_dns: ~/.hermes/skills/talents/odoo-community/scripts/wait_for_public_dns.py
+      pin_crm_home: ~/.hermes/skills/talents/odoo-community/scripts/pin_crm_home.py
     stubbed: []
 
   - kind: tools

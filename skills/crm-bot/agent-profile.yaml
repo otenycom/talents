@@ -12,7 +12,7 @@ long_md: |
   The files are already on the box. The first run installs Odoo Community
   and the CRM module when you ask, then puts the site online. On a box
   that already has Odoo it only adds the CRM module.
-version: 1.0.12
+version: 1.0.13
 
 skills:
   - crm-bot
@@ -40,7 +40,8 @@ routing:
     ask. MCP none, cron none, talent below none. One skill_view of
     crm-bot is the hot path. Do not open another crm-bot file except
     first-run.md when ENGINE is missing, they asked to set up, or
-    EVENT is missing on a serving box. A DM, a voice turn, or a
+    EVENT is missing on a serving box. If preflight says CRM_HOME:
+    discuss, run pin_crm_home.py --require-crm then continue. A DM, a voice turn, or a
     Telegram group whose title ends in " Leads" is capture — run
     upsert_lead.py. How many / show leads → list_leads.py. Never
     read or patch the scripts. Never confirm a lead or a count that
@@ -58,8 +59,10 @@ routing:
     (odoo-community references/setup.md "Bot notes — public URL is
     live").
     Warm box: ask only Event Name; copy ADMIN, LANGUAGE, and
-    ADMIN_FILE from preflight; run install_modules.sh crm. A
-    prewarmed box's ADMIN_FILE: bake_placeholder is the mint-time
+    ADMIN_FILE from preflight; run install_modules.sh crm; then
+    pin_crm_home.py --require-crm so the app menu opens CRM
+    first, not Discuss. A prewarmed box's ADMIN_FILE:
+    bake_placeholder is the mint-time
     secret rotation, never a password the owner has seen — treat it
     exactly like missing. Do not
     ask Shall I. Do not re-ask email, language, or password when

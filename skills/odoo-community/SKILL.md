@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.8
+version: 1.0.9
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -76,6 +76,8 @@ Missing `~/odoo-site` is not a failure. Install only when they asked.
 
 Do **not** download `odoo_19.0.latest.tar.gz`. Do not `-i website` or
 `-i crm` here. A consumer Talent asks `install_modules.sh` for those.
+When that list includes `crm`, the script then puts CRM first in the
+app menu, so `/odoo` opens the pipeline and not Discuss.
 
 ## Safety boundary
 

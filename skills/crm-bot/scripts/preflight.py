@@ -60,9 +60,45 @@ def _profile_present() -> bool:
     return path.is_file() and path.stat().st_size > 0
 
 
-def _crm_module() -> str:
+def _xmlid_res_id(rpc, xmlid: str):
+    module, _, name = xmlid.partition(".")
+    if not module or not name:
+        return None
+    rows = rpc.call(
+        "ir.model.data",
+        "search_read",
+        [[("module", "=", module), ("name", "=", name)]],
+        {"fields": ["res_id"], "limit": 1},
+    )
+    if not rows:
+        return None
+    return int(rows[0]["res_id"])
+
+
+def _menu_sequence(rpc, xmlid: str):
+    mid = _xmlid_res_id(rpc, xmlid)
+    if not mid:
+        return None
+    rows = rpc.call("ir.ui.menu", "read", [[mid]], {"fields": ["sequence"]})
+    if not rows:
+        return None
+    return int(rows[0].get("sequence") or 0)
+
+
+def crm_home_state(rpc) -> str:
+    """``first`` when CRM's root menu beats Discuss. Else ``discuss`` or ``-``."""
+    crm_seq = _menu_sequence(rpc, "crm.crm_menu_root")
+    if crm_seq is None:
+        return "-"
+    discuss_seq = _menu_sequence(rpc, "mail.menu_root_discuss")
+    if discuss_seq is None:
+        return "first" if crm_seq <= 1 else "discuss"
+    return "first" if crm_seq < discuss_seq else "discuss"
+
+
+def _crm_status() -> tuple[str, str]:
     if not _odoo_serving():
-        return "unknown"
+        return "unknown", "-"
     try:
         from odoo_rpc import OdooRPC
         rpc = OdooRPC()
@@ -72,9 +108,11 @@ def _crm_module() -> str:
             [[("name", "=", "crm"), ("state", "=", "installed")]],
             {"limit": 1},
         )
-        return "installed" if ids else "missing"
+        if not ids:
+            return "missing", "-"
+        return "installed", crm_home_state(rpc)
     except Exception:
-        return "unknown"
+        return "unknown", "-"
 
 
 def main() -> int:
@@ -83,7 +121,9 @@ def main() -> int:
     print(f"ODOO: {'serving' if _odoo_serving() else 'down'}")
     print(f"POSTGRES: {'up' if _pg_up() else 'down'}")
     print(f"JSON2: {'ok' if _json2_ok() else 'down'}")
-    print(f"CRM: {_crm_module()}")
+    crm, crm_home = _crm_status()
+    print(f"CRM: {crm}")
+    print(f"CRM_HOME: {crm_home}")
     print(f"PROFILE: {'present' if _profile_present() else 'missing'}")
     print(f"EVENT: {implied['event_name'] or '-'}")
     print(f"ADMIN: {implied['owner_email'] or '-'}")

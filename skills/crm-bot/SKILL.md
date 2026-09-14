@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.12
+version: 1.0.13
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -52,8 +52,9 @@ Odoo. You do not need a second Talent.
 
 The first run installs Odoo and the CRM module when you ask, then
 puts the site online. On a box that already has Odoo it only adds
-the CRM module. The team opens the live card from that link. The
-files are already on the box.
+the CRM module. The Odoo app menu opens CRM first, not Discuss.
+The team opens the live card from that link. The files are
+already on the box.
 
 ## What the owner types
 
@@ -77,6 +78,10 @@ python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py
   serving box → [`first-run.md`](references/first-run.md). Stop. Do
   not capture yet.
 - **ODOO: down** → ensure the stack. **Do not invent a lead id.**
+- `CRM_HOME: discuss` →
+  `python3 ~/.hermes/skills/talents/odoo-community/scripts/pin_crm_home.py`
+  `--require-crm`. Expect `CRM_HOME_PINNED`. Then continue this same
+  triage. Do not stop.
 - No password / want the CRM login, and `ADMIN_FILE` is not `owner_set`
   (`bake_placeholder` counts) → load odoo-community
   `references/setup.md`; then continue
