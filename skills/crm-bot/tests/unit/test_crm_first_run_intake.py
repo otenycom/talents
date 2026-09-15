@@ -128,3 +128,16 @@ def test_channel_prompt_does_not_stamp_how_to_answer_about():
     assert "tell me about" not in prompt
     assert "do not recite the command table" not in prompt
     assert "about this talent" not in prompt
+
+
+def test_warm_box_asks_site_name_while_nothing_is_hosted():
+    """A prewarmed box took the warm path and hosted under the ref (hh00554)."""
+    import re
+    first_run = re.sub(r"\s+", " ", (_BUNDLE / "references" / "first-run.md").read_text(encoding="utf-8").lower())
+    assert "omit `site_slug` when `site_name` is `-`" not in first_run
+    assert "list_hosted_websites` shows no site, also ask" in first_run
+    assert "the name in your public web address" in first_run
+    assert "pass `--site-slug` when the owner gave a site name" in first_run
+    profile = re.sub(r"\s+", " ", (_BUNDLE / "agent-profile.yaml").read_text(encoding="utf-8").lower())
+    assert "cold only" not in profile
+    assert "warm box: ask event name, plus the site's public name" in profile

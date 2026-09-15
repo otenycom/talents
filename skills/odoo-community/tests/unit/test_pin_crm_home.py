@@ -34,11 +34,27 @@ def test_apply_pin_skips_when_crm_is_missing():
     assert commits == []
 
 
+class _Admin:
+    """res.users as Odoo 19 treats Home Action: a Many2one to ir.actions.actions.
+
+    Assigning a record of the concrete ir.actions.server model raises the same
+    ValueError the real ORM raises, so a test cannot pass on a record write.
+    """
+
+    def __init__(self, action_id):
+        object.__setattr__(self, "action_id", action_id)
+
+    def __setattr__(self, name, value):
+        if name == "action_id" and not isinstance(value, int):
+            raise ValueError(f"Wrong value for res.users.action_id: {value!r}")
+        object.__setattr__(self, name, value)
+
+
 def test_apply_pin_writes_sequence_and_home_action():
     mod = _load()
     crm = _Rec(sequence=25)
     action = _Rec(id=91)
-    admin = _Rec(action_id=_Rec(id=False))
+    admin = _Admin(action_id=_Rec(id=False))
     table = {
         mod.CRM_MENU: crm,
         mod.CRM_ACTION: action,
@@ -52,7 +68,7 @@ def test_apply_pin_writes_sequence_and_home_action():
     line = mod.apply_pin(ref, lambda: commits.append(1))
     assert line == "CRM_HOME_PINNED sequence,home_action"
     assert crm.sequence == 1
-    assert admin.action_id is action
+    assert admin.action_id == 91
     assert commits == [1]
 
 

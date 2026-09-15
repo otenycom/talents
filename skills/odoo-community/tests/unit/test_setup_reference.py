@@ -48,3 +48,14 @@ def test_setup_owns_public_url_live_recipe():
     assert "do not send that url yet" in text
     assert "do not add your own sleep" in text
     assert "do not `curl`" in text or "do not curl" in text
+
+
+def test_site_name_is_asked_while_no_site_is_hosted_not_only_cold():
+    """A prewarmed box has Odoo and no public address (hh00554, 2026-09-15)."""
+    import re
+    text = re.sub(r"\s+", " ", _SETUP.lower())
+    assert "only when `engine` is missing" not in text
+    assert "cold installs only" not in text
+    assert "list_hosted_websites` shows no site" in text
+    assert "prewarmed box" in text
+    assert "when a site is already hosted, do not ask" in text

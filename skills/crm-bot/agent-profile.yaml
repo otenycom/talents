@@ -62,7 +62,8 @@ routing:
     turn.
     Cold box: ask Event Name; if ADMIN or LANGUAGE is missing, or
     ADMIN_FILE is not owner_set, load odoo-community references/setup.md
-    (also where the site's public name is asked, cold only — call it
+    (also where the site's public name is asked while no site is
+    hosted — call it
     "the name in your public web address," never "slug"), then the
     secure password link, then install and host_website with that
     site_slug. On slug_taken, retry twice on your own with a random
@@ -72,7 +73,9 @@ routing:
     give the URL only when PUBLIC_URL_READY and edge_reachable
     (odoo-community references/setup.md "Bot notes — public URL is
     live").
-    Warm box: ask only Event Name; copy ADMIN, LANGUAGE, and
+    Warm box: ask Event Name, plus the site's public name when
+    SITE_NAME is - and list_hosted_websites shows no site (a
+    prewarmed box has none); copy ADMIN, LANGUAGE, and
     ADMIN_FILE from preflight; run install_modules.sh crm; then
     pin_crm_home.py --require-crm so the app menu opens CRM
     first, not Discuss. A prewarmed box's ADMIN_FILE:

@@ -13,9 +13,9 @@ not land.
 
     On a warm box the sibling WebsiteBot profile / ``.odoo-admin``
     already hold email and language. Then ``--owner-email`` and
-    ``--language`` may be omitted. ``--site-slug`` is a cold-install
-    fact only (odoo-community ``references/setup.md``) — omit it on a
-    warm box.
+    ``--language`` may be omitted. Pass ``--site-slug`` on any box where
+    the owner gave a site name (odoo-community ``references/setup.md``):
+    a prewarmed box has Odoo but no public address yet.
 
 Exit 0 + ``PROFILE_WRITTEN <path>`` on success.
 Exit 1 + ``PROFILE_WRITE_FAILED …`` on failure.

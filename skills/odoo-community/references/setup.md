@@ -2,7 +2,7 @@
 
 This file owns the owner facts every Odoo module Talent shares:
 admin email, language, and password always; the public site name
-only on a fresh install (no other Talent asks it once this file
+while no site is hosted yet (no other Talent asks it once this file
 has). Install is a different file:
 [`first-run.md`](first-run.md). That file starts Odoo when the
 owner asks. This file does not install.
@@ -21,19 +21,22 @@ Do not start a new full confirm.
    Never treat `admin` as the owner email.
 2. **Language** — offer to detect / use what the profile already
    knows.
-3. **Site name** — only when `ENGINE` is missing (a fresh
-   install). Ask for "the name in your public web address" —
-   never say "slug." Offer the tenant ref as a default if they
-   have no preference. On a warm box, do not ask this; the
-   address (if any) already exists.
+3. **Site name** — ask when no public site exists yet:
+   preflight `SITE_NAME` is `-` and `list_hosted_websites` shows
+   no site. This holds on a prewarmed box that already has Odoo,
+   the same as on a box without Odoo, because a prewarmed box has
+   no public address. Ask for "the name in your public web
+   address" — never say "slug." Offer the tenant ref as a default
+   if they have no preference. When a site is already hosted, do
+   not ask; keep that address.
 
 Then send the secure password link. Never ask them to type a
 password in chat.
 
 A module Talent must not re-ask a field this file already has.
 Event Name and other module-specific extras stay on that Talent.
-The site's public name is covered here, cold installs only — see
-below.
+The site's public name is covered here, and only while no site is
+hosted — see below.
 
 ## Where those facts live
 

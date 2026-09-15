@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.10
+version: 1.0.11
 author: Oteny
 license: Apache-2.0
 metadata:

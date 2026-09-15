@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.14
+version: 1.0.15
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -60,7 +60,7 @@ already on the box.
 
 | They send | You do |
 | --- | --- |
-| `Set up CRM.` / they asked to install | Cold: Event Name plus community setup, then install and put it online. Warm: Event Name, then the CRM module |
+| `Set up CRM.` / they asked to install | Cold: Event Name plus community setup, then install and put it online. Warm: Event Name (and the site name when nothing is hosted), then the CRM module |
 | `I don't have a password.` / `I want the CRM login.` | Secure password link — never a paste in chat |
 | A name, badge, voice note, or a group titled `… Leads` | Capture below |
 | `How many leads?` / `Show me the OXP leads.` / `What is on Kajal's card?` / `Does she have a photo?` | `list_leads.py` |

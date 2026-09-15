@@ -1,0 +1,23 @@
+# Live e2e: prewarmed box. Every new bot now ships with Odoo inside
+# and no public site, so preflight says ENGINE: installed and
+# ADMIN_FILE: bake_placeholder. On 2026-09-15 hh00554 took the warm
+# path, never asked a site name, and went online as hh00554.oteny.bot.
+# Run on a fresh dev bot (the same parent image as an OT-TRY signup),
+# never on a clone of a bot that already hosts a site.
+bot: crm-bot
+live_only: true
+
+turns:
+  - user: "set up CRM for the booth"
+    reply_timeout: 360
+    expect:
+      reply:
+        contains_any: ["email", "language"]
+        contains: ["web address"]
+        not_contains:
+          - "Shall I"
+          - "slug"
+          - "CRM is ready"
+      trace:
+        markers:
+          - "crm-bot"

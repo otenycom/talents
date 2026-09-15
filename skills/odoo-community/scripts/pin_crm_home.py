@@ -53,7 +53,9 @@ def apply_pin(ref, commit) -> str:
         current = getattr(getattr(admin, "action_id", None), "id", None)
         want = getattr(action, "id", None)
         if current != want:
-            admin.action_id = action
+            # Home Action is a Many2one to ir.actions.actions. Odoo 19 refuses
+            # a record of the concrete ir.actions.server model, so assign the id.
+            admin.action_id = want
             changed.append("home_action")
     commit()
     if changed:
