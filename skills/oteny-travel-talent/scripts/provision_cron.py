@@ -73,7 +73,7 @@ DEFAULT_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
 # The fallback is the `assistant` persona alias, never the raw OpenRouter slug —
 # the router/metering proxy 400s anything but an alias as `unknown model`.
 _FALLBACK_MODEL = "assistant"
-_FALLBACK_PROVIDER = "router"
+_FALLBACK_PROVIDER = "oteny_router"
 
 # Tunables (quarantined numerics — the translator leaves them byte-identical).
 MONITOR_EVERY_H = 6        # disruption check cadence within the window

@@ -64,7 +64,7 @@ DEFAULT_AGENT_PROFILE = Path(__file__).resolve().parent.parent / "agent-profile.
 # anything else with HTTP 400 `unknown model '~google/gemini-flash-latest'`, which is
 # exactly how cron jobs fail when pinned to the raw slug.
 _FALLBACK_MODEL = "assistant"
-_FALLBACK_PROVIDER = "router"
+_FALLBACK_PROVIDER = "oteny_router"
 
 
 def read_model_provider(config_path: str = DEFAULT_CONFIG) -> tuple[str, str]:

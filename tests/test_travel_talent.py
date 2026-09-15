@@ -160,7 +160,7 @@ _REF = datetime(2026, 8, 1)
 
 
 def test_cron_trip_specs_shape_and_self_expiry():
-    specs = pc.build_trip_specs(_TRIP, model="assistant", provider="router", ref=_REF)
+    specs = pc.build_trip_specs(_TRIP, model="assistant", provider="oteny_router", ref=_REF)
     kinds = {s["kind"]: s for s in specs}
     assert set(kinds) == {"monitor", "briefing", "review"}
     # monitor: every 6h across (start − 2d) … (end + 1d) = Sep 8–15, bounded (auto-deletes)
@@ -179,19 +179,19 @@ def test_cron_trip_specs_shape_and_self_expiry():
 def test_cron_jobs_pin_model_and_provider():
     # config.yaml carries the persona alias `assistant` (what render_config_yaml writes),
     # NOT a raw OpenRouter slug, which the router 400s (D55).
-    specs = pc.build_trip_specs(_TRIP, model="assistant", provider="router", ref=_REF)
+    specs = pc.build_trip_specs(_TRIP, model="assistant", provider="oteny_router", ref=_REF)
     for s in specs:
-        assert s["model"] == "assistant" and s["provider"] == "router"
+        assert s["model"] == "assistant" and s["provider"] == "oteny_router"
 
 
 def test_cron_model_provider_read_and_fallback(tmp_path):
     cfg = tmp_path / "config.yaml"
-    cfg.write_text("model:\n  provider: router\n  model: assistant\n")
-    assert pc.read_model_provider(str(cfg)) == ("assistant", "router")
+    cfg.write_text("model:\n  provider: oteny_router\n  model: assistant\n")
+    assert pc.read_model_provider(str(cfg)) == ("assistant", "oteny_router")
     # missing config -> the assistant alias, never the raw slug, never empty
-    assert pc.read_model_provider(str(tmp_path / "absent.yaml")) == ("assistant", "router")
+    assert pc.read_model_provider(str(tmp_path / "absent.yaml")) == ("assistant", "oteny_router")
     for s in pc.build_trip_specs(_TRIP, ref=_REF):
-        assert s["model"] == "assistant" and s["provider"] == "router"
+        assert s["model"] == "assistant" and s["provider"] == "oteny_router"
 
 
 def test_cron_listfirst_excludes_registered(tmp_path):
@@ -208,7 +208,7 @@ def test_cron_listfirst_excludes_registered(tmp_path):
 def test_cron_flight_claim_one_shot():
     booking = {"id": 5, "booking_ref": "TP661", "carrier": "TAP",
                "end_ts": "2026-09-10T11:55"}
-    spec = pc.build_flight_claim_spec(_TRIP, booking, model="assistant", provider="router")
+    spec = pc.build_flight_claim_spec(_TRIP, booking, model="assistant", provider="oteny_router")
     assert spec["schedule"] == "2026-09-11T12:00"   # day after arrival
     assert spec["repeat"] == 1 and spec["kind"] == "eu261"
     assert "TP661" in spec["name"] and spec["model"] == "assistant"
@@ -422,7 +422,7 @@ def test_imminent_cron_spec_for_train_leg():
     ref = datetime(2026, 6, 30, 9, 0)
     spec = pc.build_imminent_spec(
         trip, {"id": 3, "kind": "train", "booking_ref": "IC700",
-               "start_ts": "2026-06-30T14:05"}, model="assistant", provider="router", ref=ref)
+               "start_ts": "2026-06-30T14:05"}, model="assistant", provider="oteny_router", ref=ref)
     assert spec is not None and spec["kind"] == "monitor"
     assert "track-watch" in spec["name"] and "IC700" in spec["name"]
     assert spec["schedule"] == "*/15 13-14 30-30 6 *"   # the 2-hour band on the departure day

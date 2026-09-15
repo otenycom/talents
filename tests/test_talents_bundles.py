@@ -206,15 +206,15 @@ def test_cron_jobs_pin_declared_lite_model(tmp_path):
     # job would fire with an empty model and the router 400s (D40). The config model is
     # only the fallback for a job the policy doesn't pin.
     cfg = tmp_path / "config.yaml"
-    cfg.write_text("model:\n  provider: router\n  model: builder\n")   # owner picked builder for chat
+    cfg.write_text("model:\n  provider: oteny_router\n  model: builder\n")   # owner picked builder for chat
     model, provider = pc.read_model_provider(str(cfg))
-    assert model == "builder" and provider == "router"
+    assert model == "builder" and provider == "oteny_router"
     p = pc.plan({"timezone": "Europe/Amsterdam"}, str(tmp_path / "nojobs.json"),
                 model=model, provider=provider)   # reads the real FlatBelly crons: policy
     assert p["to_create"], "expected jobs to plan"
     for s in p["to_create"]:
         assert s.get("model") == "lite", s["name"]   # policy wins over the builder chat model
-        assert s.get("provider") == "router"
+        assert s.get("provider") == "oteny_router"
 
 
 def test_cron_model_fallback_when_no_policy(tmp_path):
@@ -222,9 +222,9 @@ def test_cron_model_fallback_when_no_policy(tmp_path):
     # persona alias the router accepts (never the raw OpenRouter slug, which 400s). With an
     # empty policy the fallback `assistant` is used, so a spec is never un-pinned.
     model, provider = pc.read_model_provider(str(tmp_path / "absent.yaml"))
-    assert model == "assistant" and provider == "router"
+    assert model == "assistant" and provider == "oteny_router"
     for s in pc.build_specs({"timezone": "Europe/Amsterdam"}, cron_policy={}):
-        assert s["model"] == "assistant" and s["provider"] == "router"
+        assert s["model"] == "assistant" and s["provider"] == "oteny_router"
 
 
 def test_cron_schedule_is_local_wall_clock():

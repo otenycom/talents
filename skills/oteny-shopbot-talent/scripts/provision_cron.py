@@ -59,7 +59,7 @@ DEFAULT_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
 # The fallback is the `assistant` PERSONA ALIAS, never the raw OpenRouter slug (the
 # router rejects a raw slug with HTTP 400 `unknown model`).
 _FALLBACK_MODEL = "assistant"
-_FALLBACK_PROVIDER = "router"
+_FALLBACK_PROVIDER = "oteny_router"
 # cron day-of-week (0=Sun) for the weekly nudge keywords.
 _DOW = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
 

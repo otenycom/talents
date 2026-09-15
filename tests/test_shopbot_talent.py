@@ -228,8 +228,8 @@ def test_weekly_nudge_cron_pins_model_and_provider(tmp_path):
     pc = load(SHOPBOT / "scripts" / "provision_cron.py", "pc_shop")
     profile = {"timezone": "Europe/Amsterdam", "reminders": {"weekly_shop": "Sat 09:00"}}
     p = pc.plan(profile, str(tmp_path / "nojobs.json"),
-                model="assistant", provider="router", ref=datetime(2026, 7, 1))
+                model="assistant", provider="oteny_router", ref=datetime(2026, 7, 1))
     assert len(p["to_create"]) == 1
     job = p["to_create"][0]
-    assert job["model"] == "assistant" and job["provider"] == "router"
+    assert job["model"] == "assistant" and job["provider"] == "oteny_router"
     assert job["schedule"] == "0 7 * * 6"
