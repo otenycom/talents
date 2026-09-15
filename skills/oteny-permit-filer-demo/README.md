@@ -1,6 +1,6 @@
-# Permit Filer (demo) — the runnable business-bot reference
+# Permit Filer (demo) — the runnable restricted Talent reference
 
-A complete, copyable example of a **scoped, portal-filing business bot**: the kind
+A complete, copyable example of a **portal-filing restricted Talent**: the kind
 of Talent that reads a job from a system of record, drives a government-style web
 portal, and writes provable results back — without ever fabricating an outcome.
 Everything a real one has, at toy scale, against a portal you run yourself.
@@ -9,12 +9,12 @@ Everything a real one has, at toy scale, against a portal you run yourself.
 
 | In this bundle | The pattern | Explained in |
 | --- | --- | --- |
-| `agent-profile.yaml` — minimal toolbox + `connections.portal` tier binding | scope-lock; stub-double | `business-bot-pattern.md` §2, §5 |
-| `permit-filing/SKILL.md` — snapshot, then native click/type per field, then *Next* | page-shaped fill | `business-bot-pattern.md` §6; `browser-authoring.md` |
+| `agent-profile.yaml` — minimal toolbox + `connections.portal` tier binding | scope-lock; stub-double | `restricted-talent-pattern.md` §2, §5 |
+| `permit-filing/SKILL.md` — snapshot, then native click/type per field, then *Next* | page-shaped fill | `restricted-talent-pattern.md` §6; `browser-authoring.md` |
 | `permit-filing/references/form-selectors.md` — the shipped selector map (+ how it was derived) | skills ship selectors; snapshots show refs, not CSS | `browser-authoring.md` |
-| write-ahead `PENDING-…` → explicit submit → number read off the page | fail-closed + the crash fence | `business-bot-pattern.md` §4 |
+| write-ahead `PENDING-…` → explicit submit → number read off the page | fail-closed + the crash fence | `restricted-talent-pattern.md` §4 |
 | `tests/scenarios/` — a mock-green happy path + a live-only fail-closed probe | scenario grammar; mutually-exclusive classes | `oteny-talent-dev-loop` |
-| `scripts/demo_portal.py` — the local portal with an `/_audit` ground-truth endpoint | test against a double you own | `business-bot-pattern.md` §5 |
+| `scripts/demo_portal.py` — the local portal with an `/_audit` ground-truth endpoint | test against a double you own | `restricted-talent-pattern.md` §5 |
 
 **Try it in five minutes (no bot needed):**
 
@@ -34,9 +34,10 @@ it as the stub endpoint at commission (`spinup_config:
 platform binds it to `OTENY_CONN_PORTAL_BASE_URL` on the box). Then seed a row
 (`permit-filing/references/first-run.md`) and hand the bot the job.
 
-**What a real business bot changes:** the local sqlite becomes your client's own
-system reached over `odoo_client(connection=…)` (declared under `connections:` —
-see `business-bot-pattern.md` §3), `terminal` drops off the toolbox, the portal
+**What a real restricted Talent changes:** the local sqlite becomes your
+client's own system reached over `odoo_client(connection=…)` (declared under
+`connections:` — see `restricted-talent-pattern.md` §3), `terminal` drops off
+the toolbox, the portal
 connection's `real_url`/`fence_hosts` become the real host, and the wizard grows the things
 real portals have (login walls → `connect_login`/`browser_request_human`;
 search-then-pick interludes → never batched).

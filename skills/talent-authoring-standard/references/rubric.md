@@ -14,8 +14,8 @@ reads** (not keyword matches) — see [copy-and-tools.md](copy-and-tools.md).
   job passes its scenarios (incl. red) on — **unless** the job performs an irreversible
   external side effect or makes consequential claims (filings, payments, submissions),
   in which case declare `model_tier: builder` as the floor (see
-  [references/business-bot-pattern.md](business-bot-pattern.md) "Choosing the
-  model tier", D235). A Talent **must** ship one.
+  [references/restricted-talent-pattern.md](restricted-talent-pattern.md)
+  "Choosing the model tier", D235). A Talent **must** ship one.
 - Optional `requires: {substrate, min_tier}` — a hardware need; lint check 15 enforces
   vm→max. Absent = any tier.
 - Optional `task_escalations:` — steer a fabrication-prone **task** to a stronger model
@@ -23,7 +23,8 @@ reads** (not keyword matches) — see [copy-and-tools.md](copy-and-tools.md).
   [references/model-escalation.md](model-escalation.md).
 - Optional `doc_twin:` on a selector manifest — names its human-readable per-page map;
   **lint check 17** then FAILs on any drift between the twin `#id`/attribute field+submit
-  selectors (see [references/business-bot-pattern.md](business-bot-pattern.md) §4e).
+  selectors (see
+  [references/restricted-talent-pattern.md](restricted-talent-pattern.md) §4e).
 - `required_artifacts.yaml` present and complete (see above).
 - `references/` for on-demand detail; `scripts/` for deterministic helpers (both
   optional). A multi-skill Talent: each composing skill independently valid.
@@ -68,10 +69,11 @@ tells the bot to collect a secret in chat.
 - Per-bot **voice lives in the skill**, not a global SOUL.
 - Group/chat ids are **looked up at runtime** (from `channel_directory.json`),
   never hardcoded.
-- **Scoped business bots usually route to Odoo Discuss** (Telegram allowed when that is
-  the team's surface) — and shift the toolset (checks 1 + 9), data plane (`odoo_client` +
-  named `connections:`, channel-agnostic — checks 2 + 6), and tests (check 14) accordingly;
-  the full authoring delta is [`references/business-bot-pattern.md`](business-bot-pattern.md).
+- **Restricted Talents usually route to Odoo Discuss** (Telegram allowed when
+  that is the team's surface) — and shift the toolset (checks 1 + 9), data plane
+  (`odoo_client` + named `connections:`, channel-agnostic — checks 2 + 6), and
+  tests (check 14) accordingly; the full authoring delta is
+  [`references/restricted-talent-pattern.md`](restricted-talent-pattern.md).
 - **Every outside system is a named `connections:` entry**, and there are four kinds. A
   `kind: saas` entry names a third-party account the OWNER grants, so the platform can
   gate the Talent's readiness on it rather than letting the bot half-work. The declaration
@@ -119,7 +121,7 @@ tells the bot to collect a secret in chat.
   refused. A last-page summary vs this turn's uplink DTO is Talent
   work, not wrap. The wrap does not judge a missing mapped field.
   Worked snapshot (role vs neighbour widgets vs remint):
-  [`business-bot-pattern.md`](business-bot-pattern.md) §4g.
+  [`restricted-talent-pattern.md`](restricted-talent-pattern.md) §4g.
   Do not hand-edit generated `TOOLS.md` / `tools-catalog.md`. The bot-facing
   click / type / snapshot / navigate contract is the `hh-browser` schema wrap.
 

@@ -283,7 +283,7 @@ class LiveDriver:
         self._post_message = post_message
         # A no-Telegram (business-bot) clone's source of truth is the business Odoo, NOT a
         # local sqlite db — so a scenario asserts ground truth over /json/2/ (the
-        # business-bot-pattern §5 data-plane check), not over ``scalar``/``rows``.
+        # restricted-talent-pattern §5 data-plane check), not over ``scalar``/``rows``.
         # ``uplink_call`` is the async ``(model, method, **kw) -> result`` the Discuss
         # transport already uses; the ``test`` verb injects the live OdooClient.call here.
         self._uplink_call = uplink_call
@@ -413,7 +413,7 @@ class LiveDriver:
 
     def assert_uplink(self, spec: dict) -> dict:
         """Assert ONE ground-truth check over the business Odoo via /json/2/ — the
-        business-bot-pattern §5 data-plane assertion (read back the records a turn should
+        restricted-talent-pattern §5 data-plane assertion (read back the records a turn should
         have written/changed). A scenario turn declares these under ``expect.uplink:``::
 
             uplink:

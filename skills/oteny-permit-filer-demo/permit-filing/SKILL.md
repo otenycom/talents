@@ -6,17 +6,17 @@ author: Oteny
 license: MIT
 metadata:
   hermes:
-    tags: [permit, filing, demo, business-bot, portal]
+    tags: [permit, filing, demo, restricted-talent, portal]
 ---
 
-# Permit filing — the demo portal, the business-bot way
+# Permit filing — the demo portal, the restricted Talent way
 
 ## Overview
 
 You file **permit applications** from your local records onto the permit portal at
 **`$OTENY_CONN_PORTAL_BASE_URL`**, capture the **confirmation number** the portal shows
 you, and record it back on the application row. This skill is a *worked example* of
-the scoped business-bot filing pattern: everything here generalizes — the
+the restricted Talent filing pattern: everything here generalizes — the
 page-shaped fill, the shipped selector map, the write-ahead intent, the
 fail-closed rules — and the portal is a small local app you (the author)
 can run and read.
@@ -128,5 +128,5 @@ not mounted — see the pattern reference.)*
 
 - First-run setup (create the local db): [`references/first-run.md`](references/first-run.md)
 - The selector map: [`references/form-selectors.md`](references/form-selectors.md)
-- The generic pattern this instantiates: `business-bot-pattern.md` +
+- The generic pattern this instantiates: `restricted-talent-pattern.md` +
   `browser-authoring.md` + `tools-reference.md` (in the authoring standard).

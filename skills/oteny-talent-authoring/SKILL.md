@@ -51,10 +51,11 @@ skill, which I read first.
 
 Don't use for: one-off tasks (just do them); editing an Oteny Talent already
 installed (those are control-plane managed and replaced on upgrade — customize via the
-override file, see rule 7); a **scope-locked business bot** — its platform disables in-box
-skill creation, runtime memory, and edits to the delivered Talent tree (read-only), so its
-Talents are authored in the source repo and delivered, never built in chat (see the
-authoring standard's `business-bot-pattern.md`).
+override file, see rule 7); a bot that runs a **Talent with restricted
+self-learning** — its platform disables in-box skill creation, runtime memory,
+and edits to the delivered Talent tree (read-only), so its Talents are authored
+in the source repo and delivered, never built in chat (see the authoring
+standard's `restricted-talent-pattern.md`).
 
 ## Step 0 — defer to the native authoring skill
 
@@ -130,8 +131,9 @@ Talent alike.
      welcome), the `skills:` it bundles, `voice_skill:`, `base_language`, `model_tier`
      (defaults to the bot's tier; declare `builder` as a floor for a **side-effecting
      job** — a filing, payment, or submission — see the authoring standard's
-     business-bot-pattern "Choosing the model tier", D235), and a `routing:` block with a
-     `channel_prompt` + `signature`. Two optional self-learning knobs:
+     restricted-talent-pattern "Choosing the model tier", D235), and a
+     `routing:` block with a `channel_prompt` + `signature`. Two optional
+     self-learning knobs:
      `self_modification: locked` (the bot may not edit this Talent from inside its own
      box; undeclared means unlocked, and the bot may improve its own Talent) and
      `browser: record: always | on_miss | off` (how much of what the bot sees on a
@@ -180,7 +182,7 @@ Talent alike.
    result already has the tree. First look is navigate or the first attached
    result. Write Hands that way. Type by the printed accessible name, not a
    chat sticker — worked snapshot in
-   [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4g.
+   [`restricted-talent-pattern.md`](../talent-authoring-standard/references/restricted-talent-pattern.md) §4g.
    The how-to is
    [`browser-authoring.md`](../talent-authoring-standard/references/browser-authoring.md).
    `TOOLS.md` is generated from the platform catalog — do not hand-edit it. The

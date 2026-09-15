@@ -239,7 +239,7 @@ Open Barney's `agent-profile.yaml` and `SKILL.md` and read them top to bottom �
 are the cleanest template for a new scoped bot. The generic authoring delta for this
 class — Discuss routing, the locked toolset, named odoo connections + `odoo_client`,
 portal connections, and stub doubles — is
-[`skills/talent-authoring-standard/references/business-bot-pattern.md`](../skills/talent-authoring-standard/references/business-bot-pattern.md).
+[`skills/talent-authoring-standard/references/restricted-talent-pattern.md`](../skills/talent-authoring-standard/references/restricted-talent-pattern.md).
 Author vocabulary: [`skills/glossary.md`](../skills/glossary.md).
 
 ---

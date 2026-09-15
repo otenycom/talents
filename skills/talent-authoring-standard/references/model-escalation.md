@@ -80,8 +80,9 @@ you can name the skill that carries it.
 - The escalation is **sticky per task, never per message** (so it doesn't thrash), has a
   soft per-task rate limit and a safety time-out that drops it back if the bot forgets,
   and **cron / background work never follows it**.
-- A **locked business bot** (a scoped, single-Talent bot) is exempt: it renders no task
-  table and refuses a `task=` switch, so nothing can knock it off its pinned model.
+- A **restricted Talent** (a scoped, single-Talent bot) is exempt: it renders
+  no task table and refuses a `task=` switch, so nothing can knock it off its
+  pinned model.
 
 ## Why it exists
 

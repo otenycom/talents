@@ -46,8 +46,9 @@ The one loop you actually run, and what each step *does*:
    deliver. Also runs in CI on push.
 3. **Get a container to test on** — `oteny clone --source <a source you may touch>` mints a
    disposable bot (`{ref: hh0…}`). This is the "set up a dev container" step — one command, no
-   infra. (A business bot points its uplink at a **staging** business Odoo; `neutralize.yaml`
-   repoints connections + stubs any real portal/mailbox before it serves.)
+   infra. (A company's bot points its uplink at a **staging** business Odoo;
+   `neutralize.yaml` repoints connections + stubs any real portal/mailbox before
+   it serves.)
 4. **Deliver your change** — push first, then `reload --ref <clone>`. Oteny pulls the
    pushed commit onto the clone (stage → swap → gate → auto-rollback). Unpushed files
    never reach the bot. Wait until `last_status` is `delivered` — `active` is not enough
@@ -58,8 +59,8 @@ The one loop you actually run, and what each step *does*:
    cannot linger and leave a false PASS, so there is no separate "clean the tree" step.
 6. **Review results** — a red run tells you which turn failed and why; open `traces --ref <clone>`
    (the tool-by-tool debug eye) or `logs --ref <clone>` (live gateway markers). Fix, push, repeat.
-   For a business bot you can also just hand the job in the business Odoo and read the bot's
-   activity log — same truth, no CLI.
+   For a Discuss bot you can also just hand the job in the business Odoo and
+   read the bot's activity log — same truth, no CLI.
 7. **Decide to promote** — green + lint-clean → **merge** to the staging branch (auto-delivers to
    staging), shake it out live, then **tag** the release for prod. Roll back = re-tag the last good
    version. That's the whole ladder.
@@ -90,8 +91,8 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | Still staff-gated / partner-only today | Author substitute |
 | --- | --- |
 | Fleet admission / account mint for **arbitrary** outside authors (trusted partners already hold keys) | Offline lint + mock scenarios; Hand to Barney + Bot Activity when you have a bot but not the CLI key |
-| Telegram DM transport on `oteny test` | Discuss (business bots); Telegram is Phase 2 |
-| **`oteny test --transport cli`** — the channel-free hermes oneshot. It exits **rc=127** with empty stderr: the command runs a bare `hermes`, and on the box that binary sits at `~/.local/bin/hermes` under uid **1001**, which the account-scoped shell does not resolve (verified 2026-08-25) | Use `--transport discuss` on a business bot. That needs the target Odoo's uplink key **as well as** your account key, and its failure is a bare `HTTP 401 from res.users/search_read` that names neither. Otherwise drive the bot by hand and read `oteny traces`. |
+| Telegram DM transport on `oteny test` | Discuss (Discuss bots only); Telegram is Phase 2 |
+| **`oteny test --transport cli`** — the channel-free hermes oneshot. It exits **rc=127** with empty stderr: the command runs a bare `hermes`, and on the box that binary sits at `~/.local/bin/hermes` under uid **1001**, which the account-scoped shell does not resolve (verified 2026-08-25) | Use `--transport discuss` on a Discuss bot. That needs the target Odoo's uplink key **as well as** your account key, and its failure is a bare `HTTP 401 from res.users/search_read` that names neither. Otherwise drive the bot by hand and read `oteny traces`. |
 | One-push CI drain (`request-staging-run` worker always-on) | Poll helpers exist on `oteny`; platform still drains the queue |
 | Prod-tier real external portals, submit-deny, SMS 2FA | Stub / neutralized doubles |
 | Private control-plane commission / `logs-pull` / node shell | `request_dev_bot` + `oteny` + box access |
@@ -102,7 +103,7 @@ secrets) for ordinary Talent work, treat that as a **footgun** — use `oteny` i
 | **Thought-trail reader** (staff; hermeshost `scripts/read_thought_trail.py`) | The host already stores reasoning deltas in the metered payload. Ask staff for a `--mode themes` count. Keep the output out of git. A string-search miss is not proof that capture is off. There is **no** `oteny traces --thinking` yet. |
 | **Steel clip / frame download** (staff `steel-key`) | Bot Activity **Replay** is the player (48 h). There is no author verb to pull a frame at a tool clock. Do not ask for a vendor key. |
 
-*Business-bot canary:* a client repo (e.g. CrewRadar/Barney) provisions with
+*Barney canary:* a client repo (e.g. CrewRadar/Barney) provisions with
 **`provision_barney.py --tier …`** (or launch **`barney-provision-*`**) + the Cuneus account key;
 graded runs use **`oteny test --bundle-dir …`** from this recipe — not hermeshost staff secrets.
 The platform returns **`claim_dev_bot_client_ingress`** as a three-token bundle (login-gate,
@@ -199,7 +200,7 @@ uv pip install -e ~/oteny/talents/packages/oteny
 ```
 
 Auth: `--api-key-file` or `OTENY_ACCOUNT_KEY` → your **account** key file (0600).
-Business-bot Discuss scenarios also need `tests/discuss.yaml` → `tester_key_file`
+Discuss-bot scenarios also need `tests/discuss.yaml` → `tester_key_file`
 (CrewRadar tester — not the Oteny account key). `OTENY_TESTER_KEY_FILE` in the
 environment overrides that path, so two lanes (two business databases with two
 tester keys) run the same committed bundle without an edit to the yaml.
@@ -218,7 +219,7 @@ OTENY_TESTER_KEY_FILE=~/.oteny/secrets/<lane>-tester-key \
 The database is the one the tunnel serves; only the address moves. Without the
 override the driver fails on the tunnel's edge login page, which is not a bot fault.
 
-Transports for `oteny test`: **Discuss** (business bots / `hand_off`), **CLI**
+Transports for `oteny test`: **Discuss** (Discuss bots / `hand_off`), **CLI**
 (`hermes chat` oneshot over box-access — plain chat turns), auto-pick. **Telegram
 DM is Phase 2** (not in this package yet).
 
@@ -251,11 +252,11 @@ oteny test --api-key-file ./account.key --ref hh00231 \
 oteny traces --api-key-file ./account.key --ref hh00231
 ```
 
-## Business-bot Talents (workflow / team chat + odoo data plane)
+## Restricted Talents (workflow / team chat + odoo data plane)
 
-A **business-bot** Talent (source of truth is a business Odoo over `/json/2/` via
+A **restricted** Talent (source of truth is a business Odoo over `/json/2/` via
 `odoo_client` + named `connections:`, not a local sqlite db; chat is usually Odoo
-`discuss`, Telegram allowed — see `business-bot-pattern` §1/§3) tests the
+`discuss`, Telegram allowed — see `restricted-talent-pattern` §1/§3) tests the
 same way, with three differences:
 
 - **Scenarios are `live_only`** and assert **`uplink`** ground truth, not `state` over a local
@@ -295,8 +296,9 @@ same way, with three differences:
 `test --ref <clone> --bundle <slug>` runs these the same way; the driver skips the gateway's
 progress frames ("⏳ Working…") and grades the final narration + the uplink asserts.
 
-**Reading a business-bot run (the same eye, three front-ends).** When a dispatch is running you
-get a live tool-by-tool picture — `✅`/`⚠️` per `/json/2/` call, with the method and, on a failure,
+**Reading a restricted Talent's run (the same eye, three front-ends).** When a
+dispatch is running you get a live tool-by-tool picture — `✅`/`⚠️` per
+`/json/2/` call, with the method and, on a failure,
 the HTTP class **and the offending model** (e.g. `⚠️ … riverflow.service.search_read — 403
 access-denied (crewradar.site.type)`). An **operator** sees this narrated straight into the Discuss
 channel (a verbose-flagged dispatch); **you, the author, read the identical picture** — you do not
@@ -316,7 +318,7 @@ inventory. `selector-audit` and `browser-diff` still live in hermeshost.
 An outside author cannot run them on Path B today. Until they land on
 `oteny`, harvest the accessible name from `traces` and put that name first.
 Pattern + manifest format:
-[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4e.
+[`restricted-talent-pattern.md`](../talent-authoring-standard/references/restricted-talent-pattern.md) §4e.
 
 **The pages your bot saw — the page archive (`--photos`).** The platform keeps every
 page a browser-driven bot sees on a portal: the visible text, the exact tree the bot
@@ -354,7 +356,7 @@ a compaction too. Check it in a trace: every model request of the run carries th
 prove it survives a compaction on a dev bot you need a lower compaction point
 (`compression.threshold_tokens`, dev bots only, floored at 80,000); setting it needs Oteny
 staff today. The pattern and its rule are in
-[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §6.
+[`restricted-talent-pattern.md`](../talent-authoring-standard/references/restricted-talent-pattern.md) §6.
 
 **Grading a click: did it stick?** Since 2026-08-25 an action row carries more than
 "the tool returned success". It names the snapshot ref your bot acted on, what that ref
@@ -453,7 +455,7 @@ a run did the wrong thing.
 **Who owns it.** The **Talent author** (author #1 under the owner's account) owns the repair.
 When no author is on retainer, the **operator opens a repair ticket to the author and the bot
 stays in attended mode** (approval gate ON — see the graduation ladder in
-[`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md) §4f)
+[`restricted-talent-pattern.md`](../talent-authoring-standard/references/restricted-talent-pattern.md) §4f)
 until a fix ships. A business *user* never edits the Talent — they **report**; the author
 **repairs**.
 
@@ -659,8 +661,8 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   behavioral truth) rather than pinning exact wording.
 - **`test` red, trace marker missing/unexpected** — the tool you expected didn't run (or a
   forbidden one did). `logs --ref <clone>` shows `tool <name> completed`; a missing
-  toolset means the platform lock or a `check_fn` gate dropped it (a business bot mounts only
-  its `toolset_contribution`).
+  toolset means the platform lock or a `check_fn` gate dropped it (a Talent
+  with restricted tool use mounts only its `toolset_contribution`).
 - **A browser click "succeeds" but the verify snapshot never changes (a radio stays
   unchecked, an option stays unpicked)** — the target was probably **outside the viewport**.
   The AX snapshot is viewport-independent, so a clipped control looks identical to a visible
@@ -684,17 +686,19 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
     don't chase the called model. (A 403 that starts the bot **inventing** method names is a
     Talent bug — its rule must be "a 403 is a STOP: report the denied model and escalate"; the
     `read_403_no_guess` scenario pins it.)
-- **Empty transcript/turns, but the run spent tokens/time (and a business bot's Bot Activity is
-  stuck at "dispatched")** — different from the "silent" case above: the transcript is built from the
-  clone's persisted session, flushed when a turn **finishes**, so a run that **crashed or looped
+- **Empty transcript/turns, but the run spent tokens/time (and a Discuss bot's
+  Bot Activity is stuck at "dispatched")** — different from the "silent" case
+  above: the transcript is built from the clone's persisted session, flushed
+  when a turn **finishes**, so a run that **crashed or looped
   without finishing** leaves it empty *even though it ran* and never wrote its result back. Read it as
   a crash, not a no-op: `traces --ref <clone>` still carries the session's **diagnostic events** (the
   gateway error stream — a dropped uplink/tunnel, a restart loop) and its token/model-call counters,
   recorded independently of the transcript. Fix the cause (restore the uplink/tunnel, clear the stuck
   process), don't re-run blind.
 - **Discuss mute / Hand-to-Barney gets no reply; `traces` → `uplink_status: auth_failed`** — the
-  box's ERP uplink key was revoked (mint always rotates). Re-run the business-bot provisioner for
-  that tier (it probes `/json/2/` with the fresh mint and binds the Discuss channel to the current
+  box's ERP uplink key was revoked (mint always rotates). Re-run the client
+  repo's provisioner for that tier (it probes `/json/2/` with the fresh mint and
+  binds the Discuss channel to the current
   ref). Author Logs shows the same status. **Website login** (`/get-started/web` / `/app`) is
   **not** the debug path for this class — that lane is consumer onboarding.
 - **No reply at all — not even the "starting" line — while `traces` says `uplink_status: ok`.**
@@ -724,7 +728,7 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   in a debug launch profile) runs **neither**. The dispatch itself is inline, so the happy path looks
   healthy and only *recovery* is dead — the tell is a record claimed (sitting in the bot's working
   state) with no run and no re-post. Boot the Odoo you point a bot at with cron threads **enabled**.
-  See [`business-bot-pattern.md`](../talent-authoring-standard/references/business-bot-pattern.md)
+  See [`restricted-talent-pattern.md`](../talent-authoring-standard/references/restricted-talent-pattern.md)
   "The timeout reaper — the owner's backstop".
 - **Clone won't serve / `neutralize_status: failed`** — the fail-closed gate refused (a connection
   still points at prod, or a required stub is missing). Fix `neutralize.yaml`; a clone never

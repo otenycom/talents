@@ -474,7 +474,7 @@ _ROLE_SLUG = re.compile(r"^[a-z][a-z0-9_]*$")
 def _channel_role_findings(bundle: Path) -> list[str]:
     """(19) Shape-check the declared role lanes in ``routing.channels``.
 
-    A business bot serves two lanes: the CASUAL desk (``routing.channel_prompt`` + the
+    A Discuss bot serves two lanes: the CASUAL desk (``routing.channel_prompt`` + the
     top-level ``preload_skills``, used in every room an operator adds the bot to) and any
     number of DECLARED role lanes — a room the client bound to a named job. A role is a
     NAME, never a channel id: the client's own Odoo binds it to a room and the adapter pairs
@@ -599,7 +599,7 @@ def _task_escalation_findings(bundle: Path) -> list[str]:
 
 # Check 17 — the selector-manifest ↔ human-doc twin gate. A browser Talent ships a
 # machine-readable expected-selector manifest (a YAML with a `pages:` list of
-# `fields:`/`submit:` selectors, business-bot-pattern §4e) AND a human-readable per-page
+# `fields:`/`submit:` selectors, restricted-talent-pattern §4e) AND a human-readable per-page
 # selector map in a `.md`. The two are meant to stay in lockstep, but nothing asserts it —
 # a selector edited in one twin and not the other is a silent dual-maintenance drift.
 #
@@ -774,7 +774,7 @@ def _summary_check_warnings(bundle: Path) -> list[str]:
             out.append(
                 f"{rel}: this bot fills a form, but agent-profile.yaml declares no "
                 "`record_pin:` — pin the record it files, so a context compaction cannot "
-                "take it (business-bot-pattern §6)"
+                "take it (restricted-talent-pattern §6)"
             )
         check = data.get("summary_check") if isinstance(data, dict) else None
         sections = check.get("sections") if isinstance(check, dict) else None
@@ -782,7 +782,7 @@ def _summary_check_warnings(bundle: Path) -> list[str]:
             out.append(
                 f"{rel}: no `summary_check:` with `sections:` — declare the fields the bot "
                 "compares with its record snapshot on the review page before any save, "
-                "every collapsed row expanded (business-bot-pattern §4e)"
+                "every collapsed row expanded (restricted-talent-pattern §4e)"
             )
     return out
 

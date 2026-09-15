@@ -39,8 +39,9 @@ from pathlib import Path
 # The published catalog lives next to this script's bundle, under references/.
 _DEFAULT_CATALOG = Path(__file__).resolve().parent.parent / "references" / "tools-catalog.json"
 
-# Platform data-plane tool / toolset not in the storefront catalog (business bots —
-# see business-bot-pattern §3). Suppresses the "unknown tool" WARN for legitimate requests.
+# Platform data-plane tool / toolset not in the storefront catalog (a company's
+# bot — see restricted-talent-pattern §3). Suppresses the "unknown tool" WARN for
+# legitimate requests.
 _KNOWN_EXTRA = frozenset({"odoo_client"})
 
 
@@ -63,6 +64,17 @@ def _load_catalog(path: Path) -> dict:
         if t.get("status") == "live":
             live.add(name)
     return {"required": required, "toolset": toolset, "live": live}
+
+
+_WIDE_TOOLSETS = frozenset({"terminal", "execute_code", "file", "code_execution"})
+
+
+def _restriction_flag(text: str, flag: str) -> bool:
+    """True when ``restrictions:`` carries ``<flag>: true`` (indented under it)."""
+    m = re.search(r"(?m)^restrictions:\s*\n((?:[ \t]+\S.*\n?)+)", text)
+    if not m:
+        return False
+    return re.search(rf"(?m)^[ \t]+{re.escape(flag)}\s*:\s*true\b", m.group(1)) is not None
 
 
 def _yaml_list(text: str, key: str) -> list[str]:
@@ -121,6 +133,19 @@ def lint_bundle(bundle: Path, catalog: dict) -> tuple[list[str], list[str]]:
             warnings.append(
                 f"requests tool '{name}' which is not a known Oteny tool — fine if your "
                 "Talent ships it itself; otherwise check for a typo (see references/tools-catalog.md)"
+            )
+
+    # FAIL — a Talent that declares restricted tool use (``restrictions.tool_use: true``,
+    # D387) asks for a wide toolset. The lock makes its contribution the whole
+    # allowlist, so a shell or a code runner there is the very thing the restriction
+    # exists to remove. List the minimum and stop.
+    if _restriction_flag(prof_text, "tool_use"):
+        wide = [n for n in dict.fromkeys(toolsets) if n in _WIDE_TOOLSETS]
+        if wide:
+            violations.append(
+                f"declares restrictions.tool_use: true and still contributes {wide} — a "
+                "restricted-tool-use Talent cannot ask for a shell or a code runner "
+                "(references/restricted-talent-pattern.md §2)"
             )
 
     # WARN — an unknown toolset in toolset_contribution.

@@ -17,4 +17,4 @@ and the `lint_tools.py` check that fails a Talent which stubs a tool that is act
 
 Business bots that declare odoo `connections:` also get **`odoo_client`** (the `/json/2/`
 data plane — not a storefront billed row). See
-[business-bot-pattern §3](skills/talent-authoring-standard/references/business-bot-pattern.md).
+[restricted-talent-pattern §3](skills/talent-authoring-standard/references/restricted-talent-pattern.md).

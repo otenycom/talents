@@ -1,6 +1,7 @@
 """The durable dev-bot singleton helper (D210) — the shared launcher MECHANISM.
 
-Every business-bot and B2C-bot author who holds a durable dev bot needs the same boilerplate:
+Every author of a company's bot or a B2C bot who holds a durable dev bot needs the same
+boilerplate:
 an Oteny ``/json/2/`` client, a ``request_dev_bot`` + poll loop, a cloudflared tunnel, a
 keep-alive heartbeat, and a "stop debugging closes the tunnels but LEAVES the bot up" detach.
 This module is that mechanism, promoted out of any one author's launcher so the next author

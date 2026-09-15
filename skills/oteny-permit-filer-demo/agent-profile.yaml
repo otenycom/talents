@@ -1,15 +1,16 @@
-# Demo permit filer — the runnable reference for a scoped, portal-filing business
-# bot. This bundle exists to be READ and COPIED: it shows the whole shape —
+# Demo permit filer — the runnable reference for a portal-filing restricted
+# Talent. This bundle exists to be READ and COPIED: it shows the whole shape —
 # scope-locked toolbox, a batch-fill browser skill with a shipped selector map, a
 # write-ahead/fail-closed filing procedure, a local system of record, scenarios —
 # against a portal you can run on your own machine (scripts/demo_portal.py).
 # The pattern it demonstrates: talent-authoring-standard/references/
-# business-bot-pattern.md + browser-authoring.md. In a REAL business bot the
-# sqlite system of record becomes your client's own system reached over its API
-# (crewradar + odoo_client in a real bot); the demo keeps sqlite + terminal.
+# restricted-talent-pattern.md + browser-authoring.md. In a REAL restricted
+# Talent the sqlite system of record becomes your client's own system reached
+# over its API (crewradar + odoo_client in a real bot); the demo keeps sqlite +
+# terminal.
 bot: oteny-permit-filer-demo
 display_name: Permit Filer (demo)
-tagline: "A worked example: files a permit on a demo portal, the business-bot way."
+tagline: "A worked example: files a permit on a demo portal, the restricted Talent way."
 version: 0.1.1   # semver — bump on every change.
 
 skills:
@@ -20,7 +21,7 @@ base_language: en
 # The locked toolbox — list the minimum and stop. `browser` is the native
 # browsing TOOLSET (snapshot, click, type). There is no batch fill tool.
 # `terminal` is here ONLY because the demo's system of record is a local
-# sqlite db (kept via the sqlite3 CLI); a real business bot replaces that
+# sqlite db (kept via the sqlite3 CLI); a real restricted Talent replaces that
 # with its API connection tool and drops terminal. Deliberately absent:
 # execute_code, skills, cron, open-web search — this bot files permits,
 # nothing else.

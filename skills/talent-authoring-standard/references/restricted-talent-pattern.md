@@ -1,22 +1,48 @@
-# The scoped-business-bot pattern (authoring deltas)
+# The restricted Talent pattern (authoring deltas)
 
-Most of the catalog is a **B2C personal bot** on Telegram (Flatbelly, Stocks, Travel,
-Shopbot). A second class is emerging: the **scoped business bot** — a single-job bot for
-an internal team that lives in the team's own chat and reaches the **business's Odoo** as
-its data plane. Barney is the first business-bot instance; this doc is the generic
-authoring delta on top of the standard. Four things change vs a B2C bot — author them in
-order, then grade them with the checklist below.
+Most of the catalog is a **B2C personal bot** on Telegram (Flatbelly, Stocks,
+Travel, Shopbot). A second class is emerging: the **restricted Talent** — a
+single-job Talent for an internal team. It lives in the team's own chat, and it
+reaches the **business's Odoo** as its data plane. Barney's Talent is the first
+restricted Talent; this doc is the generic authoring delta on top of the
+standard. Four things change vs a B2C bot — author them in order, then grade
+them with the checklist below.
 
-A business bot still passes **every** rubric check in [`../SKILL.md`](../SKILL.md). The
-deltas here refine four of them: routing (check 5), toolset (checks 1 + 9), the data plane
-(checks 2 + 6), and testing (check 14).
+A restricted Talent still passes **every** rubric check in
+[`../SKILL.md`](../SKILL.md). The deltas here refine four of them: routing
+(check 5), toolset (checks 1 + 9), the data plane (checks 2 + 6), and testing
+(check 14).
+
+## The `restrictions:` declaration
+
+A restricted Talent declares one or both restrictions in its
+`agent-profile.yaml`:
+
+```yaml
+restrictions:
+  tool_use: true         # restricted tool use — §2
+  self_learning: true    # restricted self-learning — §2
+```
+
+**Restricted tool use** (`tool_use: true`) means the Talent's
+`toolset_contribution` is the whole allowlist, so the gateway mounts nothing
+else. **Restricted self-learning** (`self_learning: true`) means no
+self-modification, no memory writes and isolated turns, because a developer
+iterates the Talent through the dev loop and the bot never does. The two knobs
+that exist today keep working, and they imply the flags: a Discuss-routed
+profile with a `toolset_contribution` implies `tool_use`, and
+`self_modification: locked` implies `self_learning`. A restriction is a property
+of the Talent, so the platform enforces it on every channel of the box that
+carries it. A Talent without restrictions is an unrestricted virtual employee.
+It reaches an outside system through its own login and its rights. Barney's
+Talent is restricted on both axes.
 
 ## 1. Channel routing — Discuss usual, Telegram allowed (check 5)
 
-A B2C bot routes to Telegram. A business bot **usually** routes to an Odoo
-**`discuss.channel`** — the chat built into the business's Odoo, where the team already
-works all day — but **Telegram is allowed** when that is the team's surface. Channel is
-where humans talk; it does **not** gate the data plane (§3).
+A B2C bot routes to Telegram. A restricted Talent **usually** routes to an
+Odoo **`discuss.channel`** — the chat built into the business's Odoo, where the
+team already works all day — but **Telegram is allowed** when that is the team's
+surface. Channel is where humans talk; it does **not** gate the data plane (§3).
 
 **Discuss (typical internal team):**
 
@@ -46,7 +72,7 @@ routing:
 
 One bot serves **many** Discuss channels, and the pair above is the **casual lane** — the
 persona and preload the bot uses in *any* room a staff operator adds it to. That is the
-whole configuration a simple business bot needs.
+whole configuration a simple Discuss bot needs.
 
 A bot with a real, auditable job wants a **second lane**: a room that is only that job, so
 the run lands with the job's persona and its procedure already in context, and the room's
@@ -104,8 +130,8 @@ routing:
 ## 2. Minimal locked toolset (checks 1 + 9)
 
 A B2C assistant requests the wide set (`[terminal, execute_code, cron, send_message]`) —
-breadth *is* the product. A business bot requests **only the tools its one job needs**, and
-the generic toolsets are **OFF**:
+breadth *is* the product. A Talent with restricted tool use requests **only the
+tools its one job needs**, and the generic toolsets are **OFF**:
 
 - **OFF for a scoped bot:** `terminal`, `execute_code`, filesystem, and the open-web
   search tools. None of these mount unless the job genuinely needs them. (The gateway
@@ -151,18 +177,18 @@ the tool.
 **No self-modification (the lockdown).** On a locked instance the platform *also* disables
 cross-session self-learning: the post-turn self-improvement review never spawns, persistent
 memory and the user profile are off, the skill curator is off, and the delivered Talent
-tree is **read-only** on disk between deliveries. So a business-bot Talent must never
-depend on `skill_manage`, runtime memory, or editing its own files — **all improvement
-ships through the source repo → lint → delivery**, exactly like code. (This exists because
+tree is **read-only** on disk between deliveries. So a Talent with restricted
+self-learning must never depend on `skill_manage`, runtime memory, or editing
+its own files — **all improvement ships through the source repo → lint →
+delivery**, exactly like code. (This exists because
 a live bot once rewrote its own delivered playbook mid-run; on a locked bot that is now
 structurally impossible. A B2C assistant keeps self-improvement — there it *is* the
 product.)
 
-*Requesting `memory` is still fine* — a scoped bot may remember conversational context
-(who the operator is, what was said) for continuity. The rule is about **dependence**:
-nothing load-bearing (a workflow state, a filing outcome, an idempotency fact) may live
-only in memory — the system of record (§3) is the truth, and the bot must behave
-correctly on a box where memory came back empty.
+*Requesting `memory` does nothing on a Talent with restricted self-learning* —
+the platform turns the memory store and the memory tool off for it, so the
+bot keeps no cross-session state of its own. An unrestricted Talent remembers
+as before. Declare `memory` only where the Talent is unrestricted.
 
 ## 2b. Your scope contract is adversarially gated — keep it coherent
 
@@ -214,9 +240,9 @@ local db. This data plane is **channel-agnostic**: declare `connections:` + requ
   The platform binds `OTENY_CONN_<NAME>_URL`, `_DB`, and `_KEY` on the box; the tool resolves
   them — never hard-code URLs or keys in the bundle.
 - `required_artifacts.yaml` declares the uplink as the readiness condition (the bot user
-  resolves + the scoped key is present + a probe read returns), the business-bot analog of
-  "db file exists + tables present." A bot with no reachable odoo connection is NOT-READY
-  and must not serve.
+  resolves + the scoped key is present + a probe read returns), the restricted
+  Talent's analog of "db file exists + tables present." A bot with no reachable
+  odoo connection is NOT-READY and must not serve.
 - **Namespacing still holds (check 6):** any *local* scratch the bot keeps stays under
   `~/.hermes/data/<bot>/`; the authoritative records live in the business's Odoo, reached
   only through the granted `/json/2/` scope.
@@ -313,10 +339,11 @@ Which one mounts is bound by the **uplink tier below the Talent, not by the bund
 
 ## 4b. Fail closed — never fabricate a side effect (checks 7 + 14)
 
-The worst failure a business bot can produce is not a crash — it is a **confident lie**: a
-run that could not perform the real-world action but *reports success anyway* (an invented
-confirmation number, a record advanced to "done" with nothing behind it). A weak-tier model
-under pressure will improvise exactly this. Two rules, both mandatory:
+The worst failure a company's bot can produce is not a crash — it is a
+**confident lie**: a run that could not perform the real-world action but
+*reports success anyway* (an invented confirmation number, a record advanced to
+"done" with nothing behind it). A weak-tier model under pressure will improvise
+exactly this. Two rules, both mandatory:
 
 - **The Talent fails closed.** Any external identifier or proof (a filing number, a booking
   reference, a receipt) is **READ from the external system's confirmation** — never
@@ -398,9 +425,10 @@ and if no write landed in that turn, the line does not claim one.
 ## 4c. Your test double is YOUR fixture — self-host and tunnel it (the dog-food rule)
 
 A subtle ownership failure is putting the stub double (§4) on the *platform's* infrastructure.
-Negate it: a business-bot author is **not** on the platform team, yet must be able to build, run,
-and change their own double with only their repo + a laptop. So the double **and** the real
-system's identity are **yours, in your repo**; the platform provides only the generic wiring.
+Negate it: the author of a company's bot is **not** on the platform team, yet
+must be able to build, run, and change their own double with only their repo +
+a laptop. So the double **and** the real system's identity are **yours, in your
+repo**; the platform provides only the generic wiring.
 
 - **The double is a fixture in your repo** — ideally **dependency-free** (any stdlib HTTP server)
   and shaped like the real system (its form fields, its confirmation format). You run it locally and
@@ -543,7 +571,8 @@ human's screenshots. A required field that the live page names `Street *` while 
 stub says `Street (required)` is exactly the kind of drift this catches, and it is the
 drift that kept a stub green for weeks while the bot failed live. The bot can read the
 same archive itself with `browser_recall`, so a Talent that is not locked
-(`self_modification`, below) can improve its own selector map from its own history.
+(restricted self-learning, above) can improve its own selector map from its own
+history.
 The human walkthrough below stays the fallback for a page the bot has not reached yet.
 
 A flat "all the fields on one page" double proves plumbing, not the filing. Your bot's skill text
@@ -852,7 +881,7 @@ artefact; instrument, with the direction it errs; or unproven. The first two car
 condition. A behaviour with no such declaration is the one the next reader will propose to delete or
 to invert, and both are wrong.
 
-### Four rules the 2026-09 business-bot canary paid for
+### Four rules the 2026-09 Barney canary paid for
 
 **A double mints the live identifier's shape, and a client never teaches the bot to accept the
 easier one.** A double gave a saved draft an 8-character internal token where the real portal
@@ -1574,15 +1603,15 @@ Two traps worth stating in the code:
 
 ## 5. Testing — the live Discuss driver (check 14)
 
-A business bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C bot, but
-`--backend live` drives **Odoo Discuss** instead of Telegram — the business-bot analog of
-the Telegram scenario backend:
+A Discuss bot's `tests/scenarios/*.yaml` run the same two-backend way as a B2C
+bot, but `--backend live` drives **Odoo Discuss** instead of Telegram — the
+Discuss analog of the Telegram scenario backend:
 
 1. **post a turn** into the test bot's `discuss.channel`,
 2. **poll for the reply** in that channel,
 3. **assert ground truth over `/json/2/`** — read back the records the turn should have
-   written/changed on the test Odoo (the data-plane assertion, the business-bot analog of
-   the SQLite `state:` checks).
+   written/changed on the test Odoo (the data-plane assertion, the odoo-uplink
+   analog of the SQLite `state:` checks).
 
 Because the test instance is non-prod, its stub doubles (§4) catch every side effect, so a
 deploy can run the whole suite live with zero real-world action. Mock-backend scenarios
@@ -1741,8 +1770,9 @@ all. That is a second, quieter way for fail-closed triage to lose work.
 
 ## 6. The bot as a workflow executor (checks 5 + 6)
 
-A business bot need not only *answer* a team in chat; it can be the **executor of a
-workflow transition** — one isolated agent turn per bot-owned transition. The pattern: the
+A company's bot need not only *answer* a team in chat; it can be the
+**executor of a workflow transition** — one isolated agent turn per bot-owned
+transition. The pattern: the
 business's Odoo owns a state machine, and specific states/transitions belong to the bot;
 each bot-owned record is driven through them by a **fresh isolated turn** — its own session,
 not the team's running conversation.
@@ -1756,7 +1786,7 @@ responsibility for its outcome, usually with work **outside** the ERP (a portal,
 a third-party system) under a named human's authorization. Two practical tests when you are
 deciding whether something belongs in your Talent at all:
 
-| The ERP's own assistant | Your business bot |
+| The ERP's own assistant | Your bot |
 | --- | --- |
 | Answers a question about a record | **Advances** a record through a state it owns |
 | Runs inside the ERP's session and rights | Runs isolated, with its **own** login, mailbox, and machine |
@@ -1840,13 +1870,14 @@ off while it is live.
 ### Choosing the model tier — blast radius, not scenario pass-rate (D235)
 
 The fleet default is *"declare the cheapest tier your scenarios pass on"* — right for a
-chat assistant, **wrong for a business bot that acts on the world.** A bot whose failure
-mode is an **irreversible external side effect or a consequential false claim** (a filing,
-a payment, a submission) defaults to a **builder floor** (`model_tier: builder`), because
-the cost of a wrong action dwarfs the model-price delta.
+chat assistant, **wrong for a company's bot that acts on the world.** A bot
+whose failure mode is an **irreversible external side effect or a consequential
+false claim** (a filing, a payment, a submission) defaults to a **builder
+floor** (`model_tier: builder`), because the cost of a wrong action dwarfs the
+model-price delta.
 
-**Why — the measured evidence (D235, from D189/D233).** In a live A/B, the reference
-business bot on the cheap (Flash-class `assistant`) tier **invented an identifier, guessed
+**Why — the measured evidence (D235, from D189/D233).** In a live A/B, Barney
+on the cheap (Flash-class `assistant`) tier **invented an identifier, guessed
 method names, and mis-advanced a legal filing to a done state**; the *same* Talent on the
 `builder` tier escalated cleanly instead of fabricating. The D233 replay grid quantified it:
 the honesty/provenance rules were **ineffective on the cheap tier yet decisive on builder**
@@ -1854,7 +1885,7 @@ the honesty/provenance rules were **ineffective on the cheap tier yet decisive o
 buying honesty and long-horizon compliance, not raw capability.
 
 **The floor is your *only* model lever — per-task escalation does not apply here.** A
-locked business bot is structurally escalation-exempt (empty `task-policy.json`,
+restricted Talent is structurally escalation-exempt (empty `task-policy.json`,
 `switch_persona(task=)` refused), so there is no per-task "upgrade for the risky step" —
 the static `model_tier` floor is the whole decision. Get it right.
 
@@ -2254,8 +2285,9 @@ refresh** that renews the session before it expires, so the reactive gate stays 
 
 #### The attended login is a PHASE — mutually exclusive with runs
 
-The single-user demo hides this: a business bot serves a **team**, and several people hand it work, approve
-it and sign in for it at random times. The moment two of them overlap, the login gate stops being a tidy
+The single-user demo hides this: a company's bot serves a **team**, and several
+people hand it work, approve it and sign in for it at random times. The moment
+two of them overlap, the login gate stops being a tidy
 hand-off and becomes a **shared-resource problem**, because the human's login browser and the bot's run
 browser are the same browser tenant and the same cookie profile. Saving a login releases the tenant's other
 sessions so its authenticated jar lands last (see the platform's finalize sweep) — which means a run that
@@ -2342,8 +2374,9 @@ Derive the slot from the records themselves:
   → try the oldest queued peer of the same workflow. The existing dispatch cron is the
   correctness belt. No per-exit trigger table. No new clock.
 
-A second business bot inherits the control by flagging its login-park states and calling the
-same predicate from `_bot_dispatch_gate`. Do not put client names in the engine.
+A second bot for a company inherits the control by flagging its login-park
+states and calling the same predicate from `_bot_dispatch_gate`. Do not put
+client names in the engine.
 
 A graded scenario waits on **both** terminal states of a hand-off. `done_when`
 is the success state (the draft or the filing landed). `fail_when` is the
@@ -2362,8 +2395,8 @@ turn still owns the record. When the record says no, the host interrupts the
 turn and blocks every browser tool of that session. So a reaper, a human
 hand-back or a re-assignment never leaves a bot filling a record it no
 longer owns (on 2026-09-04 a lab bot kept filling a portal for twelve minutes
-after a reaper took its record back). A second business bot inherits this by
-exposing the same probe on its workflow model; the reaper's own window is a
+after a reaper took its record back). A second bot for a company inherits this
+by exposing the same probe on its workflow model; the reaper's own window is a
 backstop for a dead harness, not a cutoff for a working bot, so size it past
 the browser session's life (65 minutes against a 60-minute browser cap).
 
@@ -2497,8 +2530,8 @@ tiers.
 
 ### Three alignment rules a walk on the double taught (2026-09-09)
 
-The 2026-09-08 test1 filings and their redo produced three rules that hold for every
-business bot, not only for the one that paid for them.
+The 2026-09-08 test1 filings and their redo produced three rules that hold for
+every company's bot, not only for the one that paid for them.
 
 **A verify step names the read it judges from.** "Check the readback" is not an
 instruction. Say which result carries the fact: the two date rows a click result's tree
@@ -2525,9 +2558,10 @@ double is a named exception with a removal condition, never an invisible default
 
 ## 7. Owner-visibility: your bot's activity log in your Odoo (check 6)
 
-A B2C bot's activity is visible only to its owner in chat. A business bot serves a *team*,
-and the owner needs to review **every exchange** from inside their own Odoo — the
-external-bot analog of a native in-Odoo agent's logs. The bot writes each exchange back:
+A B2C bot's activity is visible only to its owner in chat. A company's bot
+serves a *team*, and the owner needs to review **every exchange** from inside
+their own Odoo — the external-bot analog of a native in-Odoo agent's logs. The
+bot writes each exchange back:
 
 - **The write-back.** After each turn, the bot records **one session** into the business's
   Odoo over `/json/2/` — the exchange (turns, outcome) plus an **advisory soft-ref** to the
@@ -2720,9 +2754,10 @@ latch onto whichever half suits the turn.
 
 ## The author-time ledger (changelog discipline)
 
-The load-bearing cost of a business bot is **author/AI-dev time**, not tokens — but that cost
-is invisible unless you record it. So every Talent **version-bump changelog line** carries two
-extra fields, right in the `agent-profile.yaml` changelog comment:
+The load-bearing cost of a restricted Talent is **author/AI-dev time**, not
+tokens — but that cost is invisible unless you record it. So every Talent
+**version-bump changelog line** carries two extra fields, right in the
+`agent-profile.yaml` changelog comment:
 
 - **`~effort: <AI-session-h>/<review-min>`** — roughly the AI-coding-session hours plus the
   human review minutes that version cost. Estimate; the point is the trend, not the decimal.

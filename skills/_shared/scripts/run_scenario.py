@@ -489,7 +489,7 @@ def _drive_turn(driver, turn: dict) -> tuple[str, dict | None]:
 
     * ``user:`` — the conversational turn: the driver posts the human text and waits
       for the bot's reply.
-    * ``hand_off:`` — a WORKFLOW trigger (business bot): the driver performs the real
+    * ``hand_off:`` — a WORKFLOW trigger (Discuss bot): the driver performs the real
       hand-off over the bot's business-Odoo uplink (``{model, domain, to_state}`` — e.g.
       write an MFNL service into its bot queue state), which fires the platform's own
       dispatch (token-fenced claim + flagged channel message), then waits for the bot's
@@ -497,7 +497,7 @@ def _drive_turn(driver, turn: dict) -> tuple[str, dict | None]:
       flagged message would bypass the claim fence and test a legacy path.
 
     ``reply_timeout`` (seconds) on the turn overrides the driver's default wait — an
-    isolated business-bot run (e.g. a full MFNL filing) takes many minutes.
+    isolated run of a restricted Talent (e.g. a full MFNL filing) takes many minutes.
     A driver without ``hand_off`` support fails the turn, never crashes the runner.
     """
     timeout = turn.get("reply_timeout")
@@ -505,7 +505,7 @@ def _drive_turn(driver, turn: dict) -> tuple[str, dict | None]:
         if not hasattr(driver, "hand_off"):
             return "", {"kind": "hand_off", "ok": False, "spec": turn["hand_off"],
                         "reason": "driver has no hand_off (run via the sidecar test verb "
-                                  "on a business-bot clone)"}
+                                  "on a Discuss-bot clone)"}
         try:
             return driver.hand_off(turn["hand_off"], timeout), None
         except Exception as e:  # a hand-off error is a test failure, not a runner crash
@@ -579,9 +579,9 @@ def run_scenario_live(path: Path, driver, bundle_override: str | None = None) ->
             r = assert_state_live(driver, spec)
             tres["results"].append(r)
             result["passed" if r["ok"] else "failed"] += 1
-        for spec in expect.get("uplink", []):          # ground-truth over /json/2/ (business bot)
-            # A business bot's source of truth is the business Odoo, not a local db: read the
-            # records back over the uplink (the business-bot-pattern §5 data-plane check). The
+        for spec in expect.get("uplink", []):          # ground-truth over /json/2/ (company's bot)
+            # The source of truth of a company's bot is the business Odoo, not a local db: read
+            # the records back over the uplink (the restricted-talent-pattern §5 data-plane check). The
             # live driver exposes ``assert_uplink``; a driver without it (no business uplink) is
             # a fail, not a crash. Mock backend ignores ``uplink:`` (live-only).
             if hasattr(driver, "assert_uplink"):
@@ -589,7 +589,7 @@ def run_scenario_live(path: Path, driver, bundle_override: str | None = None) ->
             else:
                 r = {"kind": "uplink", "ok": False, "spec": spec,
                      "reason": "driver has no uplink (run via the sidecar test verb on a "
-                               "business-bot clone)"}
+                               "Discuss-bot clone)"}
             tres["results"].append(r)
             result["passed" if r["ok"] else "failed"] += 1
         if turn.get("assert"):                         # the /json/2/ escape hatch (Barney)

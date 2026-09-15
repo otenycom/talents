@@ -6,9 +6,9 @@ counterpart of the `oteny-web-operator` skill your bot already carries on its bo
 that skill teaches the *bot* the operating rules at runtime; this page teaches *you*
 (and your AI coding session) how to write skill instructions that use the browser
 correctly. Exact per-tool parameters, result shapes, and worked examples:
-[`tools-reference.md`](tools-reference.md). The end-to-end business-bot architecture
-(scope-lock, the system-of-record seam, fail-closed): 
-[`business-bot-pattern.md`](business-bot-pattern.md).
+[`tools-reference.md`](tools-reference.md). The end-to-end restricted Talent
+architecture (scope-lock, the system-of-record seam, fail-closed):
+[`restricted-talent-pattern.md`](restricted-talent-pattern.md).
 
 ## The mental model — three facts everything else follows from
 
@@ -127,7 +127,7 @@ misses mid-filing on the first re-skin.
 
 One native click or type at a time. Type by the printed name, not a
 chat sticker. Worked snapshot (role vs neighbour widgets vs remint):
-[`business-bot-pattern.md`](business-bot-pattern.md) §4g. The tree is
+[`restricted-talent-pattern.md`](restricted-talent-pattern.md) §4g. The tree is
 available **after** the action — do not snapshot to start the next
 field. Same hash: keep last `@eN`. Hash changed: use the attached
 tree (`this-snapshot`). Call
@@ -137,7 +137,7 @@ it hides) as separate actions. **Never batch across a server round-trip**:
 a search that populates fields, a cascade where each pick loads the next.
 **Never** treat an irreversible/final submission as a silent next-click —
 use the last attached tree, then click that named control. Full rationale:
-[`business-bot-pattern.md`](business-bot-pattern.md) §6.
+[`restricted-talent-pattern.md`](restricted-talent-pattern.md) §6.
 
 `TOOLS.md` and `tools-reference.md` are **generated** from the platform
 catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
@@ -170,7 +170,7 @@ window adopts it. Persist-false plus attach while a writer is live returns HTTP
 Do not retry 409. The per-bot new-window cap is 5. A fleet idle ceiling of 4
 closes the oldest idle window. That idle close is not a 409, and it is not
 "max 1 browser". One live isolated turn per bot is a workflow rule — see
-[`business-bot-pattern.md`](business-bot-pattern.md).
+[`restricted-talent-pattern.md`](restricted-talent-pattern.md).
 
 ## Fail-closed wiring (what your skill must say)
 
@@ -180,7 +180,8 @@ did not happen**: write nothing to your system of record, advance no state,
 escalate per your workflow, stop. Never let the bot construct a "plausible" value
 (a confirmation number, a reference id) — those are read off the page or they
 don't exist. The full pattern (write-ahead intent, proof-from-the-page, the
-idempotency fences): [`business-bot-pattern.md`](business-bot-pattern.md) §4.
+idempotency fences):
+[`restricted-talent-pattern.md`](restricted-talent-pattern.md) §4.
 
 ## What sits under the browser tools — the `hh-browser` platform plugin
 

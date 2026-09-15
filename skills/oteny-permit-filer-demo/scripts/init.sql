@@ -1,6 +1,7 @@
 -- Demo permit filer — the local system of record (idempotent; re-runnable).
--- In a REAL business bot this table is the client's own system reached over its
--- odoo connection in a real bot; the demo keeps it local so the whole loop runs anywhere.
+-- In a REAL restricted Talent this table is the client's own system reached
+-- over its odoo connection in a real bot; the demo keeps it local so the whole
+-- loop runs anywhere.
 CREATE TABLE IF NOT EXISTS permit_applications (
     id INTEGER PRIMARY KEY,
     applicant_name TEXT NOT NULL,

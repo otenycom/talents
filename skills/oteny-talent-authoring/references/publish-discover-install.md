@@ -195,7 +195,7 @@ retry 409. Treat 409 as a stop, then wait or ask the owner.
 The per-bot new-window cap is 5. A separate fleet idle ceiling of 4 closes the
 oldest idle window. That idle close is not a 409, and it is not "max 1 browser".
 One live isolated turn per bot is a workflow rule, not a browser cap of 1. See
-[`business-bot-pattern.md`](../../talent-authoring-standard/references/business-bot-pattern.md)
+[`restricted-talent-pattern.md`](../../talent-authoring-standard/references/restricted-talent-pattern.md)
 and
 [`browser-authoring.md`](../../talent-authoring-standard/references/browser-authoring.md).
 
@@ -212,9 +212,9 @@ and
   [`tools-reference.md`](../../talent-authoring-standard/references/tools-reference.md).
 - **Store presentation** — the icon + teaser assets your landing page renders from:
   [`store-presentation.md`](../../talent-authoring-standard/references/store-presentation.md).
-- **The safety gate up close** — the scope and red-team checks a business bot is graded
-  on, and how to keep your contract clean:
-  [`business-bot-pattern.md`](../../talent-authoring-standard/references/business-bot-pattern.md)
+- **The safety gate up close** — the scope and red-team checks a restricted
+  Talent is graded on, and how to keep your contract clean:
+  [`restricted-talent-pattern.md`](../../talent-authoring-standard/references/restricted-talent-pattern.md)
   (§2b).
 - **The dev loop** — from your repo to a live bot:
   [`oteny-talent-dev-loop`](../../oteny-talent-dev-loop/SKILL.md).

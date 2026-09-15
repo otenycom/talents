@@ -15,7 +15,7 @@ for a built-in toolset). *Parameters* is the JSON schema your bot's tool call mu
 satisfy. *Result* / *Errors* are what comes back. The example is a real call.
 
 Your bot's **system-of-record seam** (e.g. an Odoo `/json/2/` uplink tool) is declared
-by YOUR Talent, not listed here — see `business-bot-pattern.md` §3. For the
+by YOUR Talent, not listed here — see `restricted-talent-pattern.md` §3. For the
 browser-driving discipline (selector maps, batching, fail-closed), read
 [`browser-authoring.md`](browser-authoring.md) next to this file.
 
@@ -1190,7 +1190,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Result** — {url, status} — status starts 'provisioning' and turns 'active' within about a minute (poll with list_hosted_websites). ALWAYS relay the url.
+**Result** — {url, status} — status starts 'provisioning' and turns 'active' within about a minute (poll with list_hosted_websites). Relay the url once that poll reports edge_reachable. While reachable_from_box_only is true the public name does not resolve yet, so say so instead of promising a link.
 
 **Errors / edges** — {error: 'pass `local_port` — the port your app binds (1024–65535, not 2222). Make sure the app listens on 0.0.0.0, not 127.0.0.1.'} · a metered-cap refusal. A 502 on the live site almost always means the app bound 127.0.0.1 instead of 0.0.0.0.
 
@@ -1264,7 +1264,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 > List the public websites you're hosting (url, status, health, port), so you can answer 'what have I put online?' or pick one to take down. Side-effect-free.
 
-**Result** — The bot's hosted sites: rows carrying url, status, health, port. Side-effect-free.
+**Result** — The bot's hosted sites: rows carrying url, status, health, port, plus edge_reachable and reachable_from_box_only. Those two are the platform's own verdict on the PUBLIC name — they outrank anything you fetch yourself, because a tool call of your own succeeding says nothing about the owner being able to open the site. Side-effect-free.
 
 **Errors / edges** — Only the shared platform-error set.
 
@@ -1791,7 +1791,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Create a secure, single-use link the user opens to hand you an API key or token for another service (use when they want to connect an account, e.g. 'connect my OpenWeather key'). Never ask for the key in chat. Pass a human-readable `label` (the provider/account name shown on the form) and the UPPER_SNAKE_CASE `env_var` the key should be delivered as, then send the user the returned link. After they submit, wait and retry the same env_var — do not mint a second link for the same secret. The value appears as that environment variable on the next turn after delivery (about a minute).
+> Create a secure, single-use link the user opens to hand you an API key or token for another service (use when they want to connect an account, e.g. 'connect my OpenWeather key'). Never ask for the key in chat. Pass a human-readable `label` (the provider/account name shown on the form) and the UPPER_SNAKE_CASE `env_var` the key should be delivered as, then send the user the returned link. After they submit, call `credential_status` for that env_var — it picks the value up and reports `process_ready`, usually in the same turn they tell you they are done. Do not mint a second link for the same secret. If this refuses with `already_delivered` or `already_connected`, a working credential is already stored: ASK THE OWNER whether to replace it, and when they agree call this tool AGAIN with `rotate: true` — the refusal carries that exact argument in `retry_with`. Calling again without it repeats the same refusal.
 
 **Parameters**
 
@@ -1901,7 +1901,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. `odoo_state` is one of: `none` (nothing exists — mint a link), `pending` (a link is with the owner, unfilled), `submitted` (they filled it; the platform is delivering), `leased` (THE PLATFORM HOLDS THEIR SECRET AND THIS BOX DOES NOT YET), `delivered` (this box has it). What to do with each: `process_ready` true — just use the secret, do not mint. `pending` or `submitted` — the owner already has a link; send that same one and wait. `leased` with `local_ready` false — say ONE sentence to the owner ('your key is stored; I pick it up within about two minutes and will confirm') and END YOUR TURN. Do not poll, do not mint a second link, and do not tell the owner the link expired. Mint only when `odoo_state` is `none`, or the owner asked you to replace a credential that works.
+> Check whether you already hold a credential, BEFORE you mint a connect link. Pass the UPPER_SNAKE_CASE `env_var`. Returns metadata only, never the value: `odoo_state` is what the platform records, `local_ready` is whether this bot was handed the credential, and `process_ready` is whether it is loaded right now. `odoo_state` is one of: `none` (nothing exists — mint a link), `pending` (a link is with the owner, unfilled), `submitted` (they filled it; the platform is delivering), `leased` (THE PLATFORM HOLDS THEIR SECRET AND THIS BOX DOES NOT YET), `delivered` (this box has it). This tool also PICKS THE CREDENTIAL UP: when the platform holds one this box does not, it fetches it before it answers, so `process_ready` true is the normal reply right after the owner says they are done. What to do with each: `process_ready` true — use the secret NOW, in this turn, and do not mint. `pending` or `submitted` — the owner already has a link and has not filled it; send that same one and wait. `leased` with `process_ready` still false — the pickup was refused, and `pickup` names why (`auth` means the credential no longer works, so ask the owner to reconnect; anything else is temporary, so say one sentence and END YOUR TURN). Do not poll, do not mint a second link, and do not tell the owner the link expired. Mint only when `odoo_state` is `none`, or the owner asked you to replace a credential that works.
 
 **Parameters**
 
@@ -1945,7 +1945,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
-**Authoring notes** — Free, and side-effect-free. Call it BEFORE connect_account. process_ready true means just use the secret. pending or submitted means a link is already with the owner — send that one and wait. leased with local_ready false means the owner has done their part and the box has not caught up: say one sentence and END THE TURN. Polling it, or minting a second link, is the hh00452 failure.
+**Authoring notes** — Free. Call it BEFORE connect_account. It also PICKS THE CREDENTIAL UP: when the platform holds a leased value this box does not, the box fetches it before answering, so process_ready true is the normal reply right after the owner finishes. process_ready true means use the secret NOW, in this turn. pending or submitted means a link is already with the owner — send that one and wait. leased with process_ready still false means the pickup was refused and `pickup` names the class: auth is a dead credential (ask the owner to reconnect), anything else is temporary (one sentence, END THE TURN). Polling it, or minting a second link, is the hh00452 failure.
 
 ### `connect_login` — Remember a website login
 
@@ -2109,7 +2109,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Result** — {success, task, model, message} — the `message` is the user announcement the bot relays (mandatory: escalation is never silent). done=true returns the drop-back confirmation.
 
-**Errors / edges** — {error: 'unknown_task'} → only the tasks in the bot's Model-routing table are valid. {error: 'not_available'} → this bot has no escalation tasks (a locked business bot never does). {error: 'rate_limited'} → stay on the current model; switching per message wastes credits.
+**Errors / edges** — {error: 'unknown_task'} → only the tasks in the bot's Model-routing table are valid. {error: 'not_available'} → this bot has no escalation tasks (a restricted Talent never does). {error: 'rate_limited'} → stay on the current model; switching per message wastes credits.
 
 **Example**
 
@@ -2150,7 +2150,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — On a locked (scoped) business bot the self-editing curator side is disabled by the platform; remembering still works.
+**Authoring notes** — On a Talent with restricted self-learning the platform turns the memory store and the memory tool off, so declaring it does nothing there. An unrestricted Talent remembers as before.
 
 ### `terminal` — Run shell commands
 
@@ -2160,7 +2160,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — A scoped business bot should almost never declare this — the whole point of the scope-lock is that a prompt-injected bot finds NO shell mounted. List the minimum and stop (business-bot-pattern.md §2).
+**Authoring notes** — A Talent with restricted tool use should almost never declare this — the whole point of the lock is that a prompt-injected bot finds NO shell mounted. List the minimum and stop (restricted-talent-pattern.md §2). An unrestricted Talent (a virtual employee on its own laptop) keeps it.
 
 ### `execute_code` — Run code
 
@@ -2170,7 +2170,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — Same discipline as terminal: leave it OFF a scoped business bot unless the job itself is computation.
+**Authoring notes** — Same discipline as terminal: leave it OFF a Talent with restricted tool use unless the job itself is computation.
 
 ### `skills` — Build its own skills
 
@@ -2180,7 +2180,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — On a locked business bot the platform keeps a read floor (skill_view works — the bot can load YOUR skills) and disables creation/self-editing. You rarely need to declare this explicitly; the lock floor provides it.
+**Authoring notes** — On a Talent with restricted self-learning the platform keeps a read floor (skill_view works — the bot can load YOUR skills) and disables creation/self-editing. You rarely need to declare this explicitly; the lock floor provides it.
 
 ### `todo` — To-do list
 

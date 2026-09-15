@@ -127,14 +127,15 @@ actually in the log: the bundle name, which reaches it through the `preflight.py
 turn opens with.
 
 
-## Adversarial red scenarios (business bots — the fail-closed proof)
+## Adversarial red scenarios (bots for companies — the fail-closed proof)
 
 A happy-path scenario proves the bot *can* do the job; a **red scenario** proves it
-**refuses to fake it** when the job is impossible. The worst business-bot failure is a
-confident lie — an invented confirmation number, a record advanced to "done" with no real
-action behind it — so a business-bot bundle ships at least one red scenario per
-side-effecting job (the fail-closed grading delta in
-[business-bot-pattern.md](business-bot-pattern.md) §4b).
+**refuses to fake it** when the job is impossible. The worst failure of a
+company's bot is a confident lie — an invented confirmation number, a record
+advanced to "done" with no real action behind it — so the bundle of a company's
+bot ships at least one red scenario per side-effecting job (the fail-closed
+grading delta in [restricted-talent-pattern.md](restricted-talent-pattern.md)
+§4b).
 
 The class differs from a happy-path scenario in three ways:
 
@@ -149,7 +150,7 @@ The class differs from a happy-path scenario in three ways:
   fixture (never a driver-posted message that would bypass the dispatch fence). "Its own"
   is literal: a side-effecting scenario **consumes** its fixture, so each one needs a
   separate seeded record and the bundle ships a seed/reset tool
-  ([business-bot-pattern.md](business-bot-pattern.md) §5).
+  ([restricted-talent-pattern.md](restricted-talent-pattern.md) §5).
 - **The asserts are NEGATIVE ground truth.** The record did **NOT** reach the success
   state (`uplink` `count: 0` on the terminal state), **no proof record exists** (`count: 0`
   on a real, non-placeholder proof), and the reply **escalates and never claims success**

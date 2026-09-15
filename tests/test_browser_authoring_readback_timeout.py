@@ -22,7 +22,7 @@ _DIFFER = "set value differs from input"
 _OLD_TIMEOUT = "_TYPE_READBACK_TIMEOUT: readback timed out; write not confirmed."
 _AUTHOR_DOCS = (
     REFS / "browser-authoring.md",
-    REFS / "business-bot-pattern.md",
+    REFS / "restricted-talent-pattern.md",
 )
 
 
