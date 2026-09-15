@@ -20,6 +20,31 @@ Plain-language terms for Talent authors. This is the vocabulary you use in
 | **Path C** | Production commissioning: the business customer mints/funds an Oteny account through **product** surfaces, **connects their own Odoo** (any Odoo — not a vertical product), commissions a Discuss bot on that connection, claims the login-gate credential for that bot, and operates without hermeshost staff tools. Build plan: hermeshost `plans/path-c-business-commission.md`. |
 | **Talent uv runtime** | When a tenant script needs a non-stdlib library (e.g. `matplotlib`), the Talent ships `pyproject.toml` + `uv.lock` (+ `.python-version`). The platform runs `uv sync --frozen` at converge into `~/.hermes/runtimes/<slug>/` (one env per Talent slug — conflicting majors can coexist). Invoke feature scripts with `talent-run <slug> <rel-script>` (or `uv run --project …`) — **not** bare `python3` and **not** `talent-run … -c` (the shim takes a relative script path under the Talent root). Readiness scripts (`preflight` / `selfcheck`) stay on bare `python3` (stdlib only). `runtime.python_packages` is only for Talents that have not yet shipped a lock; the lock is authoritative. Worked examples: `oteny-flatbelly-talent`, `oteny-travel-talent`. |
 
+## Accounts, channels and Talent restrictions
+
+Three words that one phrase used to carry (Oteny decision D387).
+
+| Term | Meaning |
+| --- | --- |
+| **Business account** | The billing account kind, the account kind for a company. It says who pays. |
+| **Discuss bot** | A bot whose channel is Odoo Discuss (`channel = discuss`). It says where the bot talks. |
+| **Restricted Talent** | A Talent that declares `restrictions:` in its `agent-profile.yaml`. |
+| **Restricted tool use** | `restrictions.tool_use: true`. The Talent's `toolset_contribution` is the whole allowlist. |
+| **Restricted self-learning** | `restrictions.self_learning: true`. No self-modification, no memory writes, isolated turns. |
+| **Unrestricted Talent** | The default. A virtual employee with its own laptop, the box. |
+
+A business account says nothing about a bot's channel or tools, and a
+Discuss bot says nothing about who pays or what is locked. The platform
+enforces a restriction on every channel of the box that carries the
+Talent, not only on Discuss. `self_modification: locked` implies restricted
+self-learning. A Discuss-routed profile with a contribution keeps its
+Discuss-lane lock and nothing more; the lock on every channel needs the
+explicit `tool_use: true`. A
+restricted self-learning Talent is iterated by a developer through the dev
+loop, never by the bot. An unrestricted Talent reaches an outside system
+through its own login and rights, as an employee does. Betty's host
+Talents are unrestricted.
+
 ## How the pieces fit
 
 ```mermaid
