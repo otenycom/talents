@@ -146,6 +146,33 @@
       "cost": "free"
     },
     {
+      "name": "browser_watch",
+      "requestable_name": "browser_watch",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "browser_replay",
+      "requestable_name": "browser_replay",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
+      "name": "browser_list_sessions",
+      "requestable_name": "browser_list_sessions",
+      "request_via": "tools.required",
+      "kind": "browser",
+      "group": "Browse real websites",
+      "status": "live",
+      "cost": "free"
+    },
+    {
       "name": "browser_download",
       "requestable_name": "browser_download",
       "request_via": "tools.required",

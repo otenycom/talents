@@ -63,6 +63,9 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 |---|---|---|---|---|---|
 | `browser` | `toolset_contribution` | oteny-web-operator | live | A fraction of a cent | 🖥️ Drives a real cloud browser to click through pages a search can't read. |
 | `browser_request_human` | `tools.required` | oteny-web-operator | live | Included | 🔐 Sends a secure live-view link so you sign in or pass a 2FA code, then carries on. |
+| `browser_watch` | `tools.required` | oteny-web-operator | live | Included | 👀 Sends a read-only link to watch the current browser session as it happens. |
+| `browser_replay` | `tools.required` | oteny-web-operator | live | Included | 🎬 Sends a read-only recording of a recently finished browser session (48h window). |
+| `browser_list_sessions` | `tools.required` | oteny-web-operator | live | Included | 🗒️ Names this bot's own recent browser sessions, to watch live or replay. |
 | `browser_download` | `tools.required` | oteny-web-operator | live | A fraction of a cent | 📥 Fetches a file off a website (export, invoice, backup) and hands you a link. |
 | `browser_needs_login` | `tools.required` | oteny-web-operator | live | Included | 🔑 Reports that a page needs a human sign-in so the bot ends the turn cleanly instead of stalling — the owner logs in later from a button. |
 | `browser_list_profile` | `tools.required` | oteny-web-operator | live | Included | 🍪 Says whether this bot has a saved browser cookie snapshot. Does not print an id. |
