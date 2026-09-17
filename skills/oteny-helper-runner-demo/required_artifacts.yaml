@@ -1,0 +1,11 @@
+# Demo helper runner — first-run manifest (the setup GOAL, declared).
+# selfcheck.py walks this; the skill's references/first-run.md drives to READY.
+bot: oteny-helper-runner-demo
+base_language: en
+
+artifacts:
+  # The run ledger: one row per helper run, so the owner can ask what ran and
+  # when. Both helpers append to it. Created from scripts/init.sql on first run.
+  - kind: sqlite_db
+    path: ~/.hermes/data/oteny-helper-runner-demo/runs.db
+    must_have_tables: [helper_runs]

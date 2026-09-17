@@ -6,7 +6,10 @@ pure function exercised directly and via the --against CLI.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+import pytest
 
 from _talents import CATALOG, load
 
@@ -507,6 +510,9 @@ def test_flatbelly_ships_uv_lock_and_passes_check():
     assert not any("uv.lock" in f or "uv lock" in f for f in lint.lint_bundle(FLATBELLY))
 
 
+@pytest.mark.skipif(not hasattr(sys, "stdlib_module_names"),
+                    reason="check 18 needs sys.stdlib_module_names (Python 3.10+); the "
+                           "lint skips itself on older interpreters, so does its test")
 def test_third_party_import_without_lock_is_a_finding(tmp_path):
     b = _talent(tmp_path)
     scripts = b / "scripts"
@@ -736,3 +742,46 @@ def test_public_catalog_about_this_talent_sits_above_the_command_table():
         about = text.index("## About this Talent")
         table = text.index("## What the owner types")
         assert about < table, slug
+
+
+# --------------------------------------------------------------------------- #
+# talent_run helpers (check 21)                                                 #
+# --------------------------------------------------------------------------- #
+def _runner_talent(tmp_path: Path, profile_extra: str, helpers: tuple[str, ...] = ()) -> Path:
+    b = _talent(tmp_path, profile_extra=profile_extra)
+    for rel in helpers:
+        f = b / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("print('hi')\n")
+    return b
+
+
+def test_talent_run_with_shipped_helpers_is_clean(tmp_path):
+    b = _runner_talent(tmp_path, "toolset_contribution: [talent_run]\n"
+                       "talent_run:\n  helpers:\n    - scripts/a.py\n    - scripts/sub/b.py\n",
+                       helpers=("scripts/a.py", "scripts/sub/b.py"))
+    assert not [f for f in lint.lint_bundle(b) if "talent_run" in f]
+
+
+def test_talent_run_listed_with_no_helpers_is_a_finding(tmp_path):
+    b = _runner_talent(tmp_path, "toolset_contribution: [talent_run]\n")
+    assert any("no `talent_run.helpers`" in f for f in lint.lint_bundle(b))
+    b = _runner_talent(tmp_path, "toolset_contribution: [talent_run]\ntalent_run:\n  helpers: []\n")
+    assert any("no `talent_run.helpers`" in f for f in lint.lint_bundle(b))
+
+
+def test_talent_run_block_without_the_toolset_is_a_finding(tmp_path):
+    b = _runner_talent(tmp_path, "toolset_contribution: [browser]\n"
+                       "talent_run:\n  helpers:\n    - scripts/a.py\n", helpers=("scripts/a.py",))
+    assert any("does not list `talent_run`" in f for f in lint.lint_bundle(b))
+
+
+def test_talent_run_helper_paths_stay_inside_the_bundle(tmp_path):
+    b = _runner_talent(tmp_path, "toolset_contribution: [talent_run]\n"
+                       "talent_run:\n  helpers:\n    - ../other/a.py\n    - /abs/a.py\n"
+                       "    - scripts/missing.py\n    - scripts/ok.py\n", helpers=("scripts/ok.py",))
+    findings = [f for f in lint.lint_bundle(b) if "talent_run" in f]
+    assert any("escapes the Talent" in f for f in findings)
+    assert any("is absolute" in f for f in findings)
+    assert any("scripts/missing.py" in f and "not a file" in f for f in findings)
+    assert not any("scripts/ok.py" in f for f in findings)

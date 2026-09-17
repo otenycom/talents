@@ -1,0 +1,51 @@
+# Demo helper runner — the runnable reference for a restricted Talent that ships
+# its own scripts. This bundle exists to be READ and COPIED: it shows the shape
+# of `talent_run` — the Talent lists the helpers the model may start, and the
+# platform mounts one tool whose only choices are those names. The pattern it
+# demonstrates: talent-authoring-standard/references/restricted-talent-pattern.md
+# §2c. The scripts are stdlib only, so the bundle needs no uv.lock.
+bot: oteny-helper-runner-demo
+display_name: Helper Runner (demo)
+tagline: "A worked example: a restricted Talent that runs its own shipped scripts by name."
+version: 0.1.0   # semver — bump on every change.
+
+skills:
+  - helper-runner
+
+base_language: en
+
+# Restricted tool use: `toolset_contribution` is the whole allowlist and the
+# gateway mounts nothing else. No name is refused by the platform. This demo
+# lists `terminal` on purpose, to show that a Talent that lists a shell gets one
+# and accepts what that means; a real restricted Talent lists the minimum its
+# job needs and stops (restricted-talent-pattern.md §2).
+restrictions:
+  tool_use: true
+  self_learning: true
+
+toolset_contribution:
+  - talent_run
+  - terminal
+
+# The helpers the model may start, by name and by nothing else. Paths are
+# relative to this folder; each must be a file in the bundle (lint check 21).
+talent_run:
+  helpers:
+    - scripts/word_count.py
+    - scripts/echo_args.py
+
+tools:
+  required: []
+  stubbed: []
+
+delivery: baked
+price: free
+expected_cost_otc: 1
+
+routing:
+  channel: telegram
+  channel_prompt: >-
+    You are the Helper Runner demo. You count words and echo arguments with the
+    helper scripts your Talent ships, and you never invent a result you did not
+    read from a helper's output.
+  signature: "oteny-helper-runner-demo"

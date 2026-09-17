@@ -121,6 +121,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `memory` | `toolset_contribution` | — | live | Included | 🧠 Remembers what matters across chats. |
 | `terminal` | `toolset_contribution` | — | live | Included | 💻 Writes and runs real shell commands. |
 | `execute_code` | `toolset_contribution` | — | live | Included | 🧮 Writes and runs real code (Python). |
+| `talent_run` | `toolset_contribution` | — | live | Included | 🧾 Runs a script the Talent ships, by name, and nothing else. |
 | `skills` | `toolset_contribution` | — | live | Included | 🧩 Builds and loads its own skills and Talents. |
 | `todo` | `toolset_contribution` | — | live | Included | ✅ Keeps your to-do list. |
 | `send_message` | `toolset_contribution` | — | live | Included | ✉️ Sends you reminders and alerts on its own. |

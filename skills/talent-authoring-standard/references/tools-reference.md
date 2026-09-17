@@ -2268,7 +2268,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — A Talent with restricted tool use should almost never declare this — the whole point of the lock is that a prompt-injected bot finds NO shell mounted. List the minimum and stop (restricted-talent-pattern.md §2). An unrestricted Talent (a virtual employee on its own laptop) keeps it.
+**Authoring notes** — A Talent with restricted tool use lists exactly the tools its job needs, and the gateway mounts nothing else. No name is refused: a Talent that lists `terminal` accepts that the model may run any shell command, and a prompt-injected bot then has a shell. A Talent that ships its own scripts lists `talent_run` instead, so the model can start only the helpers the Talent names. List the minimum and stop (restricted-talent-pattern.md §2). An unrestricted Talent (a virtual employee on its own laptop) keeps it.
 
 ### `execute_code` — Run code
 
@@ -2278,7 +2278,17 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Errors / edges** — —
 
-**Authoring notes** — Same discipline as terminal: leave it OFF a Talent with restricted tool use unless the job itself is computation.
+**Authoring notes** — Same discipline as terminal: the model writes the code, so a Talent that lists this accepts model-written code on the box. A Talent that only needs its own shipped scripts lists `talent_run` instead.
+
+### `talent_run` — Run a Talent's own scripts
+
+*built-in toolset · request via `toolset_contribution` · status **live** · cost Included*
+
+**Result** — {exit_code, stdout, stderr, truncated} of one helper the Talent ships under `talent_run.helpers` in its agent-profile.yaml, started by name through the Talent's own runtime. Each stream is capped at 20,000 characters; a helper that runs past 300 s is killed and the result says so.
+
+**Errors / edges** — A helper that is not listed is refused before any process starts. The tool is mounted only when a delivered Talent lists the toolset.
+
+**Authoring notes** — The scoped runner for a Talent with restricted tool use: the model may start a listed helper with `argv` and `stdin`, and nothing else — no interpreter flag, no snippet, no path outside the list. A helper started this way may drive the live cloud-browser page of the turn through the `hh_browser` page client (browser-authoring.md). List the helpers under `talent_run.helpers` as paths relative to the Talent root.
 
 ### `skills` — Build its own skills
 

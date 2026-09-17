@@ -131,13 +131,18 @@ routing:
 
 A B2C assistant requests the wide set (`[terminal, execute_code, cron, send_message]`) —
 breadth *is* the product. A Talent with restricted tool use requests **only the
-tools its one job needs**, and the generic toolsets are **OFF**:
+tools its one job needs**, and the gateway mounts **nothing else**. Your
+`toolset_contribution` is the whole allowlist. No toolset name is refused by the
+platform: a Talent that lists `terminal` accepts that the model may run any shell
+command, and a prompt-injected bot then has a shell. A Talent that ships its own
+scripts lists `talent_run` instead, so the model can start only the helpers the
+Talent names (§2c). The gateway keeps a small `skills`/`clarify` **read floor**
+mounted — `skill_view` must work for the bot to load its own composing skills;
+what's off on a Talent with restricted self-learning is skill *creation/self-editing*,
+see the lockdown below.
 
-- **OFF for a scoped bot:** `terminal`, `execute_code`, filesystem, and the open-web
-  search tools. None of these mount unless the job genuinely needs them. (The gateway
-  keeps a small `skills`/`clarify` **read floor** mounted — `skill_view` must work for the
-  bot to load its own composing skills; what's off is skill *creation/self-editing*, see
-  the lockdown below.)
+- **Not mounted unless you list it:** `terminal`, `execute_code`, `file`, and the
+  open-web search tools, like every other name you leave out.
 - **ON, named explicitly:** `odoo_client` (the data plane — §3, always with `connection=<name>`);
   optionally the secure browser (`browser` + `browser_request_human` + `browser_download`)
   for portal filing; optionally a mailbox reader for an inbox
@@ -167,12 +172,37 @@ trim, not a safety control: the scope-lock (above) is the safety boundary; this 
 mounted toolset as tight as the job.
 
 **The locked floor is real, not a prompt promise.** A Talent only *requests* tools; the
-host gateway decides what mounts. On a locked-down instance the gateway *also* disables the
-generic toolsets, so even a prompt-injected Talent that asked for a shell finds none
-mounted to call. The allowlist is your declaration of intent; the gateway is enforcement —
+host gateway decides what mounts. On a Talent with restricted tool use the gateway mounts
+only what you listed, so a prompt-injected bot that asks for a shell you did not list finds
+none mounted to call. The allowlist is your declaration; the gateway is enforcement —
 together they make "<bot> has no terminal" a structural property, not a hope. Never rely on
 a `channel_prompt` line ("don't run shell") to keep a bot safe; rely on **not requesting**
 the tool.
+
+## 2c. Your own scripts — `talent_run`
+
+A Talent may ship scripts under its own folder and list them in
+`agent-profile.yaml`:
+
+```yaml
+toolset_contribution:
+  - talent_run
+talent_run:
+  helpers:
+    - scripts/parse_receipt.py
+```
+
+The model gets one tool, `talent_run`, whose `helper` argument is the list you
+wrote and nothing else: no interpreter flag, no snippet, no path outside the list.
+The helper runs in the Talent's own runtime (`pyproject.toml` + `uv.lock`, the
+same one a cron job uses) with `argv` and `stdin` from the model, and returns
+`{exit_code, stdout, stderr, truncated}`. A helper started during a browser turn
+may drive the live page through the `hh_browser` page client
+([`browser-authoring.md`](browser-authoring.md)). Lint check 21 refuses a helper
+path that is absolute, has a `..` segment, or names a file that is not in the
+bundle, and refuses a `talent_run:` block without the toolset name (or the
+reverse). The contract is in
+[`tools-reference.md`](tools-reference.md) under `talent_run`.
 
 **No self-modification (the lockdown).** On a locked instance the platform *also* disables
 cross-session self-learning: the post-turn self-improvement review never spawns, persistent
@@ -203,9 +233,10 @@ for:
     reach the live portal);
   - a locked bot **must** declare a `routing.signature` and a non-empty `routing.channel_prompt`
     (the scope anchor the guard holds to);
-  - if you declare an **odoo** connection (§3), **do not also mount a generic shell/code toolset**
-    — `odoo_client` is your system-of-record path, so drop `terminal`/`execute_code` (a demo with
-    a local sqlite and *no* odoo connection is the only place a bare `terminal` is allowed).
+  - a connection that grants a **write** model must also grant the reads a filing bot needs.
+  The check judges your connections and never reads your tool list. A connection is not a
+  toolset: which tools you list is your call (§2), and the authoring lint judges that list
+  for unknown names only.
 - **A live red-team** (`red-team` verb, run against a clone): the platform generates an adversarial
   corpus **from your contract** — instruction-override, jailbreak/persona, obfuscated evasion,
   indirect injection (a payload planted in data you read), shell/code execution, off-task tool use,

@@ -106,6 +106,12 @@ spend):
      covering EVERY skill in the bundle escalates the whole Talent by another name → FAIL (use a
      ``model_tier`` floor for a bundle-wide need). (Needs PyYAML; CI installs it.)
 
+TALENT_RUN HELPERS (Talent only — the scoped runner's enum is the lock, D389):
+ 21. a Talent that lists the ``talent_run`` toolset ships the helpers the model may start
+     under ``talent_run.helpers``: each a path relative to the Talent root, with no ``..``
+     segment, naming a file in the bundle. An empty list, a ``talent_run:`` block without
+     the toolset name, or the reverse, is a finding. (Needs PyYAML; CI installs it.)
+
 NAMED CONNECTIONS + THE READINESS GATE (every bundle — an infra default that declares
 ``connections:`` sets the map for the WHOLE bot, so a silent skip there costs most):
  20. every ``connections:`` entry in ``agent-profile.yaml`` declares a ``kind`` the platform
@@ -1168,6 +1174,56 @@ def _connection_artifacts(bundle: Path) -> list[dict]:
     ]
 
 
+def _talent_run_findings(bundle: Path) -> list[str]:
+    """(21) ``talent_run`` helpers. A Talent that lists the ``talent_run`` toolset ships the
+    helpers the model may start under ``talent_run.helpers`` — each a path relative to the
+    Talent root, with no ``..`` segment, naming a file in the bundle. An empty list, a
+    ``talent_run:`` block without the toolset name, or the reverse, is a finding, because
+    the enum is the lock (D389) and a helper the box cannot find is a tool that never
+    mounts. Needs PyYAML (CI installs it)."""
+    prof = bundle / "agent-profile.yaml"
+    if yaml is None or not prof.is_file():
+        return []
+    try:
+        data = yaml.safe_load(prof.read_text()) or {}
+    except yaml.YAMLError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    contrib = [str(t or "").strip() for t in (data.get("toolset_contribution") or [])]
+    listed = "talent_run" in contrib
+    block = data.get("talent_run")
+    out: list[str] = []
+    if block is None and not listed:
+        return out
+    if block is not None and not listed:
+        out.append("agent-profile.yaml: carries a `talent_run:` block but does not list "
+                   "`talent_run` under `toolset_contribution` — the helpers never mount")
+    helpers = block.get("helpers") if isinstance(block, dict) else None
+    if listed and not helpers:
+        out.append("agent-profile.yaml: lists `talent_run` with no `talent_run.helpers` — "
+                   "name the scripts the model may start (the enum is the lock)")
+        return out
+    for rel in helpers or []:
+        if not isinstance(rel, str) or not rel.strip():
+            out.append(f"agent-profile.yaml: talent_run.helpers entry {rel!r} is not a path")
+            continue
+        raw = rel.strip()
+        parts = [x for x in raw.replace("\\", "/").split("/") if x not in ("", ".")]
+        if raw.startswith(("/", "\\")):
+            out.append(f"agent-profile.yaml: talent_run.helpers {raw!r} is absolute — "
+                       "a helper path is relative to the Talent root")
+            continue
+        if ".." in parts or not parts:
+            out.append(f"agent-profile.yaml: talent_run.helpers {raw!r} escapes the Talent "
+                       "(a `..` segment) — a helper lives inside the bundle")
+            continue
+        if not (bundle / "/".join(parts)).is_file():
+            out.append(f"agent-profile.yaml: talent_run.helpers {raw!r} is not a file in the "
+                       "bundle — ship it, or drop it from the list")
+    return out
+
+
 def _saas_env_findings(name: str, env: dict) -> list[str]:
     """Every binding rule the registry would refuse at write time, checked here first."""
     out: list[str] = []
@@ -1367,6 +1423,7 @@ def lint_bundle(bundle: Path) -> list[str]:
         findings += _channel_role_findings(bundle)     # (19) declared Discuss role lanes
         findings += _uv_runtime_findings(bundle)       # (18) third-party imports ⇒ uv.lock
         findings += _chat_secret_solicit_findings(bundle)
+        findings += _talent_run_findings(bundle)       # (21) talent_run helpers ship and stay inside
 
     # (20) connections: + the readiness gate — EVERY bundle, not only a Talent. An infra
     # default skill that declares `connections:` sets the map for the whole bot (the

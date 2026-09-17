@@ -1,0 +1,22 @@
+# count_words_with_helper — the model starts a listed helper by name and reads its output.
+#
+# The proof is in the trace: `talent_run` completed for the turn, and the reply carries
+# the count the helper printed (8 words), not a guess.
+#
+# LIVE-ONLY: behavioral — there is nothing for the mock backend to execute.
+
+bot: oteny-helper-runner-demo
+
+live_only: true
+
+turns:
+  - user: >-
+      Count the words in this text with your word_count helper and tell me the number:
+      "the quick brown fox jumps over the lazy dog"
+    reply_timeout: 240
+    expect:
+      reply:
+        contains: ["9"]
+      trace:
+        markers:
+          - "tool talent_run completed"
