@@ -174,7 +174,9 @@ except ImportError:  # the migration-SHAPE structural check needs PyYAML (CI ins
 
 # Platform-baked into system python3 (not a Talent-lock concern). Readiness scripts may
 # import these; feature scripts that need other third-party libs MUST ship uv.lock.
-_PLATFORM_PYTHON_MODULES = frozenset({"yaml"})
+# Modules the platform puts on a helper's path: the baked ``yaml``, and the page
+# client ``hh_browser`` that ``talent_run`` hands a helper during a browser turn.
+_PLATFORM_PYTHON_MODULES = frozenset({"yaml", "hh_browser"})
 
 # Per-tenant state / data-plane artifacts that must NEVER ship in a delivered bundle.
 _STATE_GLOBS = (

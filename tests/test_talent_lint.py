@@ -785,3 +785,15 @@ def test_talent_run_helper_paths_stay_inside_the_bundle(tmp_path):
     assert any("is absolute" in f for f in findings)
     assert any("scripts/missing.py" in f and "not a file" in f for f in findings)
     assert not any("scripts/ok.py" in f for f in findings)
+
+
+@pytest.mark.skipif(not hasattr(sys, "stdlib_module_names"),
+                    reason="check 18 needs sys.stdlib_module_names (Python 3.10+)")
+def test_the_page_client_is_a_platform_module_not_a_third_party_import(tmp_path):
+    """A helper that imports ``hh_browser`` (the page client talent_run hands it) needs
+    no uv.lock: the platform puts that module on the helper's path."""
+    b = _talent(tmp_path)
+    scripts = b / "scripts"
+    scripts.mkdir()
+    (scripts / "pick.py").write_text("from hh_browser import page\nprint(page)\n")
+    assert not any("uv.lock" in f for f in lint.lint_bundle(b))
