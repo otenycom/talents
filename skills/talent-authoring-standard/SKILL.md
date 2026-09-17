@@ -224,6 +224,9 @@ The exact output format is in
   vs author; type-this writing style; About this Talent (every value).
 - [`references/connections.md`](references/connections.md) — the four `connections:`
   kinds, the binding rules, and the readiness gate a `kind: saas` entry arms.
+- [`references/browser-authoring.md`](references/browser-authoring.md) — driving a
+  live page: the aim contract, the page client a `talent_run` helper imports, and
+  the per-page change check.
 - [`oteny-talent-authoring`](../oteny-talent-authoring/SKILL.md) — create → edit →
   package → publish.
 - [`oteny-talent-dev-loop`](../oteny-talent-dev-loop/SKILL.md) — clone → reload →

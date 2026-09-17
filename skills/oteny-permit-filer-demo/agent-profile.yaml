@@ -1,6 +1,6 @@
 # Demo permit filer — the runnable reference for a portal-filing restricted
 # Talent. This bundle exists to be READ and COPIED: it shows the whole shape —
-# scope-locked toolbox, a batch-fill browser skill with a shipped selector map, a
+# restricted toolbox, a browser skill that clicks and types by name, a
 # write-ahead/fail-closed filing procedure, a local system of record, scenarios —
 # against a portal you can run on your own machine (scripts/demo_portal.py).
 # The pattern it demonstrates: talent-authoring-standard/references/

@@ -559,10 +559,11 @@ undisclosed invariant a confabulation can't dress to pass.
 
 *Worked example (Barney, the Dutch posted-worker filer):* the meldloket double is the CrewRadar
 **`/mfnl-stub`** controller on neutralized tiers (minting a bare 9-digit number — the real portal's
-shape); the Talent declares `portal.real_url` + `portal.fence_hosts`; the server-side claim guard
-refuses a "filed" whose number isn't the right shape; and **`provision_barney.py --tier local`**
-(or launch **`barney-provision-local`**) commissions the bot, wires uplink + stub + broker tokens,
-and holds the local uplink tunnel.
+shape); the Talent declares `real_url` + `fence_hosts` on each portal connection it drives; the
+server-side claim guard refuses a "filed" whose number isn't the right shape; and your tier
+provisioner commissions the bot, wires each uplink, each stub and the broker tokens, and holds
+the local uplink tunnel. (*Worked example, not the shape:* Barney's is
+`provision_barney.py --tier local`, launched as `barney-provision-local`.)
 
 **A restored ERP database severs your rig — reprovision before the first hand-off.** Every piece
 of the bot binding lives *inside* the owner's ERP database: the adopted bot record, the uplink
@@ -998,6 +999,16 @@ Three things follow, and each is cheap:
 
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
+> **Advanced testing, and optional.** A *walk* is a machine list of pages and fields
+> (a selector manifest) that the `selector-audit`, `browser-diff` and `manifest-check`
+> verbs grade. Each verb needs `--manifest`, and a bundle that ships none skips lint
+> check 17. The walk is not a Talent shape: a Talent drives the real pages, or the
+> HTTP doubles you host, as many as the job needs, and a live-page script imports
+> `page` from `hh_browser` (§2c) to do so. Declare each connection, fence each live
+> host, and keep a manifest only when you want that extra grading. When you keep one,
+> name the id shape your site remints per page build under `generated_id_pattern`,
+> so a `browser-diff` proposal never names one; the platform knows no site's shape.
+
 **Two layers — keep them apart.** A browser Talent is authored in **two** layers, and conflating
 them is the trap that turns a high-level work instruction into a brittle screen-scraping script:
 
@@ -1428,14 +1439,14 @@ shares.
   `commission --submit-deny-patterns <comma,list>` records a `config_overrides["browser.submit_deny"]`
   value on **that** bot, which the box receives as the env var `OTENY_BROWSER_SUBMIT_DENY`. A normal
   bot carries **no** patterns and submits freely; only the bot you armed refuses.
-- **The structural belt was `fill_form`-only, and that tool is gone.**
+- **The structural belt rode the batch-fill route, and that route is gone.**
   `config_overrides["browser.submit_deny"]` still renders to
-  `OTENY_BROWSER_SUBMIT_DENY`. The residual broker path honors it if
-  anything still calls `POST …/fill_form`. The agent fill path is native
-  `browser_click` / `browser_type`, and those calls are **not** refused
-  by the belt. Rehearse with an operator watching. Do not click the
-  irreversible button on a rehearsal bot. Do not add a new click-deny
-  unless a later stage asks for it.
+  `OTENY_BROWSER_SUBMIT_DENY`, and nothing reads it at the browser any
+  more: the fill path is native `browser_click` / `browser_type` (or a
+  helper's `page.ask`), and those calls are **not** refused by the belt.
+  Rehearse with an operator watching. Do not click the irreversible
+  button on a rehearsal bot. Do not add a new click-deny unless a later
+  stage asks for it.
 - **It stacks on top of the softer layers — structural, not a hope.** The belt is a third,
   *structural* line behind the prompt-level "never submit" instruction and the **server-side proof
   guard** (§4b): the prompt is a wish, the proof guard refuses an unproven *done*, and the belt refuses

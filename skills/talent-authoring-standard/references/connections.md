@@ -17,6 +17,8 @@ connections:
     kind: portal
     real_url: https://permits.example.org
     fence_hosts: [permits.example.org]
+  # A Talent declares as many `kind: portal` connections as it drives: each live
+  # host gets its own entry, its own fence, and its own tier binding.
   basecamp:                    # kind: saas    — a third-party account the owner grants
     kind: saas
     provider: basecamp

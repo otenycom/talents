@@ -93,9 +93,9 @@ at authoring time, and ship them in the skill:
 - `label="Visible field label"` targeting works too (it matches what snapshots
   show) — useful when ids are unstable, ambiguous when labels repeat (six Yes/No
   radio groups on one page — use the name+value form there).
-- Add a **portal-change check** to your skill: before filling each page, confirm
-  the expected labels are present (use the last attached tree). If the portal was redesigned,
-  selectors miss, the native click or type fails — your skill
+- Add a **page-change check** to your skill, per page: before filling each page,
+  confirm the expected labels are present (use the last attached tree). If that page
+  was redesigned, selectors miss, the native click or type fails — your skill
   must halt and escalate, never improvise new selectors mid-run.
 
 ## When may a skill go selector-free?
@@ -142,9 +142,9 @@ use the last attached tree, then click that named control. Full rationale:
 `TOOLS.md` and `tools-reference.md` are **generated** from the platform
 catalog (`python -m hermeshost tools-catalog`). Do not hand-edit them.
 The bot-facing contract for native click / type / snapshot / navigate is
-the `hh-browser` schema wrap (plugin `1.9.15`). A later catalog generate
-picks that up. Do not invent a second contract. There is no
-`browser_fill_form`. Do not write "never `@eN`".
+the `hh-browser` schema wrap, and a catalog generate picks it up. Do not
+invent a second contract. There is no `browser_fill_form`. Do not write
+"never `@eN`".
 
 ## Logins and credentials
 
@@ -175,7 +175,7 @@ closes the oldest idle window. That idle close is not a 409, and it is not
 ## Fail-closed wiring (what your skill must say)
 
 A blocked navigation, a repeated identical browser error, a page that doesn't
-match the portal-change check, or a missing confirmation value all mean **the job
+match the page-change check, or a missing confirmation value all mean **the job
 did not happen**: write nothing to your system of record, advance no state,
 escalate per your workflow, stop. Never let the bot construct a "plausible" value
 (a confirmation number, a reference id) — those are read off the page or they
@@ -213,16 +213,16 @@ browser CLI's resolver has two branches only, an `xpath=` prefix and
 literal text and matched nothing. It returned `Element not found` every time.
 
 On a real production filing that pushed the bot onto raw mouse events at three model round
-trips per click. `hh-browser` 1.9.4 now translates a named selector into the `xpath=` form
-the daemon does resolve, inside the same call, and it tries an exact match before a
-substring match. So a named selector is now one round trip and it works. CSS and `xpath=`
+trips per click. `hh-browser` translates a named selector into the `xpath=` form the
+daemon does resolve, inside the same call, and it tries an exact match before a
+substring match. So a named selector is one round trip and it works. CSS and `xpath=`
 always worked, if you need to reach past a name.
 
 ## When the bot is right and the page disagrees — read the recording
 
 A snapshot records what the bot asked for, and a trace records what the tool did. Neither
 records a tooltip, a validation banner, or a modal the bot never read into its context. So
-when your skill looks correct and the portal still refuses, the session recording is the
+when your skill looks correct and the page still refuses, the session recording is the
 only witness.
 
 Oteny keeps a video of every cloud-browser session and pulls it with
