@@ -218,6 +218,41 @@ daemon does resolve, inside the same call, and it tries an exact match before a
 substring match. So a named selector is one round trip and it works. CSS and `xpath=`
 always worked, if you need to reach past a name.
 
+## A helper drives the page — the `hh_browser` page client
+
+A helper your Talent lists under `talent_run.helpers` runs during a browser
+turn with the turn's live page on a unix socket. The pure-stdlib client
+`hh_browser` is on the helper's `PYTHONPATH`; the import fails closed outside
+a browser turn. The verbs are the platform's own primitives, not a Playwright
+page:
+
+```python
+from hh_browser import page
+
+r = page.ask("click", 'role=button[name="Save"]')      # the same wrap a model click gets
+r = page.ask("type", 'role=textbox[name="Email"]', "a@b.c")
+v = page.ask("eval", "document.title")
+peek = page.peek()        # .snapshot (the annotated tree), .digest, .generation, .refs
+photo = page.photo()      # .visible_text, .total
+png = page.screenshot()   # bytes
+page.handoff(note="picked Sector -> Vervoer: landed")
+```
+
+Every `ask` goes through the wrap a model click goes through: the named-selector
+rewrite, the stale-sticker refusal, the tape row and metering. A helper type is
+graded like a model type. When the helper exits, the platform closes the socket
+and runs the same fold a click gets. The `talent_run` result then carries your
+helper's stdout, the fresh tree when the page moved, and the page's text when
+the page hopped or the tree does not cover it.
+
+**Hand off a note, not a tree.** The fold's tree is the one whose stickers are
+live. A tree you hand off rides only when the fold attached none, and never
+beside the fold's. On 2026-09-17 the Barney option helper handed off the very
+tree the fold attached, so the model read 15 084 characters twice in one
+result, nine times in one filing. `page.handoff(note=...)` is the whole
+contract: say what the helper did and how it ended, and let the fold carry the
+page.
+
 ## When the bot is right and the page disagrees — read the recording
 
 A snapshot records what the bot asked for, and a trace records what the tool did. Neither

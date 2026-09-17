@@ -176,6 +176,28 @@ def derive_uplink_status(diagnostics: list[dict] | None) -> dict:
     return {"uplink_status": "unknown", "last_uplink_error": None}
 
 
+_BROWSER_TRACE_FIELDS = (
+    "ts", "page_title", "page_url", "step_index", "kind", "target_attempted",
+    "match_count", "el_id", "el_name", "el_role", "el_aria_label", "el_text",
+    "el_tag", "el_type", "action_fired", "checked_state", "value_matched",
+    "ok", "error", "verdict_source", "probe_outcome", "probe_ms",
+    "page_changed", "in_view", "scrolled_into_view", "source",
+    "submit_actual", "nav_from", "nav_to", "has_snapshot", "snapshot_pretty",
+)
+
+
+def _existing_fields(client, model: str, wanted) -> list[str]:
+    """The subset of ``wanted`` that ``model`` has on this platform, in order.
+    A platform that cannot answer ``fields_get`` gets the whole list."""
+    try:
+        have = client.call(model, "fields_get", attributes=["type"]) or {}
+    except Exception:  # noqa: BLE001 — an older seam: ask for everything as before
+        return list(wanted)
+    if not isinstance(have, dict) or not have:
+        return list(wanted)
+    return [f for f in wanted if f in have]
+
+
 def build_traces_dto(client, ref: str, session: str | None = None,
                      since: str | None = None, limit: int = 5,
                      photos: bool = False) -> dict:
@@ -220,15 +242,15 @@ def build_traces_dto(client, ref: str, session: str | None = None,
         bt_domain.append(["task_id", "=", session])
     if since:
         bt_domain.append(["ts", ">=", since])
+    # The platform adds a trace column now and then (the probe's page facts on
+    # 2026-09-09, its viewport facts on 2026-09-17). An author's CLI is often
+    # newer or older than the platform it reads, and Odoo answers HTTP 500 to a
+    # field it does not have, so ask once which of the wanted columns exist.
     browser_traces = [
         _enrich_browser_trace_row(t)
         for t in client.search_read(
             "hh.browser.trace", bt_domain,
-            ["ts", "page_title", "page_url", "step_index", "kind", "target_attempted",
-             "match_count", "el_id", "el_name", "el_role", "el_aria_label", "el_text",
-             "el_tag", "el_type", "action_fired", "checked_state", "value_matched",
-             "ok", "error", "submit_actual", "nav_from", "nav_to", "has_snapshot",
-             "snapshot_pretty"],
+            _existing_fields(client, "hh.browser.trace", _BROWSER_TRACE_FIELDS),
             limit=MESSAGE_WINDOW, order="id desc")
     ]
     browser_traces.reverse()  # oldest first, like the messages
@@ -252,6 +274,10 @@ def build_traces_dto(client, ref: str, session: str | None = None,
         "click_no_ops": sum(
             1 for t in steps if t.get("ok") and t.get("checked_state") == 0),
         "failed": sum(1 for t in steps if not t.get("ok")),
+        # The post-click probe found the click point off screen (the engine
+        # clicks a centre that can lie outside the viewport, 2026-09-05).
+        "off_view_clicks": sum(
+            1 for t in steps if t.get("kind") == "click" and t.get("in_view") == 0),
         "pages_captured": len(snaps),
         "controls_captured": sum(
             len(t.get("form_inventory") or []) for t in snaps),
@@ -321,6 +347,7 @@ def harvest_trace_text(dto: dict, *, after_session_id: int = 0) -> str:
         lines.append(
             f"# browser actions={bs.get('actions')} misses={bs.get('misses')} "
             f"click_no_ops={bs.get('click_no_ops')} failed={bs.get('failed')} "
+            f"off_view={bs.get('off_view_clicks')} "
             f"pages={bs.get('pages_captured')} controls={bs.get('controls_captured')}"
             + (f" archived={bs.get('pages_archived')} photos={bs.get('photos_attached')}"
                if "pages_archived" in bs else ""))
