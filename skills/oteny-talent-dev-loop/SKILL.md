@@ -264,13 +264,15 @@ same way, with three differences:
   `expect.uplink: [{model, domain, equals/count}]` (read back over the uplink) instead of a
   `state` query. There is no mock backend to seed.
 - **A `hand_off` turn triggers the REAL workflow path.** Instead of `user:` (a chat message), a
-  turn may declare `hand_off: {model, domain, to_state}` + an optional `reply_timeout`: the
-  driver writes the record into its bot-queue state over the uplink — exactly as a human hand-off
-  does — which fires the platform's own token-fenced dispatch, then waits for the bot's channel
-  narration. Use `hand_off` (not a driver-posted flagged message) so the scenario exercises the
-  real claim fence, not a legacy path. Fixture must match **exactly one** record (seed/reset it).
+  turn may declare `hand_off: {steps, done_when?, fail_when?}` + an optional `reply_timeout`:
+  the driver runs the declared steps over the uplink (`resolve` binds a row's fields to
+  names, `call` runs one method, exactly the calls a human's button makes), which fires the
+  engine's own dispatch, then waits for the bot's channel narration. A hand-off names no
+  state: another engine hands off differently. The grammar and a worked example are in
+  [behavioral-scenarios.md](../talent-authoring-standard/references/behavioral-scenarios.md).
+  Fixture must match **exactly one** record (seed/reset it).
 - **A long run waits on ground truth, and ends early on a hand-back.** Inside `hand_off`,
-  `done_when: {model, domain, equals|count}` polls the record until its terminal state, then
+  `done_when: {model, domain, equals|contains|count}` polls the record until its terminal state, then
   reads the final narration (channel silence is not "done": a browser pause fakes it).
   `fail_when:` takes a list of the same specs, each with a `reason:` label. When one of them
   passes first (the record is back in the human queue with no claim, because the platform's

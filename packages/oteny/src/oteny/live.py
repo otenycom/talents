@@ -276,6 +276,24 @@ def _normalise(text: str) -> str:
     return re.sub(r"[\s*`_#>]+", " ", text or "").strip().lower()
 
 
+
+_HAND_OFF_KEYS = frozenset({"steps", "done_when", "fail_when"})
+_STEP_KINDS = frozenset({"resolve", "call"})
+
+
+def _bind(value, bound: dict):
+    """Substitute ``$name`` strings with bound values, through dicts and lists."""
+    if isinstance(value, str) and value.startswith("$"):
+        name = value[1:]
+        if name not in bound:
+            raise RuntimeError(f"hand_off names ${name} before any step bound it")
+        return bound[name]
+    if isinstance(value, dict):
+        return {k: _bind(v, bound) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_bind(v, bound) for v in value]
+    return value
+
 class LiveDriver:
     """Drives a real clone for run_scenario --backend live. ``exec_on_node`` is an async
     ``(cmd: str) -> str`` (node-exec stdout); ``dm`` is an async ``(text) -> reply`` (the
@@ -360,44 +378,74 @@ class LiveDriver:
     def hand_off(self, spec: dict, timeout: float | None = None) -> str:
         """Perform the REAL workflow hand-off over the bot's business-Odoo uplink and wait
         for the bot's channel narration — the scenario trigger that exercises the actual
-        dispatch path (the hand-off write fires the inline token-fenced dispatch, D181/D177),
-        not a driver-posted flagged message that would bypass the claim fence.
+        dispatch path (the hand-off write fires the engine's own dispatch), not a
+        driver-posted flagged message that would bypass the claim fence.
 
-        ``spec`` = ``{model, domain, to_state, vals?}``: exactly ONE record must match
-        ``domain``; ``to_state`` names the bot-queue ``riverflow.state`` (resolved by name
-        within the record's workflow — names are portable across tiers, ids are not).
-        Optional ``vals`` are merged into the write (e.g. ``mfnl_dispatch_mode``) so the
-        hand-off mirrors Ask Barney to Draft/File, not a bare state flip."""
+        ``spec`` = ``{steps, done_when?, fail_when?}``. A hand-off names no state: another
+        engine hands off differently. ``steps`` is a list of two step kinds and nothing
+        else. ``resolve`` runs a ``search_read`` and binds the first row's fields to names
+        (``as: {state_id: id}``); a many2one binds its id. ``call`` runs one
+        ``model.method(**kwargs)`` on the uplink; when it carries a ``domain`` exactly ONE
+        record must match and its id rides as ``ids``; a kwarg value ``$name`` is a bound
+        name. The engine's models and methods sit in the Talent's own scenario, which is
+        its site knowledge; the runner knows ``search_read``, ``ids`` and a method name."""
         if not (self._uplink_call and self._post_message is not None
                 and hasattr(self._post_message, "wait_for_reply")):
             raise RuntimeError(
                 "hand_off needs a Discuss business-bot driver (uplink + channel poster)")
+        unknown = sorted(set(spec) - _HAND_OFF_KEYS)
+        if unknown:
+            raise RuntimeError(
+                f"hand_off takes steps, done_when and fail_when, not {unknown}: a state "
+                "name is one engine's word; declare the calls the human's button makes")
+        steps = list(spec.get("steps") or [])
+        if not steps:
+            raise RuntimeError("hand_off declares no steps")
         self._mark_trace_baseline()
-        model = spec["model"]
-        domain = spec.get("domain", [])
-        to_state = spec["to_state"]
-        extra_vals = dict(spec.get("vals") or {})
 
         async def _run() -> str:
-            recs = await self._uplink_call(
-                model, "search_read", domain=domain, fields=["id", "workflow_id"], limit=2)
-            if len(recs) != 1:
-                raise RuntimeError(f"hand_off matched {len(recs)} records for {domain!r} "
-                                   f"(need exactly 1 — seed/reset the fixture)")
-            wf = recs[0].get("workflow_id")
-            wf_id = wf[0] if isinstance(wf, (list, tuple)) else wf
-            sdom = [["name", "=", to_state]] + (
-                [["workflow_id", "=", wf_id]] if wf_id else [])
-            states = await self._uplink_call(
-                "riverflow.state", "search_read", domain=sdom, fields=["id"], limit=2)
-            if len(states) != 1:
-                raise RuntimeError(
-                    f"hand_off resolved {len(states)} states named {to_state!r}")
+            bound: dict = {}
             # marker BEFORE the trigger, so we only read what the triggered run posts.
             after = await self._post_message.latest_message_id()
-            write_vals = {"state_id": states[0]["id"], **extra_vals}
-            await self._uplink_call(
-                model, "write", ids=[recs[0]["id"]], vals=write_vals)
+            for n, step in enumerate(steps, 1):
+                if not isinstance(step, dict) or len(step) != 1 or next(iter(step)) not in _STEP_KINDS:
+                    raise RuntimeError(f"hand_off step {n} must be one of {sorted(_STEP_KINDS)}: {step!r}")
+                kind, body = next(iter(step.items()))
+                body = dict(body or {})
+                model = body.get("model")
+                if not model:
+                    raise RuntimeError(f"hand_off step {n} names no model")
+                if kind == "resolve":
+                    binds = dict(body.get("as") or {})
+                    if not binds:
+                        raise RuntimeError(f"hand_off step {n} resolves nothing: give `as`")
+                    rows = await self._uplink_call(
+                        model, "search_read", domain=_bind(body.get("domain", []), bound),
+                        fields=sorted(set(binds.values())), limit=2)
+                    if len(rows) != 1:
+                        raise RuntimeError(
+                            f"hand_off step {n} resolved {len(rows)} rows of {model} for "
+                            f"{body.get('domain')!r} (need exactly 1)")
+                    for name, field in binds.items():
+                        value = rows[0].get(field)
+                        if isinstance(value, (list, tuple)) and len(value) == 2:
+                            value = value[0]
+                        bound[name] = value
+                else:
+                    method = body.get("method")
+                    if not method:
+                        raise RuntimeError(f"hand_off step {n} names no method")
+                    kwargs = _bind(dict(body.get("kwargs") or {}), bound)
+                    if "domain" in body:
+                        recs = await self._uplink_call(
+                            model, "search_read", domain=_bind(body["domain"], bound),
+                            fields=["id"], limit=2)
+                        if len(recs) != 1:
+                            raise RuntimeError(
+                                f"hand_off step {n} matched {len(recs)} records of {model} for "
+                                f"{body['domain']!r} (need exactly 1 — seed/reset the fixture)")
+                        kwargs["ids"] = [recs[0]["id"]]
+                    await self._uplink_call(model, method, **kwargs)
             wait = timeout or self._dm_timeout
             done_when = spec.get("done_when")
             if done_when:
@@ -479,12 +527,12 @@ class LiveDriver:
         have written/changed). A scenario turn declares these under ``expect.uplink:``::
 
             uplink:
-              - model: riverflow.service
-                domain: [["current_workflow_name","=","Arrange MFNL Notification"],
+              - model: acme.permit
+                domain: [["current_workflow_name","=","Arrange permit"],
                          ["employee_id.name","ilike","Becoy"]]
                 equals: {field: state_id, value: "Filed — awaiting confirmation"}
               - model: rivercreds.credential
-                domain: [["credential_type_id.code","=","mfnl_filing"],
+                domain: [["credential_type_id.code","=","permit_filing"],
                          ["number","!=",false], ["employee_id.name","ilike","Becoy"]]
                 count: 1
 
@@ -510,25 +558,23 @@ class LiveDriver:
                 n = await self._uplink_call(model, "search_count", domain=domain)
                 ok = (n == spec["count"]) if "count" in spec else (n >= spec["min_count"])
                 return {"ok": bool(ok), "got": n}
-            if "equals" in spec:
-                field = spec["equals"]["field"]
-                want = spec["equals"]["value"]
+            verb = "equals" if "equals" in spec else ("contains" if "contains" in spec else None)
+            if verb:
+                field = spec[verb]["field"]
+                want = spec[verb]["value"]
                 recs = await self._uplink_call(
                     model, "search_read", domain=domain, fields=[field], limit=2)
                 got = recs[0].get(field) if recs else None
-                # an m2o reads back as [id, name]; match by name for a string expectation.
-                # Some models render a COMPOSITE display name ("<name> | <context>" — e.g.
-                # riverflow.state shows "Filed — awaiting confirmation | Arrange MFNL
-                # Notification"), so the bare-name segment before " | " matches too: a
-                # scenario stays readable + tier-portable without baking the context in.
+                # a many2one reads back as [id, display]; a string expectation compares on
+                # the display value as written, whatever shape an engine gives it.
                 if isinstance(got, (list, tuple)) and len(got) == 2 and isinstance(want, str):
                     got = got[1]
-                if isinstance(want, bool):
+                if verb == "contains":
+                    ok = isinstance(got, str) and str(want) in got
+                elif isinstance(want, bool):
                     ok = got == want
                 else:
                     ok = _coerce(str(got)) == _coerce(str(want))
-                    if not ok and isinstance(got, str) and " | " in got:
-                        ok = got.split(" | ", 1)[0].strip() == str(want)
                 return {"ok": ok, "got": got, "matched_rows": len(recs)}
             return {"ok": False, "reason": "no assertion verb"}
         except Exception as e:  # a seam/query error is a test failure, not a runner crash

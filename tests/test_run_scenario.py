@@ -224,9 +224,10 @@ _HAND_OFF_SCENARIO = """\
     live_only: true
     turns:
       - hand_off:
-          model: riverflow.service
-          domain: [["res_name", "ilike", "Becoy"]]
-          to_state: "With Barney"
+          steps:
+            - resolve: {model: acme.state, domain: [["name", "=", "With Bot"]], as: {state_id: id}}
+            - call: {model: acme.permit, method: write, domain: [["res_name", "ilike", "Fixture"]],
+                     kwargs: {vals: {state_id: "$state_id"}}}
         reply_timeout: 42
         expect:
           reply:
@@ -249,7 +250,7 @@ class _HandOffDriver(_FakeDriver):
 def test_live_hand_off_turn_drives_the_workflow_trigger(tmp_path):
     bundle = _synthetic_bundle(tmp_path)
     scenario = _write(bundle / "tests" / "scenarios" / "hand_off.yaml", _HAND_OFF_SCENARIO)
-    driver = _HandOffDriver(reply="MFNL Filed — awaiting confirmation")
+    driver = _HandOffDriver(reply="Permit Filed — awaiting confirmation")
     rs.set_live_driver(driver)
     try:
         rep = rs.run_scenario(scenario, "live")
@@ -257,9 +258,10 @@ def test_live_hand_off_turn_drives_the_workflow_trigger(tmp_path):
         rs.set_live_driver(None)
     assert rep["error"] is None and rep["failed"] == 0, rep
     # the driver received the spec + the declared reply_timeout; nothing was DM'd
-    assert driver.hand_offs == [({"model": "riverflow.service",
-                                  "domain": [["res_name", "ilike", "Becoy"]],
-                                  "to_state": "With Barney"}, 42)]
+    assert driver.hand_offs == [({"steps": [
+        {"resolve": {"model": "acme.state", "domain": [["name", "=", "With Bot"]], "as": {"state_id": "id"}}},
+        {"call": {"model": "acme.permit", "method": "write", "domain": [["res_name", "ilike", "Fixture"]],
+                  "kwargs": {"vals": {"state_id": "$state_id"}}}}]}, 42)]
     assert driver.sent == []
 
 

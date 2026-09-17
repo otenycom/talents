@@ -19,7 +19,7 @@ from oteny.live import LiveDriver
 class FakePoster:
     """Duck-typed like the Discuss poster: a coroutine to post, plus the two waits."""
 
-    def __init__(self, narration="Barney: I handed the record back."):
+    def __init__(self, narration="Bot: I handed the record back."):
         self.narration = narration
 
     async def __call__(self, text, timeout):  # pragma: no cover - not used by hand_off
@@ -41,13 +41,13 @@ def _uplink(state_sequence, claim_sequence):
 
     async def call(model, method, **kw):
         calls.append((model, method, kw))
-        if model == "riverflow.service" and method == "search_read" and "workflow_id" in kw.get("fields", []):
-            return [{"id": 7, "workflow_id": [3, "Arrange MFNL Notification"]}]
-        if model == "riverflow.state":
-            return [{"id": 163}]
+        if model == "acme.state" and method == "search_read":
+            return [{"id": 163}]                                   # the resolve step
         if method == "write":
             return True
-        if model == "riverflow.service" and method == "search_read":
+        if model == "acme.permit" and method == "search_read":
+            if kw.get("fields") == ["id"]:
+                return [{"id": 7}]                                # the call step's ids
             i = min(polls["state"], len(state_sequence) - 1)
             polls["state"] += 1
             return [{"id": 7, "state_id": [0, state_sequence[i]]}]
@@ -68,13 +68,17 @@ def _talent(uplink):
 
 
 _SPEC = {
-    "model": "riverflow.service",
-    "domain": [["res_name", "ilike", "Happypath"]],
-    "to_state": "With Barney",
-    "vals": {"mfnl_dispatch_mode": "fill_to_draft"},
-    "done_when": {"model": "riverflow.service", "domain": [["res_name", "ilike", "Happypath"]],
-                  "equals": {"field": "state_id", "value": "Draft ready for review"}},
-    "fail_when": [{"model": "riverflow.service", "reason": "handback",
+    "steps": [
+        {"resolve": {"model": "acme.state",
+                     "domain": [["name", "=", "With Bot"], ["workflow_id.name", "=", "Arrange permit"]],
+                     "as": {"state_id": "id"}}},
+        {"call": {"model": "acme.permit", "method": "write",
+                  "domain": [["res_name", "ilike", "Happypath"]],
+                  "kwargs": {"vals": {"state_id": "$state_id", "permit_dispatch_mode": "fill_to_draft"}}}},
+    ],
+    "done_when": {"model": "acme.permit", "domain": [["res_name", "ilike", "Happypath"]],
+                  "contains": {"field": "state_id", "value": "Draft ready for review"}},
+    "fail_when": [{"model": "acme.permit", "reason": "handback",
                    "domain": [["res_name", "ilike", "Happypath"], ["state_id.name", "=", "Not Started"],
                               ["bot_claim_token", "=", False]],
                    "count": 1}],
@@ -82,7 +86,7 @@ _SPEC = {
 
 
 def test_hand_off_ends_early_when_fail_when_matches():
-    uplink = _uplink(["With Barney", "Barney is filling", "Not Started", "Not Started"], [0, 0, 1])
+    uplink = _uplink(["With Bot", "Barney is filling", "Not Started", "Not Started"], [0, 0, 1])
     t0 = time.monotonic()
     reply = _talent(uplink).hand_off(_SPEC, timeout=20.0)
     assert time.monotonic() - t0 < 5.0, "the wait must end on the hand-back, not on reply_timeout"
@@ -92,14 +96,14 @@ def test_hand_off_ends_early_when_fail_when_matches():
 
 
 def test_hand_off_reaches_done_when_without_the_marker():
-    uplink = _uplink(["With Barney", "Draft ready for review"], [0, 0, 0, 0])
+    uplink = _uplink(["With Bot", "Draft ready for review"], [0, 0, 0, 0])
     reply = _talent(uplink).hand_off(_SPEC, timeout=20.0)
-    assert reply == "Barney: I handed the record back."
+    assert reply == "Bot: I handed the record back."
     assert "ended early" not in reply
 
 
 def test_await_done_reports_timeout():
-    uplink = _uplink(["With Barney"], [0])
+    uplink = _uplink(["With Bot"], [0])
     talent = _talent(uplink)
     outcome = asyncio.run(talent._await_done(_SPEC["done_when"], time.monotonic() + 0.05, _SPEC["fail_when"]))
     assert outcome == "timeout"
@@ -116,7 +120,7 @@ def test_tester_key_file_env_override(monkeypatch):
 
 @pytest.mark.parametrize("fail_when", [None, [], {}])
 def test_fail_when_absent_keeps_the_plain_wait(fail_when):
-    uplink = _uplink(["With Barney", "Draft ready for review"], [1])
+    uplink = _uplink(["With Bot", "Draft ready for review"], [1])
     spec = dict(_SPEC, fail_when=fail_when)
     reply = _talent(uplink).hand_off(spec, timeout=20.0)
     assert "ended early" not in reply
@@ -133,3 +137,46 @@ def test_uplink_url_env_override(monkeypatch):
     assert discuss.uplink_url_for_driver("https://lane-b-uplink.example") == (
         "http://127.0.0.1:8069")
     assert discuss.uplink_url_for_driver("") == "http://127.0.0.1:8069"
+
+
+def test_hand_off_binds_the_resolved_id_into_the_call():
+    uplink = _uplink(["Draft ready for review | Arrange permit"], [0])
+    _talent(uplink).hand_off(_SPEC, timeout=5)
+    write = next(c for c in uplink.calls if c[1] == "write")
+    assert write == ("acme.permit", "write",
+                     {"ids": [7], "vals": {"state_id": 163, "permit_dispatch_mode": "fill_to_draft"}})
+    resolve = next(c for c in uplink.calls if c[0] == "acme.state")
+    assert resolve[2]["fields"] == ["id"]
+
+
+def test_hand_off_refuses_a_state_name_and_an_unknown_step():
+    uplink = _uplink(["x"], [0])
+    with pytest.raises(RuntimeError, match="a state name is one engine's word"):
+        _talent(uplink).hand_off({"model": "acme.permit", "domain": [], "to_state": "With Bot"})
+    with pytest.raises(RuntimeError, match="must be one of"):
+        _talent(uplink).hand_off({"steps": [{"poke": {"model": "acme.permit"}}]})
+    with pytest.raises(RuntimeError, match="before any step bound it"):
+        _talent(uplink).hand_off({"steps": [{"call": {"model": "acme.permit", "method": "write",
+                                                       "domain": [], "kwargs": {"vals": {"state_id": "$nope"}}}}]})
+
+
+def test_a_call_without_a_domain_is_a_model_method():
+    calls = []
+
+    async def uplink(model, method, **kw):
+        calls.append((model, method, kw))
+        return True
+
+    _talent(uplink).hand_off({"steps": [{"call": {"model": "acme.permit", "method": "bot_hand_off",
+                                                   "kwargs": {"name": "Happypath"}}}]}, timeout=1)
+    assert calls == [("acme.permit", "bot_hand_off", {"name": "Happypath"})]
+
+
+def test_done_when_contains_matches_a_composite_display_and_equals_is_exact():
+    uplink = _uplink(["Draft ready for review | Arrange permit"], [0])
+    d = _talent(uplink)
+    spec = dict(_SPEC, done_when={"model": "acme.permit", "domain": [],
+                                  "equals": {"field": "state_id", "value": "Draft ready for review"}})
+    # equals on the bare name never matches the composite display: the wait runs out
+    assert asyncio.run(d._await_done(spec["done_when"], time.monotonic() + 0.05)) == "timeout"
+    assert asyncio.run(d._await_done(_SPEC["done_when"], time.monotonic() + 0.5)) == "done"

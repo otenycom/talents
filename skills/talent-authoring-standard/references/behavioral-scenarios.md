@@ -126,6 +126,39 @@ nothing while reading like coverage. To assert that a skill engaged, use the mar
 actually in the log: the bundle name, which reaches it through the `preflight.py` call every
 turn opens with.
 
+### The hand-off turn (live-only)
+
+A business-bot scenario triggers the real workflow path with a `hand_off:` turn
+instead of a `user:` message. It declares the calls a human's button makes, in
+two step kinds and nothing else, so the runner names no state and no engine:
+
+```yaml
+- hand_off:
+    steps:
+      - resolve: {model: acme.state, domain: [["name", "=", "With Bot"]], as: {state_id: id}}
+      - call: {model: acme.permit, method: write,
+               domain: [["res_name", "ilike", "Fixture Case"], ["state_id.name", "=", "Not Started"]],
+               kwargs: {vals: {state_id: "$state_id", dispatch_mode: fill_to_draft}}}
+    done_when: {model: acme.permit, domain: [["res_name", "ilike", "Fixture Case"]],
+                contains: {field: state_id, value: "Draft ready for review"}}
+    fail_when:
+      - reason: handback
+        model: acme.permit
+        domain: [["res_name", "ilike", "Fixture Case"], ["state_id.name", "=", "Not Started"]]
+        count: 1
+  reply_timeout: 1500
+```
+
+`resolve` runs a `search_read` and binds the first row's fields to names (a
+many2one binds its id); exactly one row must match. `call` runs one
+`model.method(**kwargs)` on the uplink; with a `domain`, exactly one record must
+match and its id rides as `ids`; a kwarg value `$name` is a bound name. A
+`to_state` key is refused: a state name is one engine's word. `done_when` and
+`fail_when` read fields as data; a many2one compares on its display value as
+written, `equals` exact and `contains` a substring, so an engine's composite
+label ("<state> | <workflow>") is matched with `contains`. The Barney bundle in
+radar carries seven worked hand-offs.
+
 **The trace is read after the harvest has caught up with the reply.** The gateway-log
 text comes from the control plane's harvest sweep, which mirrors a session into the
 platform after the fact, one sweep behind the live bot. A trace read the instant the
