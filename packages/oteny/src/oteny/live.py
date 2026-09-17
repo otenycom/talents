@@ -247,6 +247,35 @@ class DiscussPoster:
 # --------------------------------------------------------------------------- #
 # the LiveDriver                                                                #
 # --------------------------------------------------------------------------- #
+# The harvest lags the live gateway. The control plane's logs-pull sweep mirrors a
+# session into Odoo after the fact: in production the next sweep starts 60 s after
+# the previous one finishes, on a lab the worker belt ticks every 30 s. A trace read
+# the instant the record settles misses the turn's last tool calls, and those are
+# where a scenario's markers live (2026-09-17 lab: the marker ``odoo_client`` was
+# "missing" while the harvested session ended seven minutes before the reply).
+HARVEST_WAIT_S = 240.0
+HARVEST_POLL_S = 10.0
+_NEEDLE_CHARS = 32
+
+
+def _reply_needle(reply: str) -> str:
+    """The head of the reply's first line, normalised, or '' when there is none.
+
+    The harvested assistant row carries the same text the channel got, so its
+    presence in the trace says the harvest has caught up with the turn."""
+    for line in (reply or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("[hand_off ended early"):
+            continue
+        norm = _normalise(line)
+        return norm[:_NEEDLE_CHARS] if len(norm) >= 12 else ""
+    return ""
+
+
+def _normalise(text: str) -> str:
+    return re.sub(r"[\s*`_#>]+", " ", text or "").strip().lower()
+
+
 class LiveDriver:
     """Drives a real clone for run_scenario --backend live. ``exec_on_node`` is an async
     ``(cmd: str) -> str`` (node-exec stdout); ``dm`` is an async ``(text) -> reply`` (the
@@ -258,6 +287,8 @@ class LiveDriver:
                  db_rel: str | None, exec_on_node, dm, dm_timeout: float = 90.0,
                  post_message=None, uplink_call=None, substrate: str = "container",
                  read_trace=None, latest_session_id=None, uplink_poll_s: float = 6.0,
+                 harvest_wait_s: float = HARVEST_WAIT_S,
+                 harvest_poll_s: float = HARVEST_POLL_S, sleep=time.sleep,
                  zpool: str | None = None):
         self._ref = ref
         self._bot = bot_username
@@ -301,6 +332,10 @@ class LiveDriver:
         self._latest_session_id = latest_session_id
         self._trace_after = 0
         self._uplink_poll_s = uplink_poll_s
+        self._harvest_wait_s = float(harvest_wait_s)
+        self._harvest_poll_s = float(harvest_poll_s)
+        self._sleep = sleep
+        self._last_reply = ""
         self._fail_when_reason = ""
 
     def _mark_trace_baseline(self) -> None:
@@ -314,10 +349,13 @@ class LiveDriver:
         self._mark_trace_baseline()
         wait = timeout or self._dm_timeout
         if self._bot:
-            return asyncio.run(self._dm(self._bot, text, wait))
-        if self._post_message:        # a no-Telegram (Discuss) clone posts into its channel
-            return asyncio.run(self._post_message(text, wait))
-        return ""
+            reply = asyncio.run(self._dm(self._bot, text, wait))
+        elif self._post_message:      # a no-Telegram (Discuss) clone posts into its channel
+            reply = asyncio.run(self._post_message(text, wait))
+        else:
+            reply = ""
+        self._last_reply = reply or ""
+        return reply
 
     def hand_off(self, spec: dict, timeout: float | None = None) -> str:
         """Perform the REAL workflow hand-off over the bot's business-Odoo uplink and wait
@@ -383,18 +421,42 @@ class LiveDriver:
                 return await self._post_message.wait_for_reply(after, remaining)
             return await self._post_message.wait_for_reply(after, wait)
 
-        return asyncio.run(_run())
+        reply = asyncio.run(_run())
+        self._last_reply = reply or ""
+        return reply
 
     def trace(self) -> str:
         # Account-scoped by default: the harvested activity over /json/2/ (dogfood — an
         # external author reads it with only their account key). The mgmt-SSH gateway-log
         # tail is only the offline-test fallback (a fake ``exec_on_node``).
         if self._read_trace is not None:
-            return self._read_trace(self._trace_after)
+            return self._harvested_trace()
         zpool = self._zpool or "tank"
         cmd = (vm_gateway_log_tail_cmd() if self.substrate == "vm"
                else gateway_log_tail_cmd(zpool, self._ref))
         return asyncio.run(self._exec(cmd))
+
+    def _harvested_trace(self) -> str:
+        """The harvested trace once it carries the last reply, bounded.
+
+        The harvest lags the live gateway by a sweep (see ``HARVEST_WAIT_S``), so
+        wait until the harvested session holds the reply's first line, polling
+        every ``harvest_poll_s``. Give up after ``harvest_wait_s`` and say so on
+        the first line, so a failed marker reads as harvest lag, not as a tool the
+        bot never called. Without a reply to wait for, read once."""
+        needle = _reply_needle(self._last_reply)
+        text = self._read_trace(self._trace_after)
+        if not needle:
+            return text
+        waited = 0.0
+        while needle not in _normalise(text):
+            if waited >= self._harvest_wait_s:
+                return (f"# harvest lag: the reply is not in the harvested trace after "
+                        f"{waited:.0f} s\n{text}")
+            self._sleep(self._harvest_poll_s)
+            waited += self._harvest_poll_s
+            text = self._read_trace(self._trace_after)
+        return f"# harvest caught up after {waited:.0f} s\n{text}"
 
     def scalar(self, sql: str):
         rows = self.rows(sql)

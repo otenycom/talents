@@ -126,6 +126,17 @@ nothing while reading like coverage. To assert that a skill engaged, use the mar
 actually in the log: the bundle name, which reaches it through the `preflight.py` call every
 turn opens with.
 
+**The trace is read after the harvest has caught up with the reply.** The gateway-log
+text comes from the control plane's harvest sweep, which mirrors a session into the
+platform after the fact, one sweep behind the live bot. A trace read the instant the
+record settles misses the turn's last tool calls, and those are where markers such
+as `odoo_client` live. So the runner waits until the harvested session carries the
+reply's first line, polling every 10 s, for at most 240 s. Its first line then says
+`# harvest caught up after N s`. When the harvest never catches up, the first line
+says `# harvest lag: ...` and the marker check runs on what is there, so a red
+marker after that line is lag, not a tool the bot never called. A hand-off turn
+without a `trace:` block pays no wait.
+
 
 ## Adversarial red scenarios (bots for companies — the fail-closed proof)
 
