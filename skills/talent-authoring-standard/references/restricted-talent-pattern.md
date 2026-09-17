@@ -49,7 +49,7 @@ surface. Channel is where humans talk; it does **not** gate the data plane (§3)
 ```yaml
 routing:
   channel: discuss
-  home_connection: crewradar       # Discuss poll target only — omit on Telegram
+  home_connection: client-erp      # Discuss poll target only — omit on Telegram
   channel_prompt: |
     You are <bot>, the team's <job> desk in this Odoo Discuss channel. Load the
     <bot> skill and follow its triage and hard rules. Never ask for a password or a
@@ -83,7 +83,7 @@ room (`oteny.bot.channel`), and the adapter pairs them at runtime:
 ```yaml
 routing:
   channel: discuss
-  home_connection: crewradar
+  home_connection: client-erp
   channel_prompt: |                # LANE 1 — the casual desk, used in every other room
     You are <bot>, the team's <job> desk. Say what you can and cannot do, …
   channels:                        # LANE 2 — the declared job rooms
@@ -290,15 +290,15 @@ tools:
   required:
     - odoo_client
 connections:
-  crewradar:                 # name is yours → OTENY_CONN_CREWRADAR_*
+  client-erp:                # name is yours → OTENY_CONN_CLIENT_ERP_*
     kind: odoo
-    uplink_user: hr.otenybot # the bot's OWN least-privilege login in your Odoo
+    uplink_user: erp.bot     # the bot's OWN least-privilege login in your Odoo
     odoo_grants:             # exactly what the job touches — nothing else
-      read:  [riverflow.service, res.partner, rivercreds.credential]
-      write: [riverflow.service, rivercreds.credential]
+      read:  [acme.permit, res.partner, acme.credential]
+      write: [acme.permit, acme.credential]
 routing:
   channel: discuss
-  home_connection: crewradar # Discuss polls this odoo bind (OTENY_HOME_CONNECTION)
+  home_connection: client-erp # Discuss polls this odoo bind (OTENY_HOME_CONNECTION)
 ```
 
 **Telegram + same data plane** (no poll target):
@@ -310,12 +310,12 @@ tools:
   required:
     - odoo_client
 connections:
-  crewradar:
+  client-erp:
     kind: odoo
-    uplink_user: hr.otenybot
+    uplink_user: erp.bot
     odoo_grants:
-      read:  [riverflow.service, res.partner]
-      write: [riverflow.service]
+      read:  [acme.permit, res.partner]
+      write: [acme.permit]
 routing:
   channel: telegram
   # no home_connection
@@ -1073,7 +1073,7 @@ platform now scrolls every ref-click's target into view for you, but keep the co
 in the instruction because it is executor-independent: when the verify snapshot shows no
 state change after a "successful" click, scroll the control into view and **click AGAIN,
 then verify**. A scroll alone changes nothing, and one post-scroll click beats stopping at
-the harness's repeat warning. The controls most at risk are the LAST fields of a long
+the platform's repeat warning. The controls most at risk are the LAST fields of a long
 form — everything the fill pass auto-scrolled past works, and the bottom few do not.
 
 That split is the reconciliation of "a Talent is a high-level work instruction" with the hard
@@ -1425,40 +1425,25 @@ manifest whose entry references a rung the twin document claims exists and the m
 carry. If you only run one, do not read its green as evidence that your map matches the site — the
 only thing that settles that is a trace from the page.
 
-## 4f. Rehearse against the real site — the per-bot submit-deny belt
+## 4f. Rehearse against the real site — with an operator watching
 
 Converging selectors (§4e) and observing the real workflow (above) are fastest against the **real**
 third-party site — its real ids, real widgets, real page graph — but you must reach that page
 **without ever performing the real side-effect** (a legal submit, an irreversible "confirm" click).
 The obvious move — add a "never click submit" rule to the Talent — is **wrong**: the *same* Talent
-files for real in prod, so a Talent-wide submit block would gag the real bot too. The safe mechanism
-is a **per-bot submit-deny belt** — a knob on *this one rehearsal bot*, not on the Talent every bot
-shares.
+files for real in prod, so a Talent-wide submit block would gag the real bot too.
 
-- **A commission-time, per-bot knob, empty by default.** Arm it when you spin up a rehearsal clone:
-  `commission --submit-deny-patterns <comma,list>` records a `config_overrides["browser.submit_deny"]`
-  value on **that** bot, which the box receives as the env var `OTENY_BROWSER_SUBMIT_DENY`. A normal
-  bot carries **no** patterns and submits freely; only the bot you armed refuses.
-- **The structural belt rode the batch-fill route, and that route is gone.**
-  `config_overrides["browser.submit_deny"]` still renders to
-  `OTENY_BROWSER_SUBMIT_DENY`, and nothing reads it at the browser any
-  more: the fill path is native `browser_click` / `browser_type` (or a
-  helper's `page.ask`), and those calls are **not** refused by the belt.
-  Rehearse with an operator watching. Do not click the irreversible
-  button on a rehearsal bot. Do not add a new click-deny unless a later
-  stage asks for it.
-- **It stacks on top of the softer layers — structural, not a hope.** The belt is a third,
-  *structural* line behind the prompt-level "never submit" instruction and the **server-side proof
-  guard** (§4b): the prompt is a wish, the proof guard refuses an unproven *done*, and the belt refuses
-  the *click itself* at the browser. A rehearsal bot that drifts and tries to submit is stopped at the
-  browser, not trusted to obey.
-- **Honest residual — the native per-field click.** The belt matches on text, so a *native per-field
-  click* tool (one that actions a single element **by reference**, not by a text-bearing selector) is
-  caught only **procedurally**: its pre-check sees an element ref, not a label, so the text leg cannot
-  fire. Submitting that way therefore takes **deliberate, off-instruction clicks** — the kind a
-  watching operator sees in the live trace — not an accidental one. Rehearse with an operator watching
-  the run, and treat a per-field click on the submit control as the one gap the belt can't close for
-  you.
+- **What holds the line today.** The prompt-level "never submit" instruction on the rehearsal
+  bot's channel prompt, the **server-side proof guard** (§4b), which refuses an unproven *done*,
+  and an operator who watches the live trace (§4e, Watch). Rehearse with that operator watching.
+  Do not click the irreversible button on a rehearsal bot.
+- **The per-bot submit-deny knob has no enforcement point.** `commission
+  --submit-deny-patterns <comma,list>` still records `config_overrides["browser.submit_deny"]`
+  on a bot, and the box still receives it as `OTENY_BROWSER_SUBMIT_DENY`, but nothing at the
+  browser reads it: the fill path is native `browser_click` / `browser_type` (or a helper's
+  `page.ask`), and those calls are not refused. Do not arm it and count on it. Whether the
+  belt is re-homed in the click path or retired is an open decision, recorded in hermeshost's
+  `plans/generic-names-second-pass-2026-09-17.md` (finding C).
 
 ## 4g. There is no batch fill tool
 
@@ -1878,7 +1863,7 @@ to at all (see §4b fail-closed and §7 owner visibility).
   still describe the situation (`Needs Login`). Bot-driven transitions (`bot_role` claim /
   work / escalate, or only the bot takes them) prefix the bot's display name
   (`<Bot>: ask HR to log in`, `<Bot>: mark filed`) so a human scanning the strip never
-  confuses a harness exit for their own next step. Humans do not see `bot_role`
+  confuses a bot's exit for their own next step. Humans do not see `bot_role`
   `claim` / `work` buttons. Lowest sequence = primary button — put the
   state's **owner's** intended next action first.
 - **The escalate hand-back.** When the agent cannot finish (a rejection, an unexpected
@@ -2192,9 +2177,9 @@ dropped, so neither can double a side effect:
 ### The attended approval gate — workflow states, not pause/resume
 
 Some side-effects must not fire until a **human approves** them. The wrong build is a pause/resume
-primitive that suspends a live run mid-turn and wakes it on a click — it couples the harness to a
+primitive that suspends a live run mid-turn and wakes it on a click — it couples the platform to a
 durable-workflow engine and leaves a half-run holding a claim. The right build is **pure workflow
-states**, on the **same isolated-turn harness (§6) with no harness change**:
+states**, on the **same isolated turn (§6) with no platform change**:
 
 - **A prep run previews, then parks.** A bot-owned **prep** transition fires a fresh isolated turn
   that gathers the record's data, produces the **preview/summary** the human will judge, and advances
@@ -2221,14 +2206,14 @@ Some portals gate the real work behind a **login only a human can pass** — an 
 sign-in, an SMS or authenticator one-time code, a hardware-key tap. The wrong build is a pause/resume
 that freezes the automation mid-turn waiting for the person to type the code — it holds a live browser
 *and* a claim open for minutes against the session's hard lifetime (the near-TTL trap, above), and on
-the isolated harness there is no chat reply the throwaway turn can even receive. The right build is the
+an isolated turn there is no chat reply the throwaway turn can even receive. The right build is the
 **same pure workflow states** (§6), with the login done in a **separate, human-driven browser session**
 the next run reuses:
 
 - **A run reaches the wall, parks, and ends.** When a dispatched turn hits the login/2FA wall it takes a
   bot-owned **work** transition into a **human-owned "needs login" state** and ends the turn — it opens
   no authenticated session and writes no secret. Register that state as an accepted **work** outcome of
-  the in-progress state (§6), or the harness's timeout backstop hands the record back as a false failure.
+  the in-progress state (§6), or the engine's timeout reaper hands the record back as a false failure.
   Before you call `browser_needs_login`, write **one diagnosis line** that names the URL you saw and
   the `controls` count from the last snapshot you already have. A false wall (empty first capture) and
   a real login page look the same in the trace without that line. Do not snapshot again just to log.
@@ -2431,16 +2416,16 @@ in the dev-loop skill; the domain names your workflow's queue state and its
 claim field.
 
 The host polls the fence too. Once a minute during an isolated turn the Oteny
-Discuss adapter asks the record's read-only epoch probe, `bot_token_check`,
-the same call your Talent makes before an irreversible action, whether the
-turn still owns the record. When the record says no, the host interrupts the
-turn and blocks every browser tool of that session. So a reaper, a human
-hand-back or a re-assignment never leaves a bot filling a record it no
-longer owns (on 2026-09-04 a lab bot kept filling a portal for twelve minutes
-after a reaper took its record back). A second bot for a company inherits this
-by exposing the same probe on its workflow model; the reaper's own window is a
-backstop for a dead harness, not a cutoff for a working bot, so size it past
-the browser session's life (65 minutes against a 60-minute browser cap).
+Discuss adapter asks the bridge's `work_probe` (on `oteny.bot`, by work token)
+whether the turn still owns the record; the bridge asks your engine's own epoch
+check, the same fence your Talent reads before an irreversible action. When the
+answer is no, the host interrupts the turn and blocks every browser tool of
+that session. So a reaper, a human hand-back or a re-assignment never leaves a
+bot filling a record it no longer owns (on 2026-09-04 a lab bot kept filling a
+portal for twelve minutes after a reaper took its record back). Another engine
+inherits this by answering the bridge's `_work_probe` hook; the reaper's own
+window is a backstop for a dead run, not a cutoff for a working bot, so size it
+past the browser session's life (65 minutes against a 60-minute browser cap).
 
 Prove two overlapping Hands on the live queue. A graded scenario that waits
 `done_when` serializes itself, so a green `oteny test` does not prove the

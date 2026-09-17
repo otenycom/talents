@@ -444,7 +444,7 @@ a run did the wrong thing.
    - **Behavior** (the model reasoned wrong: fabricated, skipped a check, mis-ordered) → fix the
      **skill prose/rules** (tighten the checklist, add a negative guardrail; do not "coax" a weak
      model — raise the tier instead, per the authoring standard's model-tier rule).
-   - **Platform** (the harness / adapter / a mounted tool itself misbehaved) → **not** a Talent
+   - **Platform** (the Discuss adapter, the bridge to the business's Odoo, or a mounted tool itself misbehaved) → **not** a Talent
      fix; report it to the platform maintainer, never patch around it in the Talent.
 3. **Pin it before you fix it.** **Every live-caught failure class gets a new pinning red
    scenario** (`tests/scenarios/*.yaml`) that reproduces it and asserts the *safe* outcome — the

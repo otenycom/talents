@@ -21,3 +21,16 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
+      - id: customer-template-gate
+        name: One customer is never the template (D389)
+        entry: python .git_hooks/customer_template_gate.py
+        language: python
+        files: ^(skills|packages|tests|scripts)/.*\.(py|yaml|yml|json|toml|sh|txt|xml|js|html)$
+        stages: [pre-commit, pre-merge-commit]
+      - id: customer-template-gate-whole-tree
+        name: Customer-template gate, whole tree — the exact CI verdict, before the push
+        entry: python .git_hooks/customer_template_gate.py
+        language: python
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

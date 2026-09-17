@@ -6,7 +6,7 @@
 # The pattern it demonstrates: talent-authoring-standard/references/
 # restricted-talent-pattern.md + browser-authoring.md. In a REAL restricted
 # Talent the sqlite system of record becomes your client's own system reached
-# over its API (crewradar + odoo_client in a real bot); the demo keeps sqlite +
+# over its API (the business's Odoo + odoo_client in a real bot); the demo keeps sqlite +
 # terminal.
 bot: oteny-permit-filer-demo
 display_name: Permit Filer (demo)

@@ -67,6 +67,11 @@ def main() -> int:
                        "skills/talent-authoring-standard/scripts/lint_tools.py",
                        *bundles], None))
 
+    # talent-lint.yml — one customer is never the template (D389): a customer's name, site
+    # or workflow engine never sits in shared code as a default, a fixture or a recipe.
+    steps.append(("Customer-template gate (whole tree)",
+                  [sys.executable, ".git_hooks/customer_template_gate.py"], None))
+
     failed = [label for label, argv, env in steps if not _run(label, argv, env)]
     print()
     if failed:

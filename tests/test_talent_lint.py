@@ -411,7 +411,7 @@ def _twin_bundle(root: Path, *, manifest: str, doc: str | None,
     refs.mkdir(parents=True, exist_ok=True)
     (b / "SKILL.md").write_text("---\nname: x\ndescription: d\nversion: 1.2.3\n---\n"
                                 "1. do a thing\n2. verify it\n3. never fabricate\n")
-    (refs / "mfnl-selectors.yaml").write_text(manifest)
+    (refs / "portal-selectors.yaml").write_text(manifest)
     if doc is not None:
         (refs / doc_name).write_text(doc)
     return b
@@ -492,13 +492,6 @@ def test_a_bot_that_declares_both_is_not_warned(tmp_path):
                        + "record_pin:\n  fields: [id, work_json]\n")
     warns = lint.checklist_warnings(b)
     assert not any("record_pin" in w or "summary_check" in w for w in warns)
-
-
-def test_barney_manifest_twin_is_in_lockstep():
-    # the shipped Barney bundle (radar) declares doc_twin and must stay drift-free.
-    bundle = Path("/Users/ries/oteny/radar/cuneus_barney/talents/cuneus-hr-talent")
-    if bundle.is_dir():
-        assert not any("twin DRIFT" in f for f in lint.lint_bundle(bundle))
 
 
 # --------------------------------------------------------------------------- #

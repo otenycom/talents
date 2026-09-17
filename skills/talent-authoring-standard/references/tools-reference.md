@@ -899,7 +899,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Hand the live browser to a human for a step only a person can do — a real login, two-factor/2FA code, or a captcha the cloud browser could not auto-solve. Sends a secure live-view link into THIS chat (whoever asked) and pauses; you then resume on the SAME browser session once someone replies. That link lets whoever holds it complete the sign-in — in a group, anyone there can act on it, not only the owner. Use this ONLY after trying yourself: captchas are auto-solved by the cloud browser, so retry first and reserve handoff for genuine logins/2FA. Logins PERSIST across turns and days (a per-tenant browser profile plus the session is reused between your messages), so before asking for a handoff, navigate to the site and check whether you are ALREADY signed in from an earlier session — only hand off if you actually hit a login or 2FA wall. Bandwidth note: the cloud browser bills by proxy GB (the dominant cost), so for text/DOM-only work block images/media/fonts via browser_cdp (request interception). Prefer web_search/web_extract or curl for plain fetches — the browser is for interaction, not retrieval. If the user wants you to remember this login for next time, offer `connect_login` (a secure link to save it) instead of a fresh handoff each visit.
+> Hand the live browser to a human for a step only a person can do — a real login, two-factor/2FA code, or a captcha the cloud browser could not auto-solve. The same session survives a restart of this process while its clocks hold, so a login done earlier is still there: hand off only on a real login or 2FA wall you see on the page. Sends a secure live-view link into THIS chat (whoever asked) and pauses; you then resume on the SAME browser session once someone replies. That link lets whoever holds it complete the sign-in — in a group, anyone there can act on it, not only the owner. Use this ONLY after trying yourself: captchas are auto-solved by the cloud browser, so retry first and reserve handoff for genuine logins/2FA. Logins PERSIST across turns and days (a per-tenant browser profile plus the session is reused between your messages), so before asking for a handoff, navigate to the site and check whether you are ALREADY signed in from an earlier session — only hand off if you actually hit a login or 2FA wall. Bandwidth note: the cloud browser bills by proxy GB (the dominant cost), so for text/DOM-only work block images/media/fonts via browser_cdp (request interception). Prefer web_search/web_extract or curl for plain fetches — the browser is for interaction, not retrieval. If the user wants you to remember this login for next time, offer `connect_login` (a secure link to save it) instead of a fresh handoff each visit.
 
 **Parameters**
 
@@ -943,7 +943,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Send a READ-ONLY live view of the browser session you have open right now, into THIS chat, so whoever is talking to you can watch the page while you work. Nobody can type or click through this link — it is watch-only (for a real takeover, e.g. a login/2FA wall, use browser_request_human instead). Call it once, right after you open the page and BEFORE you start filling or clicking, so the owner is watching from the start. Do not call it again for the same still-open session — the link stays live for as long as the session does.
+> Send a READ-ONLY live view of the browser session you have open right now, and again after a restart of this process when the chat's link is gone: the recording did not die with the process, and browser_list_sessions names the session to remint it from. into THIS chat, so whoever is talking to you can watch the page while you work. Nobody can type or click through this link — it is watch-only (for a real takeover, e.g. a login/2FA wall, use browser_request_human instead). Call it once, right after you open the page and BEFORE you start filling or clicking, so the owner is watching from the start. Do not call it again for the same still-open session — the link stays live for as long as the session does.
 
 **Result** — {status:'sent', message} — a read-only live-view link went to the chat this call came from. Nobody can type through it.
 
@@ -970,7 +970,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> Send a link to WATCH BACK a browser session that already finished — a recording, read-only, available up to 48 hours after it closed. Use this when someone asks to see a run that already ended ('show me what you did', 'can I see that filing'). For a session still open right now, use browser_watch instead. Without session_id, replays the most recently closed session — call browser_list_sessions first if you need to name an older one.
+> Send a link to WATCH BACK a browser session that already finished — a recording, read-only, available up to 48 hours after it closed. A restart of this process does not end a session or its recording; remint a lost link from browser_list_sessions. Use this when someone asks to see a run that already ended ('show me what you did', 'can I see that filing'). For a session still open right now, use browser_watch instead. Without session_id, replays the most recently closed session — call browser_list_sessions first if you need to name an older one.
 
 **Parameters**
 
@@ -1012,7 +1012,7 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*
 
-> List this bot's own recent browser sessions — open ones browser_watch can show live, and closed ones (within 48 hours) browser_replay can show by session_id. Returns id, status (open/closed), and when each opened/closed. Never a URL — call browser_watch or browser_replay for that.
+> List this bot's own recent browser sessions — open ones browser_watch can show live, and closed ones (within 48 hours) browser_replay can show by session_id. Returns id, status (open/closed), and when each opened/closed. The list survives a restart of this process: when a chat's Watch or Replay link is gone, find the session here and remint it. Never a URL — call browser_watch or browser_replay for that.
 
 **Result** — {sessions: [{id, status, created_at, closed_at}, …]} — this bot's own recent sessions, newest first. Never a URL.
 

@@ -48,7 +48,7 @@ def test_discuss_driver_uses_the_tenant_url_by_default(monkeypatch, tmp_path):
     seen: dict = {}
     _quiet_runner(monkeypatch, tmp_path, seen)
     out = runner.run_scenarios_for_clone(
-        _Client(), "hh00527", "cuneus-hr-talent", bundle_dir=str(tmp_path))
+        _Client(), "hh00527", "acme-permit-talent", bundle_dir=str(tmp_path))
     assert out["ok"] is True
     assert seen["uplink_url"] == "https://lane-b-uplink.example"
     assert seen["uplink_db"] == "crmain"
@@ -59,7 +59,7 @@ def test_discuss_driver_uses_the_override_url_when_set(monkeypatch, tmp_path):
     seen: dict = {}
     _quiet_runner(monkeypatch, tmp_path, seen)
     runner.run_scenarios_for_clone(
-        _Client(), "hh00527", "cuneus-hr-talent", bundle_dir=str(tmp_path))
+        _Client(), "hh00527", "acme-permit-talent", bundle_dir=str(tmp_path))
     assert seen["uplink_url"] == "http://127.0.0.1:8069"
     # The database is the same one the tunnel serves; only the address moves.
     assert seen["uplink_db"] == "crmain"

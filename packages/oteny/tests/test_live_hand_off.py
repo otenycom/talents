@@ -80,13 +80,13 @@ _SPEC = {
                   "contains": {"field": "state_id", "value": "Draft ready for review"}},
     "fail_when": [{"model": "acme.permit", "reason": "handback",
                    "domain": [["res_name", "ilike", "Happypath"], ["state_id.name", "=", "Not Started"],
-                              ["bot_claim_token", "=", False]],
+                              ["work_token", "=", False]],
                    "count": 1}],
 }
 
 
 def test_hand_off_ends_early_when_fail_when_matches():
-    uplink = _uplink(["With Bot", "Barney is filling", "Not Started", "Not Started"], [0, 0, 1])
+    uplink = _uplink(["With Bot", "Bot is filling", "Not Started", "Not Started"], [0, 0, 1])
     t0 = time.monotonic()
     reply = _talent(uplink).hand_off(_SPEC, timeout=20.0)
     assert time.monotonic() - t0 < 5.0, "the wait must end on the hand-back, not on reply_timeout"

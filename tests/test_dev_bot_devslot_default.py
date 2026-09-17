@@ -32,9 +32,9 @@ class _FakeOteny:
 def test_request_kwargs_omitted_dev_slot_defaults_to_empty():
     # A channel-less / CI caller may omit dev_slot entirely — no TypeError, and it reaches the
     # platform as a falsy slot, which request_dev_bot treats as always-create (never reuse).
-    kw = db.request_kwargs(bundle="cuneus-barney", uplink_key="k")
+    kw = db.request_kwargs(bundle="acme-permit", uplink_key="k")
     assert kw["dev_slot"] == ""            # present but falsy → the platform's always-create path
-    assert kw["bundle"] == "cuneus-barney"
+    assert kw["bundle"] == "acme-permit"
 
 
 def test_ensure_without_dev_slot_takes_always_create_path():
@@ -45,7 +45,7 @@ def test_ensure_without_dev_slot_takes_always_create_path():
         "dev_bot_request_status": {"ok": True, "terminal": True, "state": "active",
                                    "ref": "hh0new", "talent_delivered": True},
     })
-    res = db.ensure(oteny, bundle="cuneus-barney", timeout_s=5, poll_s=0, log=lambda *a, **k: None)
+    res = db.ensure(oteny, bundle="acme-permit", timeout_s=5, poll_s=0, log=lambda *a, **k: None)
     assert res["ref"] == "hh0new"
     assert res["reused"] is False          # a falsy slot never reuses — always a fresh create
     # The platform saw dev_slot="" (present, falsy), never a MISSING kwarg — proof there is no crash.

@@ -7,9 +7,9 @@ owner sees it under that name on their own Connections page.
 
 ```yaml
 connections:
-  crewradar:                   # kind: odoo    — the business's own Odoo
+  client-erp:                  # kind: odoo    — the business's own Odoo
     kind: odoo
-    uplink_user: hr.otenybot
+    uplink_user: erp.bot
     odoo_grants:
       read:  [res.partner]
       write: [res.partner]
