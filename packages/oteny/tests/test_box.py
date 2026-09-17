@@ -275,3 +275,28 @@ def test_the_client_never_holds_a_mgmt_key_or_settings():
     box = AuthorBoxAccess(FakeClient({}))
     for attr in vars(box):
         assert "mgmt" not in attr and "settings" not in attr.lower()
+
+
+def test_the_cli_prints_one_sentence_on_a_box_access_error(monkeypatch, capsys, tmp_path):
+    """`oteny inspect` on a request the platform fences out answered with a traceback
+    (2026-09-17, `inspect status 2: not_found`). The CLI prints the platform's own
+    sentence and exits 1."""
+    from oteny import cli
+
+    class Refusing:
+        def __init__(self, client):
+            pass
+
+        def inspect(self, ref):
+            raise BoxAccessError(f"inspect status 2: not_found")
+
+    key = tmp_path / "key"
+    key.write_text("k\n")
+    monkeypatch.setattr(cli, "_client", lambda args: object())
+    import oteny.box as box_mod
+    monkeypatch.setattr(box_mod, "AuthorBoxAccess", Refusing)
+    rc = cli.main(["inspect", "--api-key-file", str(key), "--ref", "lab00006"])
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert err.strip() == "box access: inspect status 2: not_found"
+    assert "Traceback" not in err

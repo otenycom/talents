@@ -245,6 +245,22 @@ and runs the same fold a click gets. The `talent_run` result then carries your
 helper's stdout, the fresh tree when the page moved, and the page's text when
 the page hopped or the tree does not cover it.
 
+**A typeahead takes its letters in one ask; a rendered list is clicked by
+name.** A list that applies its typeahead after a debounce (Angular Material's
+CDK: 200 ms) reads one `press` per letter as a fresh one-letter search each
+time, because every ask is a round trip through the page socket, the plugin,
+the daemon and the cloud browser. Send the prefix in one
+`page.ask("keyboard", "type", prefix)`. When the option is rendered in the
+open list, scroll it within the panel (`scrollIntoView({block: "nearest"})`
+on the option, one `eval`) and click it by name instead: a typeahead cannot
+reach a `50.40` at all, because it ignores the dot. Press Enter only when the
+list's active row reads the option, and leave the list open on a mismatch.
+On 2026-09-17 the Barney option helper sent one press per letter and landed
+two of nine picks; the platform's own recovery loop had the same shape and
+is gone, so the pick is the helper's job. The reference helper is
+`cuneus_barney/talents/cuneus-hr-talent/scripts/postedworkers_pick_option.py`
+in the radar repo, with its unit test on a fake page beside it.
+
 **Hand off a note, not a tree.** The fold's tree is the one whose stickers are
 live. A tree you hand off rides only when the fold attached none, and never
 beside the fold's. On 2026-09-17 the Barney option helper handed off the very

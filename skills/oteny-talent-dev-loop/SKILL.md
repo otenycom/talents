@@ -490,6 +490,13 @@ sqlite state, tail a log live, delete a poisoned row and re-dispatch. Two self-s
 windows into a box **your account owns or is billed for** (dev **and** prod) — both driven over
 your account key on `hh.box_access_request`, never a bot tool:
 
+A lab bot answers the same two verbs the same way (2026-09-17: two inspects on
+`lab00006`, each served within 40 s). When the platform refuses or fences a
+request, `oteny` prints one line, `box access: <the platform's reason>`, and
+exits 1; `not_found` on a request you just made means the platform's own
+identity stamp does not match your key, which is a platform fault to report,
+not a missing worker.
+
 **`inspect` — a one-call, redacted snapshot.** Request it, poll to `done`, read `snapshot`:
 
 ```

@@ -6,6 +6,8 @@ import json
 import os
 import sys
 
+from .box import BoxAccessError
+
 
 def _emit(obj) -> None:
     print(json.dumps(obj, indent=2, default=str))
@@ -272,7 +274,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return int(args.func(args) or 0)
+    try:
+        return int(args.func(args) or 0)
+    except BoxAccessError as exc:
+        # One sentence, not a traceback: the platform's own answer is the message.
+        print(f"box access: {exc}", file=sys.stderr)
+        return 1
 
 
 def lint_main(argv: list[str] | None = None) -> int:
