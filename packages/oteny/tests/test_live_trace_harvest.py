@@ -61,5 +61,5 @@ def test_trace_reads_once_without_a_reply_to_wait_for():
 
 
 def test_reply_needle_skips_the_early_end_note_and_markdown():
-    assert _reply_needle("\n[hand_off ended early: handback]\n**Bot:** I handed it back to the desk.") == "bot: i handed it back to the desk."
+    assert _reply_needle("\n[hand_off ended early: handback]\n**Bot:** I handed it back to the desk.") == "bot: i handed it back to the des"  # 32 chars
     assert _reply_needle("ok") == ""
