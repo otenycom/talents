@@ -123,6 +123,32 @@ harvested ids as later rungs** — the resilience ladder, not a selector-free sk
 ladder degrades gracefully (a renamed id falls through to the label); a bare-id-only skill
 misses mid-filing on the first re-skin.
 
+## What a sticker promises
+
+A **sticker** is the short handle a page print gives a control — `@e17`. The
+platform promises that a sticker names the same element **until the page
+navigates**, and that promise now holds on the cloud browser exactly as it holds
+on a laptop Chromium (hermeshost D393, 2026-09-18). Until that fix a print
+through the platform's CDP hub could re-mint every number on a standing page, so
+a helper that held a handle between two reads was gambling.
+
+So write a helper that holds a handle for the page it is working on, and re-read
+only when the page moves. Three things still end a sticker's life, and a helper
+must expect each one:
+
+- **A navigation.** The page is a new document, and every number is new. The
+  result that follows a navigating click carries the fresh tree; use it.
+- **A gateway restart.** A `/restart` or a converge bounce drops the platform's
+  maps, so every sticker from before it is dead. Take a fresh look.
+- **A dial the platform did not end** — the tenant's own network, or a browser
+  death. It is rare, and the platform refuses the old sticker rather than
+  clicking a row that only looks the same.
+
+That last point is the rule to build on: a refused sticker is **safe**, and a
+guessed one is not. Never map a dead handle onto a row with the same name and
+position on a newer print. A match is not the same element, and on a page whose
+rows move it is a wrong click. Take one fresh read and act by the printed name.
+
 ## Fill discipline (the short form)
 
 One native click or type at a time. Type by the printed name, not a
