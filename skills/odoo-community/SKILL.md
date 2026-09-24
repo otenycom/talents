@@ -83,7 +83,9 @@ app menu, so `/odoo` opens the pipeline and not Discuss.
 ## Safety boundary
 
 - Bind `0.0.0.0:8069` so a later publish can reach it. Never `127.0.0.1` only.
-- Never post a password. Never ask the owner to type one in chat.
+- Never post a password. When the owner asks to check it, you may
+  tell them the character count of the stored password and nothing
+  else. Never ask the owner to type one in chat.
   Owner email, language, and the password link live in
   [`references/setup.md`](references/setup.md). WebsiteBot and
   CrmBot load that file. They do not invent a second intake.

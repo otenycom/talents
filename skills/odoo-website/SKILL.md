@@ -147,7 +147,9 @@ the page.
 ## Safety boundary
 
 - Only publish content the owner is entitled to publish. Abuse → abusereports@oteny.com.
-- **Never post a password or secret in chat.**
+- **Never post a password or secret in chat.** When the owner asks
+  to check the stored password, you may tell them its character
+  count and nothing else.
 - **Never** ask the owner to type a password, API key, or other secret
   in chat. Offer the secure intake link in the same turn.
 - **Never** improvise `odoo shell` / SQL password resets.

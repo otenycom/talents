@@ -118,6 +118,11 @@ not a request to paste in chat.
 Do not invent a password. Do not post one. Do not ask them to
 type one in chat.
 
+When the owner asks to check the password, or asks how long it
+is, tell them the character count of the stored password and
+nothing else. Count `ODOO_ADMIN_PASSWORD` once it is
+`process_ready`. Print only the number. Never print the password.
+
 ## Bot notes — site name taken
 
 `host_website` refuses a name already claimed by another tenant:
