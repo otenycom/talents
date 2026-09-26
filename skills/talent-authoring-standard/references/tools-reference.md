@@ -2188,6 +2188,54 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 ## Out of the box
 
+### `talent_save` — Save the bot's own fix
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Save your Talent edits as a commit on your dev branch. You are a dev bot for one dev branch: ~/.hermes/oteny-dev-branch.json names the branch and `talent_dir`, the only folder you may edit. When the owner asks for a change, edit files in talent_dir with your file tools, run the Talent's self-check, then call this with a one-line `summary` of what you changed and why. It returns the commit, or the reason it was refused. `branch_moved` means the owner pushed to the branch themselves: tell them, and do not re-apply your edit on top. A save never changes the production bot; the owner tests the branch and promotes it.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One line: what you changed and why. It becomes the commit message."
+    }
+  },
+  "required": [
+    "summary"
+  ]
+}
+```
+
+**Result** — {ok: true, result: committed|no_change, branch, commit} — the dev branch and its head after the save. committed means a new commit holds the bot's edits; no_change means the folder already matched the branch. Or {ok: true, pending: true, message} when the save is still queued after about 90 seconds.
+
+**Errors / edges** — {ok: false, reason: no_dev_branch} on any bot that is not a dev branch's dev bot, and {ok: false, reason: busy} while another save or a test is queued. {ok: false, result: refused, error} when the save was refused: branch_moved means the owner pushed to the branch themselves, so tell them and do not re-apply the edit on top; tree_too_big and bad_tree name a folder that cannot be saved. Plus the shared platform set.
+
+**Example**
+
+```json
+{
+  "summary": "Greet returning customers by name"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "result": "committed",
+  "branch": "oteny/acme-desk/greet-by-name",
+  "commit": "4f1c2ab"
+}
+```
+
+**Authoring notes** — Free. Offered only on a dev branch's dev bot: ~/.hermes/oteny-dev-branch.json names the branch and the one folder the bot may edit. The platform reads that folder itself; the bot sends only the summary, never a path, and never holds a git credential. Author-side trees delivery never ships (tests/, PLAN.md, caches) are left as the repository has them. A save never changes the production bot: the owner tests the branch and promotes it.
+
 ### `switch_persona` — Smart model switching
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*

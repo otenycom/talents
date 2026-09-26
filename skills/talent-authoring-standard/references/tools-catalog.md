@@ -116,6 +116,7 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 
 | Request name | Request via | Skill to compose | Status | Cost | What it does |
 |---|---|---|---|---|---|
+| `talent_save` | `tools.required` | — | live | Included | 💾 On a dev bot: your bot saves its fix to its Talent as a commit on the dev branch. |
 | `switch_persona` | `tools.required` | — | live | Included | 🧠 Steps up to a stronger model for error-prone tasks (like verifying real listings), tells you when it does, and steps back down after. |
 | `cron` | `toolset_contribution` | oteny-cron-authoring | live | Included | ⏰ Runs tasks on a schedule, in your local time. |
 | `memory` | `toolset_contribution` | — | live | Included | 🧠 Remembers what matters across chats. |
