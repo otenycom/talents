@@ -283,6 +283,11 @@ def cmd_branch_close(args) -> int:
                         delete_branch=args.delete_branch)
 
 
+def cmd_link_add_git(args) -> int:
+    return _call(args, _SOURCE, "talent_link_add_git", bot_ref=args.ref, slug=args.slug,
+                 repo=args.repo, repo_subpath=args.path, branch=args.branch)
+
+
 def cmd_link_promote_mode(args) -> int:
     return _call(args, _SOURCE, "set_promote_mode", source_id=args.source_id,
                  promote_mode=args.set)
@@ -346,6 +351,14 @@ def _add_devbot_verbs(sub) -> None:
 
     lk = sub.add_parser("link", help="Settings of one Talent link").add_subparsers(
         dest="link_cmd", required=True)
+    p = lk.add_parser("add-git", help="Link a Talent from your repository onto your bot")
+    _add_auth(p)
+    p.add_argument("--ref", required=True, help="The bot's ref")
+    p.add_argument("--slug", required=True)
+    p.add_argument("--repo", required=True)
+    p.add_argument("--path", required=True, help="The Talent's folder inside the repository")
+    p.add_argument("--branch", required=True, help="The provider branch the bot follows")
+    p.set_defaults(func=cmd_link_add_git)
     p = lk.add_parser("promote-mode", help="How a green dev branch reaches the provider branch")
     _add_auth(p)
     p.add_argument("--source-id", type=int, required=True)

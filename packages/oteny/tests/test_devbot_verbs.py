@@ -63,6 +63,12 @@ def _run(argv, capsys):
      "dev_branch_close", {"dev_branch_id": 5, "delete_branch": True}),
     (["link", "promote-mode", "--source-id", "12", "--set", "pull_request"],
      "hh.talent.source", "set_promote_mode", {"source_id": 12, "promote_mode": "pull_request"}),
+    (["link", "add-git", "--ref", "hh00566", "--slug", "acme-desk",
+      "--repo", "git@github.com:acme/bots.git", "--path", "talents/acme-desk",
+      "--branch", "main"],
+     "hh.talent.source", "talent_link_add_git",
+     {"bot_ref": "hh00566", "slug": "acme-desk", "repo": "git@github.com:acme/bots.git",
+      "repo_subpath": "talents/acme-desk", "branch": "main"}),
 ])
 def test_each_verb_is_one_checked_seam(client, capsys, argv, model, method, kw):
     rc, out = _run(argv, capsys)
