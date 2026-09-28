@@ -383,7 +383,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--bundle-dir", required=True)
     p.add_argument("--shared-dir", default=None)
     p.add_argument("--scenario", action="append", default=[])
-    p.add_argument("--transport", choices=("auto", "discuss", "cli"), default="auto")
+    p.add_argument("--transport", choices=("auto", "discuss", "cli", "web"), default="auto")
     p.add_argument("--junit", default=None)
     p.set_defaults(func=cmd_test)
 

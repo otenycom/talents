@@ -13,6 +13,7 @@ from .cli_transport import CliPoster
 from .discuss import build_discuss_driver, uplink_url_for_driver
 from .live import LiveDriver
 from .traces import build_traces_dto, harvest_trace_text, latest_session_id
+from .web_transport import WebPoster
 
 
 def filter_scenario_paths(paths: list[str], scenario_globs: list[str] | None) -> list[str]:
@@ -32,19 +33,30 @@ def filter_scenario_paths(paths: list[str], scenario_globs: list[str] | None) ->
 
 
 def transport_for(rec: dict, requested: str, *, uplink_url: str) -> str:
-    """The lane to talk to a bot on: an explicit ``cli``/``discuss`` wins; ``auto`` takes
-    Telegram by bot name, CLI for a web bot (its uplink is Oteny's own record plane for
-    web chat and it has no Discuss channel), Discuss for a Discuss channel or an ERP
-    uplink, and CLI when the bot has no lane at all."""
-    if requested in ("cli", "discuss"):
+    """The lane to talk to a bot on: an explicit ``cli``/``discuss``/``web`` wins;
+    ``auto`` takes Telegram by bot name, the web chat relay for a web bot (its uplink is
+    Oteny's own record plane for web chat and it has no Discuss channel), Discuss for a
+    Discuss channel or an ERP uplink, and CLI when the bot has no lane at all."""
+    if requested in ("cli", "discuss", "web"):
         return requested
     if rec.get("bot_username"):
         return "telegram"
     if rec.get("channel") == "web" and not rec.get("discuss_channel_id"):
-        return "cli"
+        return "web"
     if uplink_url or rec.get("discuss_channel_id"):
         return "discuss"
     return "cli"
+
+
+def _web_poster(client, rec: dict) -> WebPoster:
+    """The web chat lane to a web bot, as its owner: the bot's DM, with tickets the
+    author's own account key mints."""
+    dm = rec.get("web_dm_channel_id")
+    ch = int((dm[0] if isinstance(dm, (list, tuple)) else dm) or 0)
+    if not ch:
+        raise RuntimeError(f"{rec.get('ref') or 'the bot'} has no web chat DM to talk to "
+                           "it in; turn web chat on for it, or pick --transport cli")
+    return WebPoster(client, ch=ch)
 
 
 def run_scenarios_for_clone(
@@ -58,11 +70,12 @@ def run_scenarios_for_clone(
     transport: str = "auto",
     junit: str | None = None,
 ) -> dict:
-    """Drive a bot's bundle scenarios LIVE. ``transport``: auto|discuss|cli."""
+    """Drive a bot's bundle scenarios LIVE. ``transport``: auto|discuss|cli|web."""
     rows = client.search_read(
         "hh.tenant", [("ref", "=", ref)],
         ["id", "node_id", "bot_username", "isolation_tier",
-         "uplink_url", "uplink_db", "uplink_env", "discuss_channel_id", "channel"], limit=1)
+         "uplink_url", "uplink_db", "uplink_env", "discuss_channel_id", "channel",
+         "web_dm_channel_id"], limit=1)
     if not rows:
         raise RuntimeError(f"no tenant {ref!r}")
     rec = rows[0]
@@ -94,11 +107,12 @@ def run_scenarios_for_clone(
 
         async def dm(bot_username: str, text: str, timeout: float) -> str:
             raise RuntimeError(
-                "Telegram DM transport is Phase 2 — use Discuss or CLI transport")
+                "Telegram DM transport is Phase 2 — use Discuss, web or CLI transport")
 
         post_message, uplink_call = None, None
         use_cli = lane == "cli"
         use_discuss = lane == "discuss"
+        use_web = lane == "web"
 
         if use_discuss:
             post_message, uplink_call = build_discuss_driver(
@@ -114,13 +128,16 @@ def run_scenarios_for_clone(
                     return await asyncio.to_thread(box_exec, cmd)
 
             post_message = CliPoster(box_exec)
+        elif use_web:
+            post_message = _web_poster(client, {**rec, "ref": ref})
         elif rec.get("bot_username"):
             raise RuntimeError(
                 f"{ref} is a Telegram bot — Telegram transport is Phase 2; "
-                "use a Discuss or CLI-capable bot, or wait for oteny[telegram]")
+                "use a Discuss, web or CLI-capable bot, or wait for oteny[telegram]")
 
         driver = LiveDriver(
-            ref=ref, bot_username=None if (use_discuss or use_cli) else rec.get("bot_username"),
+            ref=ref,
+            bot_username=None if (use_discuss or use_cli or use_web) else rec.get("bot_username"),
             db_rel=db_rel, exec_on_node=exec_on_node, dm=dm,
             post_message=post_message, uplink_call=uplink_call,
             substrate=substrate, read_trace=read_trace,
@@ -135,7 +152,7 @@ def run_scenarios_for_clone(
         ok = all(s["failed"] == 0 and not s["error"] for s in results)
         report = {
             "ok": ok, "ref": ref, "bundle": bundle, "scenarios": results,
-            "transport": "cli" if use_cli else ("discuss" if use_discuss else "none"),
+            "transport": lane if (use_cli or use_discuss or use_web) else "none",
             "summary": {
                 "scenarios": len(results),
                 "passed": sum(s["passed"] for s in results),

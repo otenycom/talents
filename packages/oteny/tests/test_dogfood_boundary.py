@@ -9,6 +9,7 @@ import pytest
 
 from oteny import cli, runner, traces
 from oteny.live import LiveDriver
+from oteny.web_transport import WebPoster
 
 FORBIDDEN_ATTRS = {"mgmt_ssh_key_path", "resolved_tailscale_api_key", "tailscale_authkey"}
 FORBIDDEN_NAMES = {"asyncssh", "Settings", "get_settings"}
@@ -21,6 +22,8 @@ AUTHOR_SCOPED = {
     "traces.build_traces_dto": traces.build_traces_dto,
     "live.LiveDriver.trace": LiveDriver.trace,
     "live.LiveDriver.hand_off": LiveDriver.hand_off,
+    "runner._web_poster": runner._web_poster,
+    "web_transport.WebPoster.__call__": WebPoster.__call__,
 }
 
 
