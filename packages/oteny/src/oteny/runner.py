@@ -31,6 +31,22 @@ def filter_scenario_paths(paths: list[str], scenario_globs: list[str] | None) ->
     return kept
 
 
+def transport_for(rec: dict, requested: str, *, uplink_url: str) -> str:
+    """The lane to talk to a bot on: an explicit ``cli``/``discuss`` wins; ``auto`` takes
+    Telegram by bot name, CLI for a web bot (its uplink is Oteny's own record plane for
+    web chat and it has no Discuss channel), Discuss for a Discuss channel or an ERP
+    uplink, and CLI when the bot has no lane at all."""
+    if requested in ("cli", "discuss"):
+        return requested
+    if rec.get("bot_username"):
+        return "telegram"
+    if rec.get("channel") == "web" and not rec.get("discuss_channel_id"):
+        return "cli"
+    if uplink_url or rec.get("discuss_channel_id"):
+        return "discuss"
+    return "cli"
+
+
 def run_scenarios_for_clone(
     client,
     ref: str,
@@ -46,7 +62,7 @@ def run_scenarios_for_clone(
     rows = client.search_read(
         "hh.tenant", [("ref", "=", ref)],
         ["id", "node_id", "bot_username", "isolation_tier",
-         "uplink_url", "uplink_db", "uplink_env", "discuss_channel_id"], limit=1)
+         "uplink_url", "uplink_db", "uplink_env", "discuss_channel_id", "channel"], limit=1)
     if not rows:
         raise RuntimeError(f"no tenant {ref!r}")
     rec = rows[0]
@@ -67,11 +83,10 @@ def run_scenarios_for_clone(
         def latest_sid() -> int:
             return latest_session_id(client, ref)
 
+        lane = transport_for(rec, transport, uplink_url=uplink_url)
         exec_on_node = None
         box_exec = None
-        if db_rel or transport == "cli" or (
-                transport == "auto" and not rec.get("bot_username")
-                and not uplink_url and not rec.get("discuss_channel_id")):
+        if db_rel or lane == "cli":
             box_exec = box_stack.enter_context(AuthorBoxAccess(client).shell(ref))
 
             async def exec_on_node(cmd: str) -> str:  # noqa: F811
@@ -82,15 +97,8 @@ def run_scenarios_for_clone(
                 "Telegram DM transport is Phase 2 — use Discuss or CLI transport")
 
         post_message, uplink_call = None, None
-        use_cli = transport == "cli"
-        use_discuss = transport == "discuss"
-        if transport == "auto":
-            if rec.get("bot_username"):
-                use_discuss = False  # would be telegram — refuse for now
-            elif uplink_url or rec.get("discuss_channel_id"):
-                use_discuss = True
-            else:
-                use_cli = True
+        use_cli = lane == "cli"
+        use_discuss = lane == "discuss"
 
         if use_discuss:
             post_message, uplink_call = build_discuss_driver(
