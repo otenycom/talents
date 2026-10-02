@@ -73,6 +73,18 @@ architecture (scope-lock, the system-of-record seam, fail-closed):
 | Get a downloaded file | `browser_download(path?)` | The file is in the cloud, not on the box. Never `ls ~/Downloads`, never cookie-plus-curl. |
 | Read a picture-only page | `browser_vision(question)` | The slowest browser tool — reserve it for what the DOM genuinely cannot tell you. A DOM snapshot answers almost everything. |
 
+**To verify a summary page, read it whole with `browser_snapshot(full=true)`.** The
+`visible_text` on a click or type result is cut at 4,000 characters, and it starts at the
+region your last aim sat in, so the top of a long summary is often not in it. The result
+says so with `visible_text_truncated: true` and the page's own length in
+`visible_text_len`. A `browser_snapshot` with `full=true` returns the whole page text in
+page order, with no region first and no cut. Call it once on a page you must check field by
+field, and judge only from that result. If your skill tells the bot "do not snapshot when
+the result already has the tree", name the summary page as the exception in the same
+place. A general rule against an extra look is exactly what talked one bot out of the one
+look its check needed (2026-10-02). After a type or a scroll that changed nothing, the
+result carries no new tree on purpose: the platform skips that capture.
+
 ## The selector map — your skill ships the selectors
 
 Native click and type target the snapshot ref, or a role+name locator you
