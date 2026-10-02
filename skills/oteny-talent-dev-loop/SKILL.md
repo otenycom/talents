@@ -261,7 +261,7 @@ same way, with three differences:
 
 - **Scenarios are `live_only`** and assert **`uplink`** ground truth, not `state` over a local
   db — the effect lives in the business Odoo, so a turn declares
-  `expect.uplink: [{model, domain, equals/count}]` (read back over the uplink) instead of a
+  `expect.uplink: [{model, domain, equals/count/min_count}]` (read back over the uplink) instead of a
   `state` query. There is no mock backend to seed.
 - **A `hand_off` turn triggers the REAL workflow path.** Instead of `user:` (a chat message), a
   turn may declare `hand_off: {steps, done_when?, fail_when?}` + an optional `reply_timeout`:
@@ -297,6 +297,8 @@ same way, with three differences:
 
 `test --ref <clone> --bundle <slug>` runs these the same way; the driver skips the gateway's
 progress frames ("⏳ Working…") and grades the final narration + the uplink asserts.
+An earlier post of the same turn is graded through `uplink` on `mail.message`, not `reply`
+([`behavioral-scenarios.md`](../talent-authoring-standard/references/behavioral-scenarios.md)).
 
 **Reading a restricted Talent's run (the same eye, three front-ends).** When a
 dispatch is running you get a live tool-by-tool picture — `✅`/`⚠️` per

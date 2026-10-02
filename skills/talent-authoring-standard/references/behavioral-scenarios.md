@@ -126,6 +126,25 @@ nothing while reading like coverage. To assert that a skill engaged, use the mar
 actually in the log: the bundle name, which reaches it through the `preflight.py` call every
 turn opens with.
 
+**`reply` reads the bot's last post, not every post of the turn.** A bot that posts its
+work in a separate message before its final answer (a list of check lines, then "Draft
+saved") passes or fails `reply:` on the final answer alone. Grade the earlier post in the
+channel itself, with an `uplink` query on `mail.message` and `min_count`:
+
+```yaml
+uplink:
+  - model: mail.message
+    domain:
+      - ["model", "=", "discuss.channel"]
+      - ["body", "ilike", "Check —"]
+      - ["body", "ilike", "<a value the post must quote>"]
+    min_count: 1
+```
+
+`min_count` passes on `>=` rather than `==`, because an earlier run's post stays in the
+channel. That same fact means a passing query can be an old post, so the run's own trace
+order stays the proof that this turn posted it.
+
 ### The hand-off turn (live-only)
 
 A business-bot scenario triggers the real workflow path with a `hand_off:` turn
