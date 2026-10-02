@@ -205,6 +205,13 @@ Discuss-bot scenarios also need `tests/discuss.yaml` → `tester_key_file`
 environment overrides that path, so two lanes (two business databases with two
 tester keys) run the same committed bundle without an edit to the yaml.
 
+A tester key belongs to **one database**. A staging copy of your ERP is another
+database, so the key from your laptop's database answers `401 Invalid apikey` there,
+and so does any key stored before a staging rebuild. That is a driver fault, not a
+bot fault. Mint a tester key on that database, write it straight to its own 0600
+file (never to the terminal), and point `OTENY_TESTER_KEY_FILE` at that file.
+Keep the other lane's file as it is.
+
 `OTENY_UPLINK_URL` overrides the address the driver uses for the business ERP. The
 bot reaches the ERP through the address on its tenant record, which is a named tunnel,
 and that tunnel does not pass a plain bearer key through. So an author whose laptop
