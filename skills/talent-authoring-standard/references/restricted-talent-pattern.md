@@ -913,7 +913,7 @@ artefact; instrument, with the direction it errs; or unproven. The first two car
 condition. A behaviour with no such declaration is the one the next reader will propose to delete or
 to invert, and both are wrong.
 
-### Four rules the 2026-09 Barney canary paid for
+### Five rules the Barney canary paid for (2026-09 and 2026-10)
 
 **A double mints the live identifier's shape, and a client never teaches the bot to accept the
 easier one.** A double gave a saved draft an 8-character internal token where the real portal
@@ -996,6 +996,17 @@ Three things follow, and each is cheap:
 - **Never keep a second copy of a fidelity constant in a test file.** The same session found a test
   module holding a literal copy of the indicator's markup. The double changed, the copy did not,
   and three tests reported that no label carried an indicator every label carried. Import it.
+
+**A double's lookup returns the record's own identity by default.** A register search, a
+directory lookup or an address finder on a double must answer with the company or person the
+record already names, in the register's own spelling. The canary's double answered every
+register search with one fixed placeholder company. So every walk showed the bot a company
+name that differed from the record, and every walk passed. That trained the bot to read a
+different name as normal. On the live portal the register then returned a different company
+for the record's number, and the bot accepted it and saved the draft under that company. So
+make the faithful answer the default, and add the stranger as a named adversity knob with a
+removal condition, beside the double's other knobs. A double that always answers with a
+stranger trains the bot to accept strangers.
 
 ## 4e. Resilient selectors + the selector manifest (audit before, diff after)
 
@@ -1627,6 +1638,32 @@ Two traps worth stating in the code:
 - **Emit free-text register fields verbatim, never parsed.** Odoo's stock `company_registry`
   is free text and real databases hold values like `"KvK.nl 78219574 - Vestigings
   000045864136"`. The bot types what the DTO says.
+
+## 4j. A register lookup can hand back another identity
+
+When a portal fills identity from a public register (a company from its registration number, a
+person from an ID number, an address from a postcode), the register's answer is a **claim**, not
+a confirmation. Compare the identity it returned with the record **before** you take it. On any
+difference, stop before the selection, leave the form without saving, and hand back with both
+identities and the number named. Stopping at the register row costs the human one hand-back and
+leaves nothing behind on the portal.
+
+The comparison must be one rule, written once, with an example of each outcome. For a company
+name, a rule that holds up is: lower case, drop the legal form (B.V., GmbH, Ltd and the like),
+drop punctuation and spaces, then the rest must be identical. Every other difference is another
+company, also when the two names look related. Write the rule as a sentence in the skill the
+model reads, not as a helper script, unless a measurement shows the model cannot hold it.
+
+**An "allowed spelling" list must never cover a name.** A summary check often carries a closed
+list of differences that are not a mismatch, such as an address in the register's own spelling.
+Do not put a company name or a person's name on that list. A model reads "the name in the
+register's spelling" as permission for any name the register printed. On 2026-10-02 that line let
+one company pass for another on a government filing. Judge a name by the identity rule above,
+and treat any other name as a mismatch that hands back without saving.
+
+**Prove the check read the page.** A check line that says only `ok` cannot show that the field
+was read. For the identity keys, have the check line quote the page value next to the record
+value, and keep secret identifiers (a national ID number, a passport number) out of the channel.
 
 ## 5. Testing — the live Discuss driver (check 14)
 
