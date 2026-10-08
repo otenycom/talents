@@ -96,10 +96,10 @@ def test_hot_path_is_one_skill_file():
     assert (_BUNDLE / "references" / "first-run.md").is_file()
     text = _SKILL.lower()
     assert "capture.md" not in text
-    # No lessons page in the bundle. A lesson for every tenant goes in the
-    # writable data folder, which the platform harvests for the author.
+    # No lessons page in the bundle. A lesson for every tenant goes through the
+    # talent_lesson tool into the data folder, which the platform harvests.
     assert "references/lessons.md" not in text
-    assert "~/.hermes/data/crm-bot/lessons.md" in text
+    assert "`talent_lesson` tool, with talent\n`crm-bot`" in text
     assert "upsert_lead.py" in text
     assert "list_leads.py" in text
     assert "crm_home: discuss" in text

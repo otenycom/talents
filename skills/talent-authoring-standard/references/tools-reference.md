@@ -2293,6 +2293,59 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Authoring notes** — Platform-managed: the task map comes from the fleet policy plus each Talent's declared `task_escalations`; a Talent never calls this for plain chat. Sticky per task — switch once, finish, then done=true. The switch itself is free; the stronger model burns credits faster while it's on.
 
+### `talent_lesson` — Lessons for the Talent author
+
+*first-party tool · request via `tools.required` · status **live** · cost Included*
+
+> Keep a lesson for EVERY tenant of a delivered Talent, for the Talent's author. A delivered Talent (a skill under skills/talents/) is read-only on this box, so do not patch it: call this tool instead. Use it for a class lesson, a rule that would help any business that runs this Talent (for example 'a research question in a Leads group is not a lead capture'). Do NOT use it for a fact about this owner, their people or their data: that goes in the Talent's own data folder (overrides.md) or in memory. One lesson per call, one or two sentences, in English, with no customer names, emails or numbers.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "talent": {
+      "type": "string",
+      "description": "The Talent's slug: its directory name under skills/talents/ (for example crm-bot)."
+    },
+    "lesson": {
+      "type": "string",
+      "description": "The lesson, one or two sentences, phrased as a rule for every tenant."
+    }
+  },
+  "required": [
+    "talent",
+    "lesson"
+  ]
+}
+```
+
+**Result** — {recorded: true, file, line} — one `- YYYY-MM-DD <lesson>` line was appended to ~/.hermes/data/<slug>/lessons.md.
+
+**Errors / edges** — {recorded: false, reason} → an unknown Talent slug, an empty lesson, a lesson over 500 characters, or a full file. {recorded: false, duplicate: true} → the file already keeps this lesson; nothing to do.
+
+**Example**
+
+```json
+{
+  "talent": "crm-bot",
+  "lesson": "A research question in a Leads group is not a lead capture."
+}
+```
+
+→
+
+```json
+{
+  "recorded": true,
+  "file": "~/.hermes/data/crm-bot/lessons.md",
+  "line": "- 2026-10-07 A research question in a Leads group is not a lead capture."
+}
+```
+
+**Authoring notes** — Platform-managed: a delivered Talent is read-only on the box, so a lesson for every tenant of it goes here, and the log harvest sends it to the Talent's author when the Talent is Oteny-authored. A fact about one owner belongs in the Talent's overrides.md or in memory. Free.
+
 ### `cron` — Schedule tasks
 
 *built-in toolset · request via `toolset_contribution` · status **live** · cost Included*

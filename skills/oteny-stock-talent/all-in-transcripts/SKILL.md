@@ -78,6 +78,5 @@ python3 scripts/verify_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transc
 
 ## Lessons
 
-A lesson for every tenant goes in
-`~/.hermes/data/oteny-stock-talent/lessons.md`, not in this file. Write one line
-per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`oteny-stock-talent`, not into this file.

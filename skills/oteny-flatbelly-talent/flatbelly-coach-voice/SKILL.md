@@ -135,6 +135,5 @@ no-invented-facts rule extends to health, see safety boundary):
 
 ## Lessons
 
-A lesson for every tenant goes in
-`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
-line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`oteny-flatbelly-talent`, not into this file.

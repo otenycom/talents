@@ -160,6 +160,5 @@ you need the wider picture.
 
 ## Lessons
 
-A lesson for every tenant goes in
-`~/.hermes/data/basecamp-project-store/lessons.md`, not in this file. Write one
-line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`basecamp-project-store`, not into this file.

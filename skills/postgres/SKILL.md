@@ -82,5 +82,5 @@ Do not `pg_upgrade`.
 
 ## Lessons
 
-A lesson for every tenant goes in `~/.hermes/data/postgres/lessons.md`, not in
-this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`postgres`, not into this file.

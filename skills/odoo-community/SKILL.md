@@ -101,8 +101,8 @@ app menu, so `/odoo` opens the pipeline and not Discuss.
 
 ## Lessons
 
-A lesson for every tenant goes in `~/.hermes/data/odoo-community/lessons.md`,
-not in this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`odoo-community`, not into this file.
 
 ## Common pitfalls
 

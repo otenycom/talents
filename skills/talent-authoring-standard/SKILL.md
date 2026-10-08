@@ -195,15 +195,17 @@ is in [references/rubric.md](references/rubric.md). Open it before grading. The 
 A delivered Talent's files are protected on the box, and every delivery
 replaces them. So the background review (the pass that edits skills after a
 turn) cannot write a lesson into a Talent's `SKILL.md`. Before this rule, it
-dropped every such lesson. Each Oteny-authored Talent therefore names one
-writable file in its own data folder:
+dropped every such lesson. Each Oteny-authored Talent therefore keeps its
+lessons in one writable file in its own data folder:
 
 1. Every `SKILL.md` of the Talent ends with a `## Lessons` section that says:
-   a lesson for every tenant goes in `~/.hermes/data/<bot>/lessons.md`, not in
-   this file. `<bot>` is the `bot:` of `agent-profile.yaml`.
-2. The format is one line per lesson: `- YYYY-MM-DD <lesson>`. The date is the
-   day the lesson was learned. No headings, no sub-bullets. The platform's
-   log harvest parses each new line into one event for the author.
+   a lesson for every tenant goes through the `talent_lesson` tool, with the
+   Talent's slug, not into this file. The slug is the `bot:` of
+   `agent-profile.yaml`. The review cannot write a file outside a skill folder,
+   so the tool is its only way to keep a lesson.
+2. The tool writes one line per lesson to `~/.hermes/data/<bot>/lessons.md`:
+   `- YYYY-MM-DD <lesson>`. The date is the day the lesson was learned. The
+   platform's log harvest parses each new line into one event for the author.
 3. A lesson is a rule that holds for every tenant of the Talent. A fact about
    one owner stays in that owner's memory or `overrides.md`.
 4. The author reads the harvested lessons and folds the good ones into the

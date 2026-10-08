@@ -291,8 +291,8 @@ for this. Confirm before `unhost_website`.
 
 ## Lessons
 
-A lesson for every tenant goes in `~/.hermes/data/crm-bot/lessons.md`, not in
-this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`crm-bot`, not into this file.
 
 ## Safety boundary
 

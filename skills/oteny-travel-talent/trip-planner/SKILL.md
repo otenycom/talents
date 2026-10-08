@@ -308,6 +308,5 @@ the `MIGRATIONS:` triage guard — you never hand-fix crons.
 
 ## Lessons
 
-A lesson for every tenant goes in
-`~/.hermes/data/oteny-travel-talent/lessons.md`, not in this file. Write one
-line per lesson: `- YYYY-MM-DD <lesson>`.
+A lesson for every tenant goes through the `talent_lesson` tool, with talent
+`oteny-travel-talent`, not into this file.
