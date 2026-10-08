@@ -2055,6 +2055,59 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 
 **Authoring notes** — Free. Call it BEFORE connect_account. It also PICKS THE CREDENTIAL UP: when the platform holds a leased value this box does not, the box fetches it before answering, so process_ready true is the normal reply right after the owner finishes. process_ready true means use the secret NOW, in this turn. pending or submitted means a link is already with the owner — send that one and wait. leased with process_ready still false means the pickup was refused and `pickup` names the class: auth is a dead credential (ask the owner to reconnect), anything else is temporary (one sentence, END THE TURN). Polling it, or minting a second link, is the hh00452 failure.
 
+### `disconnect_account` — Forget a connected account
+
+*first-party tool · request via `tools.required` · status **coming** · cost Included*
+
+> Release a connected credential this bot no longer needs: it leaves this bot's environment now, and the platform revokes it, so neither keeps it. Pass the UPPER_SNAKE_CASE `env_var`. Use it when a secret served a one-time job (for example a person's password you set and checked for them), or when the owner says to forget an API key or account. It ends the WHOLE connection: every variable in `released` stops working, and using it again needs a new connect link. Returns names only, never a value. Do not write the variable name into memory. `provider_note` says what the release cannot do (an API key stays valid at the provider until the owner rotates it there); pass that on. For a saved WEBSITE login use `disconnect_login` instead.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "env_var": {
+      "type": "string",
+      "description": "UPPER_SNAKE_CASE env var to release, e.g. ETHAN_ODOO_PASSWORD."
+    }
+  },
+  "required": [
+    "env_var"
+  ]
+}
+```
+
+**Result** — {ok: true, env_var, connection, state: 'revoked', already_revoked, released: [names], process_ready: false, provider_note?} — the credential has left the bot's environment, and the platform has revoked its connection, so neither keeps it. NAMES only, never a value.
+
+**Errors / edges** — {ok: false, reason} for: env_var_required · protected (a platform variable, never a connected account) · not_connected (no connection leases that variable; nothing changed) · unreachable (the platform did not answer; nothing changed, try once more later) · a refusal the platform names. still_in_env_file true on success means an older setup also wrote the value into the bot's .env file, and it comes back next turn until support removes that line.
+
+**Example**
+
+```json
+{
+  "env_var": "ETHAN_ODOO_PASSWORD"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "env_var": "ETHAN_ODOO_PASSWORD",
+  "connection": "ethan-odoo-password",
+  "state": "revoked",
+  "already_revoked": false,
+  "released": [
+    "ETHAN_ODOO_PASSWORD"
+  ],
+  "process_ready": false
+}
+```
+
+**Authoring notes** — Free. Release a secret as soon as its one job is done — a password you set and checked for a person is the common case — so the bot does not keep it. It ends the whole connection: every name in `released` stops working, and using the account again needs a new connect_account link. Relay provider_note: an API key stays valid at the provider until the owner rotates it there. Never write the variable name into memory. A saved website login is disconnect_login.
+
 ### `connect_login` — Remember a website login
 
 *first-party tool · request via `tools.required` · status **live** · cost Included*

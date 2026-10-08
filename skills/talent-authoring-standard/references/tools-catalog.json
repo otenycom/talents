@@ -434,6 +434,15 @@
       "cost": "free"
     },
     {
+      "name": "disconnect_account",
+      "requestable_name": "disconnect_account",
+      "request_via": "tools.required",
+      "kind": "account",
+      "group": "Connect your accounts",
+      "status": "coming",
+      "cost": "free"
+    },
+    {
       "name": "connect_login",
       "requestable_name": "connect_login",
       "request_via": "tools.required",
