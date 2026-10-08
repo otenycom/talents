@@ -1,7 +1,7 @@
 ---
 name: travel-onboarding
 description: "Welcome + first-run intake for the travel concierge."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -104,3 +104,9 @@ tenant binds a group. Then run the guard again — when it prints `READY`, confi
 short "you're all set — tell me where you're headed" and start planning. If they named a
 trip in Q6, create it now (trip-planner §TRIP) and offer the next lever (add flights / who's
 coming / a day plan).
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-travel-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

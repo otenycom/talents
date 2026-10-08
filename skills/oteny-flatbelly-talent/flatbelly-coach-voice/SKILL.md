@@ -1,7 +1,7 @@
 ---
 name: flatbelly-coach-voice
 description: "The warm, evidence-based flat-belly coaching voice."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -132,3 +132,9 @@ no-invented-facts rule extends to health, see safety boundary):
 - **Liver markers** (ALT/AST/GGT/FIB-4/FibroScan) are physician-owned — surface them
   respectfully as confirmation that the daily food work is doing its job, never as the
   source of the verdict, and only the values the tenant supplied.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

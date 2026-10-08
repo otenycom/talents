@@ -1,7 +1,7 @@
 ---
 name: food-tracker
 description: "Log meals, weight, macros, sleep, workouts, waist."
-version: 1.2.1
+version: 1.2.2
 author: Oteny
 license: MIT
 metadata:
@@ -230,3 +230,9 @@ wreck mobile formatting), ending with **one** concrete lever if a target is behi
 Everything beyond the hot paths above — per-intent checklists, exact write/report SQL,
 macro defaults, the jargon glossary and the full schema — is in `references/`. Pull the
 one file you need; don't pre-load them.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

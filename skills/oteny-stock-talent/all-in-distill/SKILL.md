@@ -1,7 +1,7 @@
 ---
 name: all-in-distill
 description: "Distill an All-In transcript into a portfolio brief."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -74,3 +74,9 @@ The abstract template form is in `references/output-format.md`.
 - `--list` shows real dates + non-trivial byte counts.
 - `--last` / `--paste` prints the metadata header + `--- TRANSCRIPT ---` + real text.
 - The brief references content actually present (spot-check a quote or company mention).
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-stock-talent/lessons.md`, not in this file. Write one line
+per lesson: `- YYYY-MM-DD <lesson>`.

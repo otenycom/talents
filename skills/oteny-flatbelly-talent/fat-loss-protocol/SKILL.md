@@ -1,7 +1,7 @@
 ---
 name: fat-loss-protocol
 description: "The fat-loss method + the RCT evidence behind it."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -140,3 +140,9 @@ source); live evidence lookup is a future charged-tool path.
 This is lifestyle coaching, not medical advice. The deficit floor, red-flag
 escalation, and disclaimer in `../references/safety-boundaries.md` are hard guards —
 load them with the voice.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

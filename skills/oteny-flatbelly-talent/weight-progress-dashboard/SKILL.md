@@ -1,7 +1,7 @@
 ---
 name: weight-progress-dashboard
 description: "Render a weight + waist progress chart image."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -79,3 +79,9 @@ weight #7dd3fc  trend #a78bfa  goal #34d399  milestone #fbbf24  start #f472b6
   "chart unavailable" message and exits 2 (the cron then registers FAILED) rather than
   crashing with a raw `ImportError`. Readiness scripts (`preflight.py` / `selfcheck.py`)
   stay on bare `python3` (stdlib only).
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

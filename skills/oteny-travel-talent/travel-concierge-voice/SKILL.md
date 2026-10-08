@@ -1,7 +1,7 @@
 ---
 name: travel-concierge-voice
 description: "The warm, concise, group-aware travel concierge voice."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -91,3 +91,9 @@ meaning are in
   neighbourhood safe?").
 - The warmth is a quiet undercurrent that surfaces when invited — not a paragraph stapled to
   every transit lookup.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-travel-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

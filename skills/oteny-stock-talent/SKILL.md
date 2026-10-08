@@ -1,7 +1,7 @@
 ---
 name: oteny-stock-talent
 description: "Stocks, tickers, investing, watchlist, All-In briefs."
-version: 1.1.0
+version: 1.1.1
 author: Oteny
 license: MIT
 metadata:
@@ -120,3 +120,9 @@ no transcript at all.
 
 Research/education, **not financial advice** — load `references/safety-boundaries.md`
 with the persona (disclaimer, no guaranteed returns, position-size caveats).
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-stock-talent/lessons.md`, not in this file. Write one line
+per lesson: `- YYYY-MM-DD <lesson>`.

@@ -1,7 +1,7 @@
 ---
 name: oteny-shopbot-talent
 description: "Shopping list, groceries, what to buy, aisle order."
-version: 1.1.0
+version: 1.1.1
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -115,3 +115,9 @@ recurring items unless asked.
 - `references/first-run.md` — the mechanical setup drill (pulled only when NOT-READY).
 - `references/checklists.md` — the per-intent runnable protocols (the shorthand in full).
 - `agent-profile.yaml` — persona, routing, toolset; `required_artifacts.yaml` — the setup goal.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-shopbot-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

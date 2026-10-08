@@ -1,7 +1,7 @@
 ---
 name: basecamp-project-store
 description: "Work a project from its Basecamp board — brief and todos"
-version: 1.1.0
+version: 1.1.1
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -157,3 +157,9 @@ For any verb or flag not covered above, the tool ships **its own manual**, insta
 and matched to its exact version: `~/.agents/skills/basecamp/SKILL.md`. It is long (~70 KB), so
 reach for `~/.local/bin/basecamp <topic> <action> --help` first and read the manual only when
 you need the wider picture.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/basecamp-project-store/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

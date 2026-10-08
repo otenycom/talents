@@ -1,7 +1,7 @@
 ---
 name: postgres
 description: "Install PostgreSQL 18 in your box"
-version: 1.0.3
+version: 1.0.4
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -79,3 +79,8 @@ Do not `pg_upgrade`.
 - Calling `host_website` for a database with no public site.
 - `apt install postgresql`.
 - Pinning PostgreSQL 16 because an older box used it. Fresh boxes get 18.
+
+## Lessons
+
+A lesson for every tenant goes in `~/.hermes/data/postgres/lessons.md`, not in
+this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.

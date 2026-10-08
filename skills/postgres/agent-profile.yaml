@@ -10,7 +10,7 @@ long_md: |
 
   The files are already on the box. The install starts when you ask.
   A later restart starts the same database again.
-version: 1.0.3
+version: 1.0.4
 
 skills:
   - postgres

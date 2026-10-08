@@ -1,7 +1,7 @@
 ---
 name: trip-planner
 description: "Plan trips: transit, bookings, schedule, todos, costs."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -305,3 +305,9 @@ the `MIGRATIONS:` triage guard — you never hand-fix crons.
   Adjustments go to `memory.md` / `overrides.md` (above).
 - **An idle daily cron.** Crons are trip-scoped and self-expiring; never register an
   always-on daily job (it bills a free talent for nothing).
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-travel-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

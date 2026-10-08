@@ -1,7 +1,7 @@
 ---
 name: all-in-transcripts
 description: "Ingest + store All-In podcast transcripts (SQLite)."
-version: 1.1.0
+version: 1.1.1
 author: Oteny
 license: MIT
 metadata:
@@ -75,3 +75,9 @@ python3 scripts/verify_db.py --db ~/.hermes/data/oteny-stock-talent/allin_transc
   backfill, and let `store_transcript.py`'s `video_id` upsert dedupe so an episode
   already stored is never re-charged.
 - Always run `verify_db.py` after storing to confirm row count + dates look sane.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-stock-talent/lessons.md`, not in this file. Write one line
+per lesson: `- YYYY-MM-DD <lesson>`.

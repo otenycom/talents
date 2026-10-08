@@ -1,7 +1,7 @@
 ---
 name: flatbelly-onboarding
 description: "Welcome + first-run intake for the flat-belly coach."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -166,3 +166,9 @@ understand this is lifestyle coaching, not medical advice"** (safety boundary, o
 terms gate). Then run the food-tracker guard again — when it prints `READY`, the tenant
 is set up; confirm with a short "you're all set, log your first meal whenever you're
 ready" and start coaching.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-flatbelly-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

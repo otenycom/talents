@@ -1,7 +1,7 @@
 ---
 name: trip-dashboard
 description: "Render the trip card: plan, bookings, costs, packing."
-version: 1.0.0
+version: 1.0.1
 author: Oteny
 license: MIT
 metadata:
@@ -76,3 +76,9 @@ accent #7dd3fc  ok #34d399  warn #fbbf24  alert #f87171  member #a78bfa
   Invoke via `talent-run` (above). If the env is missing the script degrades to a
   "trip card unavailable" message and exits 2 (the cron then registers FAILED) rather
   than crashing with a raw `ImportError`. Readiness scripts stay on bare `python3`.
+
+## Lessons
+
+A lesson for every tenant goes in
+`~/.hermes/data/oteny-travel-talent/lessons.md`, not in this file. Write one
+line per lesson: `- YYYY-MM-DD <lesson>`.

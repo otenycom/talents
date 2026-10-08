@@ -27,7 +27,7 @@ long_md: |
   The coaching is warm and never preachy, grounded in evidence rather than fads. It's
   coaching, not medical advice — and if something you log looks like a red flag, it'll tell
   you to check with a doctor.
-version: 1.4.0   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.4.1   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
                  # 1.4.0: morning/evening cron prompts invoke food-tracker's "Daily
                  # reminder role" by name (preflight → DB read → grounded summary → ask
