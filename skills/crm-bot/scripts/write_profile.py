@@ -29,7 +29,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from crm_paths import implicit_setup, writable_data_dir
+from crm_paths import implicit_setup, normalize_login, writable_data_dir
 
 _FIELDS = (
     "event_name",
@@ -54,8 +54,14 @@ def write_profile(
 ) -> Path:
     """Write ``profile.yaml``. Raise OSError when the directory or file cannot land."""
     implied = implicit_setup()
-    email = (owner_email or implied.get("owner_email") or "").strip()
-    if not email or "@" not in email:
+    try:
+        # The owner email is the owner's Odoo login: one spelling, lowercase.
+        email = normalize_login(owner_email or implied.get("owner_email"))
+    except ValueError:
+        email = ""
+    # A hand-wired Odoo (``key_only``) has no owner login on the box, and
+    # nobody runs the owner intake there. Event Name still lands.
+    if "@" not in email and implied.get("admin_file") != "key_only":
         raise ValueError("owner_email")
     lang = (language or implied.get("language") or "en").strip() or "en"
     values = {

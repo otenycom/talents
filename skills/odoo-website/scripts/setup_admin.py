@@ -36,7 +36,10 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from website_paths import admin_candidates, existing_data_dir, home, profile_path, writable_data_dir
+from website_paths import (
+    admin_candidates, existing_data_dir, home, normalize_login, profile_path,
+    writable_data_dir,
+)
 
 _URL = "http://127.0.0.1:8069"
 _DB = "website"
@@ -414,7 +417,12 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     profile = _load_profile()
-    login = (profile.get("owner_email") or "").strip()
+    try:
+        # One login spelling (odoo-community normalize_login): Odoo matches a
+        # login case-sensitively, and a person types lowercase on /web/login.
+        login = normalize_login(profile.get("owner_email"))
+    except ValueError:
+        login = ""
     if args.rotate_clone_secrets:
         login = login if login and "@" in login else _DEFAULT_LOGIN
     elif not login or "@" not in login:
@@ -448,6 +456,9 @@ def main(argv: list[str] | None = None) -> int:
     stored_login = stored[0] if stored else ""
     stored_password = stored[1] if stored else ""
     stored_api_key = stored[2] if stored else ""
+    # A stored login that differs only in case is the same owner. The run
+    # below then rewrites it to the lowercase spelling in Odoo and on disk.
+    same_owner = bool(stored) and stored_login.lower() == login
     if (
         not args.rotate_clone_secrets
         and stored
@@ -481,7 +492,7 @@ def main(argv: list[str] | None = None) -> int:
     if (
         not args.rotate_clone_secrets
         and not owner_chosen
-        and not (stored and stored_login == login)
+        and not same_owner
     ):
         print(
             "ADMIN_SETUP_FAILED owner_password_required — stored login "
@@ -530,7 +541,7 @@ def main(argv: list[str] | None = None) -> int:
     api_key = (
         ""
         if args.rotate_clone_secrets
-        else (stored_api_key if stored and stored_login == login else "")
+        else (stored_api_key if same_owner else "")
     )
     if not api_key or not _json2_bearer_ok(api_key):
         try:

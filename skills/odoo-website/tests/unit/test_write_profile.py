@@ -34,3 +34,13 @@ def test_write_profile_refuses_bad_email(tmp_path, monkeypatch):
     monkeypatch.setenv("ODOO_WEBSITE_DATA_DIR", str(tmp_path / "odoo-website"))
     with pytest.raises(ValueError, match="owner_email"):
         _load().write_profile(owner_email="nope")
+
+
+def test_write_profile_lowercases_a_mixed_case_owner_email(tmp_path, monkeypatch):
+    """The owner email is the owner's Odoo login, and Odoo matches a login
+    case-sensitively (odoo-community normalize_login)."""
+    monkeypatch.setenv("ODOO_WEBSITE_DATA_DIR", str(tmp_path / "odoo-website"))
+    path = _load().write_profile(
+        site_name="Bella", site_slug="bella", owner_email=" Ries@Example.com",
+    )
+    assert "owner_email: ries@example.com\n" in path.read_text(encoding="utf-8")

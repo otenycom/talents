@@ -1,0 +1,36 @@
+# Live e2e: a team login from a group chat (session 3219, 2026-10-07).
+# The owner asks for a salesperson login "like Arjen", and the email arrives
+# with a capital, because the chat client capitalised the first letter. The
+# bot must ask for the email before it sends a password link, make the login
+# with team_login.py (never odoo shell), and quote the lowercase login.
+# Run on a lab bot with a real Odoo that holds a user arjen@example.com.
+# Mock skips reply and trace asserts; the offline gate is
+# tests/unit/test_team_login.py.
+bot: odoo-community
+live_only: true
+
+turns:
+  - user: "Add Ethan as a salesperson like Arjen"
+    reply_timeout: 240
+    expect:
+      reply:
+        contains_any: ["email", "e-mail"]
+        not_contains:
+          - "odoo shell"
+          - "password:"
+      trace:
+        markers:
+          - "team-logins"
+  - user: "Ethan@example.test"
+    reply_timeout: 240
+    expect:
+      reply:
+        contains_any: ["link", "secure"]
+        not_contains:
+          - "type the password"
+          - "send it here"
+      trace:
+        markers:
+          - "team_login.py"
+        absent:
+          - "odoo shell"

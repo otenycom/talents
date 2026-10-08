@@ -28,8 +28,11 @@ long_md: |
 
   It's your own web team in a chat: it keeps the site running, restarts it if it hiccups, and
   tells you the public link every time.
-version: 1.2.10   # Talent semver — a label over the delivered commit; bump on every change,
+version: 1.2.11   # Talent semver — a label over the delivered commit; bump on every change,
                  # MINOR/MAJOR when migrations.yaml gains an id (lint-enforced).
+                 # 1.2.11: owner email lowercased (odoo-community normalize_login);
+                 #         ADMIN_FILE gains key_only (hand-wired Odoo, set up
+                 #         with JSON2: ok); team logins → odoo-community.
                  # 1.2.8:  slug_taken retries twice on its own with a random 3-digit
                  #         suffix before ever asking the owner again (odoo-community
                  #         references/setup.md "Bot notes — site name taken"); a
@@ -125,10 +128,15 @@ routing:
     module vs JSON-2). Skip the slug question when preflight already
     shows a site_slug — a sibling CrmBot cold install on this box
     already claimed one; reuse it. If ADMIN or LANGUAGE is missing, or ADMIN_FILE
-    is not owner_set, load odoo-community references/setup.md; then
+    is bake_placeholder or missing, load odoo-community references/setup.md; then
     continue. A prewarmed box's ADMIN_FILE: bake_placeholder is the
     mint-time secret rotation, never a password the owner has seen —
-    treat it exactly like missing. Do not
+    treat it exactly like missing. ADMIN_FILE: key_only with JSON2: ok is
+    set up (a person wired this Odoo by hand): no community setup, no
+    password link, no setup_admin.py. A login for another person →
+    skill_view odoo-community references/team-logins.md.
+    ODOO_COMMUNITY_MIGRATIONS: pending → odoo-community
+    references/migrations.md first. Do not
     re-ask email, language, or password once ADMIN_FILE is owner_set. Do not
     build/publish/host/HTML/browser/drop. Default local Max →
     build_backend=module. Odoo Online/remote → custom module impossible (JSON-2 only).

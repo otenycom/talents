@@ -18,7 +18,8 @@ Admin email, language, the site name, and the password link are
 [`references/setup.md`](../../odoo-community/references/setup.md).
 
 If `ENGINE` is missing, `ADMIN` or `LANGUAGE` is missing, or
-`ADMIN_FILE` is not `owner_set`, load that file first
+`ADMIN_FILE` is `bake_placeholder` or `missing`, load that file
+first
 (`skill_view name='odoo-community' file_path='references/setup.md'`).
 Then continue this file. Do not re-ask those three.
 
@@ -26,6 +27,13 @@ Then continue this file. Do not re-ask those three.
 prewarmed box ships a `.odoo-admin` with `login=admin` from the
 mint-time secret rotation — a password nobody has seen. Treat
 `bake_placeholder` exactly like `missing`.
+
+`ADMIN_FILE: key_only` with `JSON2: ok` is set up. A person set up
+this Odoo by hand, and the key works. Do not load the community
+setup file, do not send a password link, and do not ask for an
+email or a language only because `ADMIN` or `LANGUAGE` is `-`.
+Ask only Event Name when `EVENT` is `-`. Do not run
+`setup_admin.py` on that box.
 
 ## What you ask
 
@@ -47,8 +55,9 @@ online. No further yes.
 ### Warm — Odoo already on the box (`ENGINE: installed`)
 
 If community setup is already done (`ADMIN` and `LANGUAGE` are
-set, and `ADMIN_FILE` is `owner_set`), skip those three. Ask only
-Event Name when `EVENT` is `-`.
+set, and `ADMIN_FILE` is `owner_set`, or `ADMIN_FILE` is
+`key_only` with `JSON2: ok`), skip those three. Ask only Event
+Name when `EVENT` is `-`.
 
 A prewarmed box has Odoo and no public address. When `SITE_NAME`
 is `-` and `list_hosted_websites` shows no site, also ask "the name
@@ -73,9 +82,10 @@ Do not `skill_view` `postgres` or `oteny-sites`. Do not load
 odoo-community `references/first-run.md`. That file is the install
 drill. Call the scripts below by path. Do not `tool_describe`.
 
-When `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
-`owner_set`, load odoo-community `references/setup.md`. Then
-continue.
+When `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is
+`bake_placeholder` or `missing`, load odoo-community
+`references/setup.md`. Then continue. `key_only` with `JSON2: ok`
+skips that load.
 
 Do not use `write_file` for the profile. `write_profile.py` writes
 under `~/.hermes/data/crm-bot` when that folder is writable. When it
@@ -95,12 +105,13 @@ created. Stop. Do not say CRM is ready.
 
 ## Bot notes — password (never in chat)
 
-If `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
-`owner_set`, load odoo-community `references/setup.md`. Then
-continue. Label the link `CRM login password`. Apply with this
-Talent's `setup_admin.py`.
+If `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is
+`bake_placeholder` or `missing`, load odoo-community
+`references/setup.md`. Then continue. Label the link `CRM login
+password`. Apply with this Talent's `setup_admin.py`.
 
-Skip that load only when preflight says `ADMIN_FILE: owner_set`.
+Skip that load only when preflight says `ADMIN_FILE: owner_set`,
+or `ADMIN_FILE: key_only` with `JSON2: ok`.
 `bake_placeholder` is the mint-time clone-secret rotation, not a
 password the owner has ever seen — always send the secure link for
 it, the same as for `missing`. Do not run `setup_admin.py` without
@@ -157,9 +168,10 @@ not matter. After Event Name is saved, run this list. Do not ask.
    `list_services` does not already have them.
 6. `python3 ~/.hermes/skills/talents/crm-bot/scripts/setup_admin.py`
    with no `--from-env` when `ADMIN_FILE: owner_set`. It reuses the
-   sibling login. When `ADMIN_FILE` is `bake_placeholder` or
-   `missing` and the password is stored, pass
-   `--from-env ODOO_ADMIN_PASSWORD`. Expect `ADMIN_READY`.
+   sibling login. Skip this step when `ADMIN_FILE: key_only`. When
+   `ADMIN_FILE` is `bake_placeholder` or `missing` and the password is
+   stored, pass `--from-env ODOO_ADMIN_PASSWORD`. Expect
+   `ADMIN_READY`.
 7. `python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py`
    Expect `ODOO: serving`, `JSON2: ok`, and `PROFILE: present`.
 8. `list_hosted_websites`. If a site is active, keep that URL. If

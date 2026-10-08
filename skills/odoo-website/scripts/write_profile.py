@@ -24,7 +24,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from website_paths import writable_data_dir
+from website_paths import normalize_login, writable_data_dir
 
 _FIELDS = (
     "site_name",
@@ -43,7 +43,11 @@ _FIELDS = (
 
 def write_profile(**raw: str) -> Path:
     """Write ``profile.yaml``. Raise OSError when the directory or file cannot land."""
-    email = (raw.get("owner_email") or "").strip()
+    try:
+        # The owner email is the owner's Odoo login: one spelling, lowercase.
+        email = normalize_login(raw.get("owner_email"))
+    except ValueError:
+        email = ""
     if not email or "@" not in email:
         raise ValueError("owner_email")
     slug = (raw.get("site_slug") or "").strip()

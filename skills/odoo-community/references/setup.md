@@ -50,7 +50,9 @@ implicit. Do not re-ask it.
   is not writable, the same file sits under
   `~/.hermes/odoo-website/` or `~/.hermes/crm-bot/`.
 - **Password and login** sit in `.odoo-admin` (mode `0600`).
-  Lines are `login=`, `password=`, and `api_key=`. WebsiteBot
+  Lines are `login=`, `password=`, and `api_key=`. The login is
+  always lowercase: Odoo matches a login case-sensitively, and
+  `setup_admin.py` lowercases the owner email before it writes. WebsiteBot
   `setup_admin.py` writes
   `~/.hermes/data/odoo-website/.odoo-admin`. CrmBot
   `setup_admin.py` uses the same file shape. CrmBot also reads
@@ -63,10 +65,17 @@ implicit. Do not re-ask it.
 
 Never treat `login=admin` as the owner email. A later Talent
 prints `ADMIN`, `LANGUAGE`, and `ADMIN_FILE`. A printed email
-with `@` is implicit. `ADMIN_FILE` is one of three states:
+with `@` is implicit. `ADMIN_FILE` is one of four states:
 
-- `owner_set` — the stored login is a real email. Only this state
-  means the owner already has a password. Skip the intake.
+- `owner_set` — the stored login is a real email. The owner
+  already has a password. Skip the intake.
+- `key_only` — a `.odoo-admin` holds an `api_key=` line and no
+  login and password. A person set up this Odoo by hand. With
+  `JSON2: ok` the Odoo is set up: do not run the intake, do not
+  send a password link, and do not ask for an email or a language
+  only because `ADMIN` or `LANGUAGE` is `-`. With `JSON2: down`
+  the key fails. Say so. The intake cannot repair a hand-made
+  Odoo either.
 - `bake_placeholder` — a `.odoo-admin` exists and parses, but the
   login is not an email. Every prewarmed box ships this file:
   mint time rotates the shared bake password to a fresh, unknown
@@ -83,9 +92,10 @@ box.
 
 ## Bot notes — when to load this file
 
-A module Talent loads this file when `ENGINE` is missing, `ADMIN`
-or `LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`.
-Then it continues its own setup.
+A module Talent loads this file when `ENGINE` is missing, or when
+`ADMIN_FILE` is `bake_placeholder` or `missing`, or when `ADMIN` or
+`LANGUAGE` is missing and `ADMIN_FILE` is not `key_only`. Then it
+continues its own setup.
 
 ```
 skill_view name='odoo-community' file_path='references/setup.md'
@@ -93,7 +103,11 @@ skill_view name='odoo-community' file_path='references/setup.md'
 
 Do not load this file once `ADMIN` and `LANGUAGE` are set and
 `ADMIN_FILE` is `owner_set`, unless they said they have no
-password.
+password. Do not load it for `ADMIN_FILE: key_only` with
+`JSON2: ok`.
+
+A login for another person on the team is not this file. That is
+[`team-logins.md`](team-logins.md).
 
 ## Bot notes — password (never in chat)
 

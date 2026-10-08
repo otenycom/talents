@@ -135,3 +135,46 @@ def test_rotate_clone_secrets_skips_ready_short_circuit(home, monkeypatch):
     monkeypatch.setattr(mod.urllib.request, "urlopen", _no_net)
     rc = mod.main(["--rotate-clone-secrets"])
     assert rc == 1
+
+
+def _offline(mod, monkeypatch, applied: list):
+    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(b""))
+    monkeypatch.setattr(mod, "_session_authenticate", lambda opener, login, password: 2)
+    monkeypatch.setattr(mod, "_json2_bearer_ok", lambda key: True)
+    monkeypatch.setattr(
+        mod, "_apply_admin_session",
+        lambda opener, *, login, new_password: applied.append(login),
+    )
+    monkeypatch.setattr(mod, "_mint_api_key", lambda login: "minted")
+
+
+def test_mixed_case_owner_email_becomes_a_lowercase_login(home, monkeypatch, capsys):
+    """A chat client capitalises the first letter; Odoo matches a login
+    case-sensitively. The owner login is lowercase in Odoo and on disk."""
+    tmp_path, data = home
+    (data / "profile.yaml").write_text("owner_email: Ries@Example.com\n", encoding="utf-8")
+    monkeypatch.setenv("WB_PW", "owner-chosen")
+    mod = _load()
+    applied: list = []
+    _offline(mod, monkeypatch, applied)
+
+    assert mod.main(["--from-env", "WB_PW"]) == 0
+
+    assert applied == ["ries@example.com"]
+    assert "ADMIN_READY ries@example.com" in capsys.readouterr().out
+    assert mod._read_stored()[0] == "ries@example.com"
+
+
+def test_stored_case_variant_is_the_same_owner_and_heals(home, monkeypatch, capsys):
+    tmp_path, data = home
+    (data / "profile.yaml").write_text("owner_email: Ries@Example.com\n", encoding="utf-8")
+    mod = _load()
+    mod._write_stored("Ries@Example.com", "owner-chosen", "k")
+    applied: list = []
+    _offline(mod, monkeypatch, applied)
+
+    assert mod.main([]) == 0
+
+    assert applied == ["ries@example.com"]
+    assert mod._read_stored() == ("ries@example.com", "owner-chosen", "k")
+    assert "owner-chosen" not in capsys.readouterr().out

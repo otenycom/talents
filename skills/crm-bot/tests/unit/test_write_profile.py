@@ -359,3 +359,54 @@ def test_crm_home_state_is_first_after_pin():
         "mail.menu_root_discuss": (11, 5),
     })
     assert mod.crm_home_state(rpc) == "first"
+
+
+def test_write_profile_lowercases_a_mixed_case_owner_email(tmp_path, monkeypatch):
+    """The owner email is the owner's Odoo login, and Odoo matches a login
+    case-sensitively (odoo-community normalize_login)."""
+    monkeypatch.setenv("CRM_BOT_DATA_DIR", str(tmp_path / "crm-bot"))
+    path = _load().write_profile(
+        event_name="OXP", owner_email="  Ries@Vriend.com ", language="nl",
+    )
+    assert "owner_email: ries@vriend.com\n" in path.read_text(encoding="utf-8")
+
+
+def test_write_profile_on_a_key_only_box_needs_no_owner_email(tmp_path, monkeypatch):
+    """A hand-wired Odoo (``.odoo-admin`` with only ``api_key=``) is set up.
+    Event Name still lands without an invented owner email."""
+    hermes = tmp_path / ".hermes"
+    own = hermes / "data" / "crm-bot"
+    own.mkdir(parents=True)
+    (own / ".odoo-admin").write_text("api_key=k\n", encoding="utf-8")
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    path = _load().write_profile(event_name="Roof Expo")
+    text = path.read_text(encoding="utf-8")
+    assert "event_name: Roof Expo" in text
+    assert "owner_email: \n" in text
+
+
+def test_preflight_names_the_crm_failure_and_community_migrations(
+    tmp_path, monkeypatch, capsys,
+):
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    for var in ("HH_HERMES_HOME", "HERMES_HOME", "CRM_BOT_DATA_DIR"):
+        monkeypatch.delenv(var, raising=False)
+    spec = importlib.util.spec_from_file_location(
+        "crm_preflight_migrations",
+        Path(__file__).resolve().parents[2] / "scripts" / "preflight.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "_odoo_serving", lambda: False)
+    assert mod.main() == 0
+    out = capsys.readouterr().out
+    assert "CRM: unknown (odoo_down)" in out
+    assert "ODOO_COMMUNITY_MIGRATIONS: pending — lowercase-logins" in out
+    err = RuntimeError(
+        'json2 ir.module.module.search HTTP 403: {"name": '
+        '"odoo.exceptions.AccessError", "message": "no"}'
+    )
+    assert mod._exception_name(err) == "AccessError"
+    assert mod._exception_name(RuntimeError("ODOO_RPC_FAILED no_api_key")) == "no_api_key"

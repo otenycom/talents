@@ -1,0 +1,18 @@
+# odoo-community in-box migrations: an ordered, append-only, forward-only list.
+# A converge swaps this Talent's files. It never touches the live Odoo database
+# this Talent installed. When a new version changes the shape of that state, the
+# agent reconciles it in-box from this list. CrmBot's and WebsiteBot's
+# preflight.py print the pending ones as ODOO_COMMUNITY_MIGRATIONS (this Talent
+# has no preflight of its own). The runner is scripts/migrate.py. The marker is
+# ~/.hermes/data/odoo-community/migrations.json. Never renumber a shipped id.
+bot: odoo-community
+
+migrations:
+  - id: lowercase-logins
+    kind: checklist   # talks to Odoo over JSON-2 and tells the owner → the agent runs it
+    ref: references/migrations.md#lowercase-logins
+    summary: >-
+      Odoo matches a login case-sensitively. A login that holds a capital (it
+      came from a chat client that capitalises the first letter) fails when the
+      person types it in lowercase on the login page. Lowercase every internal
+      login, leave a case twin alone, and update .odoo-admin to match.

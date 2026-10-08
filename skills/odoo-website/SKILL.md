@@ -1,7 +1,7 @@
 ---
 name: odoo-website
 description: "Build a website in your box and host it at your own address"
-version: 1.2.10
+version: 1.2.11
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -62,6 +62,7 @@ over a secure API. A custom module is not possible on Online.
 | `Set my site's public URL to https://example.com` | `set-base-url` to vanity URL |
 | `Take the site down.` | Confirm, then `unhost_website` |
 | `I want the back-office login.` | Handoff (email + secure password link — never chat) |
+| `Give Kim a website login.` / `Kim cannot sign in.` | odoo-community `references/team-logins.md` |
 | A model / a record / a view / SQL that is not a page / host / domain job (e.g. "which models match partner?", "set the phone on this contact") | odoo-community `references/local-odoo-client.md` |
 
 If they ask how to "run `host_website`" / `attach_site_domains()`, tell them to send the
@@ -82,10 +83,16 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 - **Odoo Online / remote** → custom module is **impossible**; JSON-2 only.
 - **READY: yes**, build/change → [`build-and-host.md`](references/build-and-host.md).
 - **READY: yes**, no password / back-office login → if `ADMIN` or
-  `LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`
-  (`bake_placeholder` counts), load odoo-community
-  `references/setup.md`; then continue
-  [`first-run.md`](references/first-run.md).
+  `LANGUAGE` is missing, or `ADMIN_FILE` is `bake_placeholder` or
+  `missing`, load odoo-community `references/setup.md`; then
+  continue [`first-run.md`](references/first-run.md).
+  `ADMIN_FILE: key_only` with `JSON2: ok` is set up: a person wired
+  this Odoo by hand. Do not run the owner intake for it.
+- A login for another person, or "Kim cannot sign in" → one
+  `skill_view` of odoo-community `references/team-logins.md`.
+- `ODOO_COMMUNITY_MIGRATIONS: pending` → one `skill_view` of
+  odoo-community `references/migrations.md`, run each one, then
+  continue this triage.
 - **READY: yes**, status / link → `list_hosted_websites`.
 - **Custom domain** → [`custom-domain.md`](references/custom-domain.md).
 
@@ -143,6 +150,11 @@ the page.
   the site still is not answering).
 - Take down → `unhost_website(site_slug="<slug>")` after confirm.
 - Back-office → handoff in `build-and-host.md` only.
+
+## Lessons
+
+A lesson for every tenant goes in `~/.hermes/data/odoo-website/lessons.md`,
+not in this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
 
 ## Safety boundary
 

@@ -33,15 +33,16 @@ def _find_community_scripts() -> Path:
     raise RuntimeError("ODOO_RPC_FAILED no_community_scripts — community was not delivered")
 
 
-def _community_admin_candidates() -> list[Path]:
-    """Lazy import — only ``admin_candidates()`` below needs community, so a
-    caller that only wants ``profile_path()`` / ``writable_data_dir()`` does
-    not fail just because community was not delivered to this box."""
+def community_paths():
+    """odoo-community's ``local_odoo_paths`` module. Lazy import — a caller
+    that only wants ``profile_path()`` / ``writable_data_dir()`` does not
+    fail just because community was not delivered to this box. That module
+    owns ``normalize_login()`` and ``admin_login_and_file()``."""
     scripts = _find_community_scripts()
     if str(scripts) not in sys.path:
         sys.path.insert(0, str(scripts))
-    from local_odoo_paths import admin_candidates
-    return admin_candidates()
+    import local_odoo_paths
+    return local_odoo_paths
 
 
 def home() -> Path:
@@ -85,13 +86,18 @@ def profile_path() -> Path:
     return data_dir_candidates()[0] / "profile.yaml"
 
 
+def normalize_login(raw) -> str:
+    """odoo-community's one login rule (strip + lowercase)."""
+    return community_paths().normalize_login(raw)
+
+
 def admin_candidates() -> list[Path]:
     """Own candidates first (honors ``CRM_BOT_DATA_DIR``), then whatever the
     community-wide fallback (crm-bot, odoo-website, odoo-community) adds that
     is not already covered — the same rule WebsiteBot's ``admin_candidates()``
     now uses the other way."""
     paths = [dest / ".odoo-admin" for dest in data_dir_candidates()]
-    for path in _community_admin_candidates():
+    for path in community_paths().admin_candidates():
         if path not in paths:
             paths.append(path)
     return paths
@@ -119,39 +125,6 @@ def website_profile_path() -> Path | None:
     return None
 
 
-def _admin_login_and_file() -> tuple[str, str]:
-    """Return ``(login, admin_file_state)``. Never the password.
-
-    ``admin_file_state`` is one of:
-
-    - ``"owner_set"`` — a stored ``login`` is a real email. The owner (or a
-      prior ``setup_admin.py`` run on their behalf) put it there.
-    - ``"bake_placeholder"`` — a sibling or CrmBot ``.odoo-admin`` holds a
-      login and password, but the login is not an email (the mint-time
-      clone-secret rotation always writes ``login=admin``). This is never a
-      password the owner has seen. Treat it exactly like ``"missing"`` for
-      every "has the owner set up" decision.
-    - ``"missing"`` — no candidate file parses at all.
-
-    ``login`` (the return value's first element) is set only for
-    ``"owner_set"``; a default ``admin`` login is never the owner email.
-    """
-    for path in admin_candidates():
-        if not path.is_file() or not path.stat().st_size:
-            continue
-        login = password = ""
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("login="):
-                login = line.split("=", 1)[1].strip()
-            elif line.startswith("password="):
-                password = line.split("=", 1)[1].strip()
-        if login and password:
-            if "@" in login:
-                return login, "owner_set"
-            return "", "bake_placeholder"
-    return "", "missing"
-
-
 def implicit_setup() -> dict:
     """Fields already on the box. Never a password.
 
@@ -159,13 +132,15 @@ def implicit_setup() -> dict:
     WebsiteBot writes ``owner_email`` + ``language`` + ``site_slug`` in
     its ``profile.yaml`` and the login password in ``.odoo-admin``.
     Event name is CrmBot-only. ``admin_file`` is one of ``"owner_set"``,
-    ``"bake_placeholder"``, or ``"missing"`` — see
-    ``_admin_login_and_file``.
+    ``"bake_placeholder"``, ``"key_only"``, or ``"missing"`` — see
+    odoo-community ``local_odoo_paths.admin_login_and_file``.
     """
     crm = _parse_simple_yaml(profile_path())
     sibling = website_profile_path()
     website = _parse_simple_yaml(sibling) if sibling else {}
-    admin_email, admin_file = _admin_login_and_file()
+    admin_email, admin_file = community_paths().admin_login_and_file(
+        admin_candidates(),
+    )
     email = (crm.get("owner_email") or "").strip()
     if "@" not in email:
         email = admin_email

@@ -1,7 +1,7 @@
 ---
 name: crm-bot
 description: "Capture leads and run CRM in your Odoo"
-version: 1.0.15
+version: 1.0.16
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -27,11 +27,12 @@ that same confirm.
 Setup lives in [`references/first-run.md`](references/first-run.md). Load
 that file when preflight says `ENGINE: missing`, they asked to set up /
 want the CRM login, or `EVENT` is `-` on a serving box. If `ADMIN` or
-`LANGUAGE` is missing, or `ADMIN_FILE` is not `owner_set`, that file loads
-odoo-community `references/setup.md` first. After ready, do not load it
-again. A prewarmed box's `ADMIN_FILE: bake_placeholder` is not a finished
-setup — it is the mint-time secret rotation, a password the owner has
-never seen.
+`LANGUAGE` is missing, or `ADMIN_FILE` is `bake_placeholder` or `missing`,
+that file loads odoo-community `references/setup.md` first. After ready, do
+not load it again. A prewarmed box's `ADMIN_FILE: bake_placeholder` is not
+a finished setup — it is the mint-time secret rotation, a password the
+owner has never seen. `ADMIN_FILE: key_only` with `JSON2: ok` is set up: a
+person wired this Odoo by hand. Do not run the owner intake for it.
 
 ## About this Talent
 
@@ -62,6 +63,7 @@ already on the box.
 | --- | --- |
 | `Set up CRM.` / they asked to install | Cold: Event Name plus community setup, then install and put it online. Warm: Event Name (and the site name when nothing is hosted), then the CRM module |
 | `I don't have a password.` / `I want the CRM login.` | Secure password link — never a paste in chat |
+| `Add a login for Sam, like Alex.` / `Sam cannot sign in.` | odoo-community `references/team-logins.md` |
 | A name, badge, voice note, or a group titled `… Leads` | Capture below |
 | `How many leads?` / `Show me the OXP leads.` / `What is on Kajal's card?` / `Does she have a photo?` | `list_leads.py` |
 | `Delete lead 42.` | Confirm, then `delete_lead.py` |
@@ -83,10 +85,15 @@ python3 ~/.hermes/skills/talents/crm-bot/scripts/preflight.py
   `python3 ~/.hermes/skills/talents/odoo-community/scripts/pin_crm_home.py`
   `--require-crm`. Expect `CRM_HOME_PINNED`. Then continue this same
   triage. Do not stop.
-- No password / want the CRM login, and `ADMIN_FILE` is not `owner_set`
-  (`bake_placeholder` counts) → load odoo-community
+- No password / want the CRM login, and `ADMIN_FILE` is
+  `bake_placeholder` or `missing` → load odoo-community
   `references/setup.md`; then continue
   [`first-run.md`](references/first-run.md).
+- A login for another person, or "Sam cannot sign in" → one
+  `skill_view` of odoo-community `references/team-logins.md`.
+- `ODOO_COMMUNITY_MIGRATIONS: pending` → one `skill_view` of
+  odoo-community `references/migrations.md`, run each one, then
+  continue this triage.
 - Count / list / "how many" / recall what is on a card → `list_leads.py`.
 - A person, a badge, a voice note, a DM, or a group title that ends in
   ` Leads` → Capture below.
@@ -117,6 +124,7 @@ OXP, OXB, and "Odoo Experience" are the same show: Odoo Experience 2026, 24–26
 | Badge or business-card photo | `parse_document` on that path, then upsert with the fields plus the path in `media` |
 | New person, or more facts for a person already on a card | `upsert_lead.py` this turn, with every field and every this-message path you have |
 | Owner said the card is wrong | Same `upsert_lead.py` with `correction: true` (and `replace` for a wrong word in the notes) — never a second lead |
+| A person and a company, before any `web_search` | Match in the CRM first: `list_leads.py --name "<first name>"`. A row with a close company name is that person ("Brite Line" in a transcript is "Bright Line" on the card). Upsert onto it; search the web only when no row matches |
 | Have a full person name and/or a company, not yet enriched | `web_search` for contact details and background, then a second `upsert_lead.py` with the new fields |
 | Public link on the confirm | `url` from this upsert when the profile already holds the live host; else `list_hosted_websites`, then write that host into the profile |
 | Delete or take-down | Confirm, then `delete_lead.py` / `unhost_website` |
@@ -136,7 +144,13 @@ a card is `list_leads.py`; then speak.
 5. If you now have a full person name and/or a company, enrich:
    `web_search`, then a second upsert with the new fields and a short
    `lookup` note. A given name alone waits until the owner adds a family
-   name or a company.
+   name or a company. Before any `web_search`, run
+   `list_leads.py --name "<first name>"`; a row with a close company
+   name wins.
+
+A research question in a Leads group is not a capture. "Who is the
+buyer at Acme?" asks for an answer. Answer it; do not upsert a lead
+unless the message names a person to capture.
 
 ### Payload keys
 
@@ -274,6 +288,11 @@ once `edge_reachable` is true, never while status is still
 `provisioning` or `wait_for_public_dns.py` printed `PUBLIC_URL_PENDING`.
 They already asked, so do not ask again, and do not load `oteny-sites`
 for this. Confirm before `unhost_website`.
+
+## Lessons
+
+A lesson for every tenant goes in `~/.hermes/data/crm-bot/lessons.md`, not in
+this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
 
 ## Safety boundary
 

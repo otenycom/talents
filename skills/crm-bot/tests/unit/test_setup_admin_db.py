@@ -57,3 +57,59 @@ def test_refuses_to_invent_a_password_on_bake_placeholder(tmp_path, monkeypatch)
 
     assert rc == 1
     assert mod._read_stored() == ("admin", "mint-rotated-secret", "k")
+
+
+def _crm_box(tmp_path, monkeypatch, owner_email: str):
+    monkeypatch.setenv("HH_HOME", str(tmp_path))
+    monkeypatch.delenv("CRM_BOT_DATA_DIR", raising=False)
+    data = tmp_path / ".hermes" / "data" / "crm-bot"
+    data.mkdir(parents=True)
+    (data / "profile.yaml").write_text(f"owner_email: {owner_email}\n", encoding="utf-8")
+    return data
+
+
+def _offline(mod, monkeypatch, applied: list):
+    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(b""))
+    monkeypatch.setattr(mod, "_session_authenticate", lambda opener, login, password: 2)
+    monkeypatch.setattr(mod, "_json2_bearer_ok", lambda key: True)
+    monkeypatch.setattr(
+        mod, "_apply_admin_session",
+        lambda opener, *, login, new_password: applied.append(login),
+    )
+    monkeypatch.setattr(mod, "_mint_api_key", lambda login: "minted")
+
+
+def test_mixed_case_owner_email_becomes_a_lowercase_login(tmp_path, monkeypatch, capsys):
+    """A chat client capitalises the first letter; Odoo matches a login
+    case-sensitively. The owner login is lowercase in Odoo and on disk."""
+    data = _crm_box(tmp_path, monkeypatch, "Ries@Vriend.com")
+    monkeypatch.setenv("CRM_PW", "owner-chosen")
+    mod = _load()
+    applied: list = []
+    _offline(mod, monkeypatch, applied)
+
+    assert mod.main(["--from-env", "CRM_PW"]) == 0
+
+    assert applied == ["ries@vriend.com"]
+    assert "ADMIN_READY ries@vriend.com" in capsys.readouterr().out
+    assert (data / ".odoo-admin").read_text(encoding="utf-8").splitlines()[0] == (
+        "login=ries@vriend.com"
+    )
+
+
+def test_stored_case_variant_is_the_same_owner_and_heals(tmp_path, monkeypatch, capsys):
+    """A box set up before the lowercase rule holds ``login=Ries@…``. A bare
+    run must not ask for the owner password again: it rewrites the login."""
+    data = _crm_box(tmp_path, monkeypatch, "Ries@Vriend.com")
+    (data / ".odoo-admin").write_text(
+        "login=Ries@Vriend.com\npassword=owner-chosen\napi_key=k\n", encoding="utf-8",
+    )
+    mod = _load()
+    applied: list = []
+    _offline(mod, monkeypatch, applied)
+
+    assert mod.main([]) == 0
+
+    assert applied == ["ries@vriend.com"]
+    assert mod._read_stored() == ("ries@vriend.com", "owner-chosen", "k")
+    assert "owner-chosen" not in capsys.readouterr().out

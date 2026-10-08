@@ -9,7 +9,7 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from crm_paths import implicit_setup, profile_path
+from crm_paths import community_paths, implicit_setup, profile_path
 
 _PORT = 8069
 
@@ -97,8 +97,11 @@ def crm_home_state(rpc) -> str:
 
 
 def _crm_status() -> tuple[str, str]:
+    """``(crm, crm_home)``. A failed read prints its exception class, for
+    example ``unknown (AccessError)``, so the cause shows on the first
+    line instead of after a read of this script."""
     if not _odoo_serving():
-        return "unknown", "-"
+        return "unknown (odoo_down)", "-"
     try:
         from odoo_rpc import OdooRPC
         rpc = OdooRPC()
@@ -111,8 +114,30 @@ def _crm_status() -> tuple[str, str]:
         if not ids:
             return "missing", "-"
         return "installed", crm_home_state(rpc)
-    except Exception:
-        return "unknown", "-"
+    except Exception as exc:  # noqa: BLE001
+        return f"unknown ({_exception_name(exc)})", "-"
+
+
+def _exception_name(exc: Exception) -> str:
+    """The Odoo exception class when the JSON-2 body names one (for example
+    ``AccessError``), the shared client's reason token (``no_api_key``),
+    else the Python class."""
+    import re
+
+    text = str(exc)
+    if text.startswith("ODOO_RPC_FAILED "):
+        return text.split()[1].rstrip(":")
+    match = re.search(r'"name"\s*:\s*"([^"]+)"', text)
+    if match:
+        return match.group(1).rsplit(".", 1)[-1]
+    return type(exc).__name__
+
+
+def _community_migrations_line() -> str:
+    try:
+        return community_paths().migrations_line()
+    except RuntimeError:  # odoo-community was not delivered
+        return "ODOO_COMMUNITY_MIGRATIONS: none"
 
 
 def main() -> int:
@@ -131,6 +156,7 @@ def main() -> int:
     print(f"ADMIN_FILE: {implied['admin_file']}")
     print(f"SITE_NAME: {implied['site_slug'] or '-'}")
     print("PUBLIC: use list_hosted_websites — never a hardcoded host")
+    print(_community_migrations_line())
     return 0
 
 

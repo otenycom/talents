@@ -25,6 +25,8 @@ artifacts:
       list_models: ~/.hermes/skills/talents/odoo-community/scripts/list_models.py
       list_fields: ~/.hermes/skills/talents/odoo-community/scripts/list_fields.py
       list_views: ~/.hermes/skills/talents/odoo-community/scripts/list_views.py
+      team_login: ~/.hermes/skills/talents/odoo-community/scripts/team_login.py
+      migrate: ~/.hermes/skills/talents/odoo-community/scripts/migrate.py
     stubbed: []
 
   - kind: tools

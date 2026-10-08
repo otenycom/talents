@@ -8,13 +8,18 @@ Admin email, language, and the password link are **not** this file.
 They live in odoo-community
 [`references/setup.md`](../../odoo-community/references/setup.md).
 Load that file when `ENGINE` is missing, when `ADMIN` or
-`LANGUAGE` is missing, or when `ADMIN_FILE` is not `owner_set`.
-Then continue this file.
+`LANGUAGE` is missing, or when `ADMIN_FILE` is `bake_placeholder`
+or `missing`. Then continue this file.
 
 `ADMIN_FILE: bake_placeholder` is not a finished setup. Every
 prewarmed box ships a `.odoo-admin` with `login=admin` from the
 mint-time secret rotation — a password nobody has seen. Treat
 `bake_placeholder` exactly like `missing`.
+
+`ADMIN_FILE: key_only` with `JSON2: ok` is set up. A person set up
+this Odoo by hand, and the key works. Do not load the community
+setup file, do not send a password link, and do not run
+`setup_admin.py`. Ask only the site fields this file still needs.
 
 ---
 
@@ -49,11 +54,11 @@ online at their own address, then ask — in one or two short messages
    Then come back. Do not install until the box is big enough.
 
 Do **not** ask admin email, language, or a password here. If
-`ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
-`owner_set`, load odoo-community `references/setup.md` and ask
-only the missing field there. If community setup already has
-`ADMIN` and `LANGUAGE`, and `ADMIN_FILE` is `owner_set`, skip
-them.
+`ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is
+`bake_placeholder` or `missing`, load odoo-community
+`references/setup.md` and ask only the missing field there. If
+community setup already has `ADMIN` and `LANGUAGE`, and
+`ADMIN_FILE` is `owner_set`, skip them.
 
 **Hard stop until they answer.** First reply = intake only — no
 install, no publish, no HTML, no browser, no `oteny-drop` /
@@ -73,8 +78,8 @@ python3 ~/.hermes/skills/talents/odoo-website/scripts/preflight.py
 continue.
 
 If `ADMIN` or `LANGUAGE` is missing (no owner email or no language),
-or `ADMIN_FILE` is not `owner_set` (no `.odoo-admin`, or only a
-mint-time `bake_placeholder` login), load
+or `ADMIN_FILE` is `bake_placeholder` or `missing` (only a mint-time
+`admin` login, or no `.odoo-admin`), load
 
 ```
 skill_view name='odoo-community' file_path='references/setup.md'
@@ -146,10 +151,11 @@ fall back to drop.
 sh ~/.hermes/skills/talents/odoo-website/scripts/ensure_site.sh
 ```
 
-Check preflight's `ADMIN_FILE` first. Not `owner_set`
-(`bake_placeholder` — the mint-time secret rotation, never a
-password the owner has seen — or `missing`) → go to "Bot notes —
-password" below and apply with `--from-env ODOO_ADMIN_PASSWORD`.
+Check preflight's `ADMIN_FILE` first. `bake_placeholder` (the
+mint-time secret rotation, never a password the owner has seen) or
+`missing` → go to "Bot notes — password" below and apply with
+`--from-env ODOO_ADMIN_PASSWORD`. `key_only` with `JSON2: ok` →
+skip this step; the key already works.
 Do not call `setup_admin.py` bare while `ADMIN_FILE` is
 `bake_placeholder`; the script now refuses that call and prints
 `ADMIN_SETUP_FAILED owner_password_required`.
@@ -195,8 +201,8 @@ make it customer-facing.
 
 ## Bot notes — password (never in chat)
 
-If `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is not
-`owner_set` (`bake_placeholder` counts), load odoo-community
+If `ADMIN` or `LANGUAGE` is missing, or `ADMIN_FILE` is
+`bake_placeholder` or `missing`, load odoo-community
 `references/setup.md`. Then continue. Label the link `Website
 back-office password`. Apply with
 

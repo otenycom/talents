@@ -15,7 +15,10 @@ Prints a compact parseable block:
   PROFILE — site_name / site_slug / language (so the triage never re-reads profile.yaml;
             site_slug falls back to a sibling CrmBot's already-claimed name)
   ADMIN      — the owner's email, once set (odoo-community's shared contract)
-  ADMIN_FILE — owner_set|bake_placeholder|missing (see website_paths.admin_login_and_file)
+  ADMIN_FILE — owner_set|bake_placeholder|key_only|missing (odoo-community
+               local_odoo_paths.admin_login_and_file)
+  JSON2      — ok|down  (does the bearer key in .odoo-admin answer /json/2/?)
+  ODOO_COMMUNITY_MIGRATIONS — none, or the pending odoo-community migrations
   MISSING — the blocking artifacts when READY is no
 """
 from __future__ import annotations
@@ -27,7 +30,9 @@ from pathlib import Path
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
-from website_paths import admin_login_and_file, home, profile_path, sibling_site_slug
+from website_paths import (
+    admin_candidates, community_paths, home, profile_path, sibling_site_slug,
+)
 
 _PORT = 8069
 _REQUIRED_FIELDS = ("site_name", "site_purpose", "site_slug", "owner_email", "language")
@@ -64,6 +69,16 @@ def _odoo_serving() -> bool:
         conn.request("GET", "/web/login")
         resp = conn.getresponse()
         return resp.status < 500
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _json2_ok() -> bool:
+    """One bearer call. ``ADMIN_FILE: key_only`` counts as set up only with
+    ``JSON2: ok`` (odoo-community ``references/setup.md``)."""
+    try:
+        from site_rpc import OdooRPC
+        return bool(OdooRPC().uid)
     except Exception:  # noqa: BLE001
         return False
 
@@ -107,6 +122,20 @@ def _substrate() -> str:
     return "unknown"
 
 
+def _admin_state() -> tuple[str, str]:
+    try:
+        return community_paths().admin_login_and_file(admin_candidates())
+    except RuntimeError:  # odoo-community was not delivered
+        return "", "missing"
+
+
+def _community_migrations_line() -> str:
+    try:
+        return community_paths().migrations_line()
+    except RuntimeError:  # odoo-community was not delivered
+        return "ODOO_COMMUNITY_MIGRATIONS: none"
+
+
 def main() -> int:
     profile = _load_profile()
     site_slug = (profile.get("site_slug") or "").strip()
@@ -123,18 +152,20 @@ def main() -> int:
     if unset:
         missing.append("profile:" + ",".join(unset))
     ready = not missing
-    admin_login, admin_file = admin_login_and_file()
+    admin_login, admin_file = _admin_state()
     admin_email = (profile.get("owner_email") or "").strip()
     if "@" not in admin_email:
         admin_email = admin_login
     print(f"READY: {'yes' if ready else 'no'}")
-    print(f"ODOO: {'serving' if _odoo_serving() else 'down'}")
+    serving = _odoo_serving()
+    print(f"ODOO: {'serving' if serving else 'down'}")
     print("PROFILE: "
           f"site_name={profile.get('site_name') or '-'} "
           f"site_slug={site_slug or '-'} "
           f"language={profile.get('language') or '-'}")
     print(f"ADMIN: {admin_email or '-'}")
     print(f"ADMIN_FILE: {admin_file}")
+    print(f"JSON2: {'ok' if serving and _json2_ok() else 'down'}")
     # The effective envelope — so the persona (and install_odoo.sh) can refuse a box that
     # is genuinely too small. The bar is MEMORY (~2 GB), not the substrate: a Power
     # container holds the whole stack with room to spare.
@@ -142,6 +173,7 @@ def main() -> int:
     print(f"SUBSTRATE: {_substrate()}")
     print(f"TIER: {os.environ.get('OTENY_TIER') or '-'}")
     print("MEM_GB: " + (f"{mem:.1f}" if mem is not None else "-"))
+    print(_community_migrations_line())
     if missing:
         print("MISSING: " + " ".join(missing))
     return 0

@@ -1,7 +1,7 @@
 ---
 name: odoo-community
 description: "Install Odoo Community Edition in your box"
-version: 1.0.11
+version: 1.1.0
 author: Oteny
 license: Apache-2.0
 metadata:
@@ -46,14 +46,22 @@ The files are already on the box. The install starts when you ask.
 | `Is Odoo up?` | curl `/` + `list_services` |
 | `Stop the local Odoo.` | Confirm, then `unregister_service` name `odoo-community` |
 | A model / a record / a view / SQL the active Talent's own table does not name | `skill_view` [`references/local-odoo-client.md`](references/local-odoo-client.md) |
+| `Add a login for Sam, like Alex.` / `Sam cannot sign in.` | `skill_view` [`references/team-logins.md`](references/team-logins.md) |
 
 ## Every message — triage first
 
 ```
 python3 ~/.hermes/skills/talents/odoo-community/scripts/selfcheck.py
+python3 ~/.hermes/skills/talents/odoo-community/scripts/migrate.py --status
 ```
 
+Run both in one terminal call.
+
 Missing `~/odoo-site` is not a failure. Install only when they asked.
+`MIGRATIONS: pending` (or `ODOO_COMMUNITY_MIGRATIONS: pending` from a
+module Talent's preflight) → load
+[`references/migrations.md`](references/migrations.md), run each one, then
+continue.
 
 ## Bot notes — INSTALL
 
@@ -91,9 +99,16 @@ app menu, so `/odoo` opens the pipeline and not Discuss.
   CrmBot load that file. They do not invent a second intake.
 - Confirm before unregister.
 
+## Lessons
+
+A lesson for every tenant goes in `~/.hermes/data/odoo-community/lessons.md`,
+not in this file. Write one line per lesson: `- YYYY-MM-DD <lesson>`.
+
 ## Common pitfalls
 
 - Cloning the default branch. Use branch `19.0`.
 - Nightly zip — no git folder, so the next bump is another full download.
 - Starting Odoo before Postgres accepts `5432`.
 - Installing `website` or `crm` in this Talent.
+- A login with a capital. Odoo matches a login case-sensitively. Make
+  logins with `team_login.py`, which lowercases them.
