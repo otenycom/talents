@@ -92,6 +92,9 @@ dev bot if you're curious. The authoring-side browser discipline lives in
 | `register_service` | `tools.required` | oteny-services | live | Included | 🔁 Keeps a process you started in the box — Postgres, Odoo, a worker — coming back after a bounce. |
 | `unregister_service` | `tools.required` | oteny-services | live | Included | ⏹️ Stops auto-starting a local service after a bounce. |
 | `list_services` | `tools.required` | oteny-services | live | Included | 📋 Lists the local services registered to start after a bounce. |
+| `register_copy_hook` | `tools.required` | oteny-services | coming | Included | 🧬 When a new bot is made from a backup of yours, gives software you installed in the box its own identity and switches its outside links off. |
+| `unregister_copy_hook` | `tools.required` | oteny-services | coming | Included | ⏹️ Removes a copy hook you registered. |
+| `list_copy_hooks` | `tools.required` | oteny-services | coming | Included | 📋 Lists the copy hooks a new bot made from a backup of yours runs. |
 
 ## Share a file as a link
 

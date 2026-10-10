@@ -1750,6 +1750,135 @@ Your bot also carries the delivered `oteny-web-operator` skill (visible on the b
 }
 ```
 
+### `register_copy_hook` — Register a copy hook
+
+*first-party tool · request via `tools.required` · status **coming** · cost Included*
+
+> Register a copy hook for software you installed in this box that holds an identity or talks to the outside: an API key or login of its own, a webhook, a mail, payment or messaging account. The owner can make a new bot from a backup of this one; before that copy serves anyone, the box runs every copy hook once, in name order, before any service starts. The hook gives the software in the copy its own identity and switches its outside links off, so the copy never acts as this bot. Keep the settings, so the owner can switch each link back on. The hook reads OTENY_COPY_KIND: `new_bot` or `test` is a second bot (new identity, links off); `restore` is this same bot put back to an older backup (keep its identity; only undo work the live bot already did after that backup). Writes ~/.hermes/copy_hooks.d/<name>. Pass `name` (a short token; hooks run in name order) and `command` (the shell line; safe to run twice). A non-zero exit stops the copy before any service starts, so exit non-zero when a link is still on. Output goes to a log in the box, never to the owner. Do not register a hook for software with no identity and no outside link.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Copy hook name (letters, digits, dot, underscore, hyphen)."
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell command the copy runs once. Must be safe to run twice."
+    }
+  },
+  "required": [
+    "name",
+    "command"
+  ]
+}
+```
+
+**Result** — {ok, name, path, command} — one copy hook file under ~/.hermes/copy_hooks.d/<name>. Idempotent.
+
+**Errors / edges** — {ok: false, error: 'pass `name` — …'} when the name is empty or a path. {ok: false, error: 'pass `command` — …'} when the command is empty.
+
+**Example**
+
+```json
+{
+  "name": "20-mailer",
+  "command": "python3 ~/mailer/copy_hook.py"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "name": "20-mailer",
+  "path": "/home/hermes/.hermes/copy_hooks.d/20-mailer",
+  "command": "python3 ~/mailer/copy_hook.py"
+}
+```
+
+**Authoring notes** — A box that first starts as a copy runs every copy hook once, in name order, before any service starts, with OTENY_COPY_KIND (new_bot, restore or test), OTENY_COPY_FROM_AT and OTENY_BOT_REF set. A non-zero exit stops the copy. The output stays in a log in the box.
+
+### `unregister_copy_hook` — Unregister a copy hook
+
+*first-party tool · request via `tools.required` · status **coming** · cost Included*
+
+> Remove a copy hook you registered. Removes ~/.hermes/copy_hooks.d/<name>. Use only when the software it covers is gone from this box.
+
+**Parameters**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The copy hook name to remove."
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
+```
+
+**Result** — {ok, name, removed} — removed is true when a file was present.
+
+**Errors / edges** — {ok: false, error: 'pass `name` of the copy hook to unregister.'}
+
+**Example**
+
+```json
+{
+  "name": "20-mailer"
+}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "name": "20-mailer",
+  "removed": true
+}
+```
+
+### `list_copy_hooks` — List copy hooks
+
+*first-party tool · request via `tools.required` · status **coming** · cost Included*
+
+> List the copy hooks a copy of this bot runs (name and command, in run order). Side-effect-free. `00-odoo` is the platform's own hook for the Odoo in this box; leave it alone.
+
+**Result** — {ok, copy_hooks: [{name, command}, …]} — side-effect-free, in run order.
+
+**Errors / edges** — None on the happy path.
+
+**Example**
+
+```json
+{}
+```
+
+→
+
+```json
+{
+  "ok": true,
+  "copy_hooks": [
+    {
+      "name": "00-odoo",
+      "command": "exec python3 \"$HOME/.hermes/copy_hooks.lib/odoo_copy_hook.py\""
+    }
+  ]
+}
+```
+
 ## Share a file as a link
 
 ### `publish_file` — Share a file as a link

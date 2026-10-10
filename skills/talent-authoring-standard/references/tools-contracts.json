@@ -1038,6 +1038,82 @@
       "notes": ""
     },
     {
+      "name": "register_copy_hook",
+      "requestable_name": "register_copy_hook",
+      "request_via": "tools.required",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free",
+      "description": "Register a copy hook for software you installed in this box that holds an identity or talks to the outside: an API key or login of its own, a webhook, a mail, payment or messaging account. The owner can make a new bot from a backup of this one; before that copy serves anyone, the box runs every copy hook once, in name order, before any service starts. The hook gives the software in the copy its own identity and switches its outside links off, so the copy never acts as this bot. Keep the settings, so the owner can switch each link back on. The hook reads OTENY_COPY_KIND: `new_bot` or `test` is a second bot (new identity, links off); `restore` is this same bot put back to an older backup (keep its identity; only undo work the live bot already did after that backup). Writes ~/.hermes/copy_hooks.d/<name>. Pass `name` (a short token; hooks run in name order) and `command` (the shell line; safe to run twice). A non-zero exit stops the copy before any service starts, so exit non-zero when a link is still on. Output goes to a log in the box, never to the owner. Do not register a hook for software with no identity and no outside link.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Copy hook name (letters, digits, dot, underscore, hyphen)."
+          },
+          "command": {
+            "type": "string",
+            "description": "Shell command the copy runs once. Must be safe to run twice."
+          }
+        },
+        "required": [
+          "name",
+          "command"
+        ]
+      },
+      "result": "{ok, name, path, command} — one copy hook file under ~/.hermes/copy_hooks.d/<name>. Idempotent.",
+      "errors": "{ok: false, error: 'pass `name` — …'} when the name is empty or a path. {ok: false, error: 'pass `command` — …'} when the command is empty.",
+      "example_request": "{\n  \"name\": \"20-mailer\",\n  \"command\": \"python3 ~/mailer/copy_hook.py\"\n}",
+      "example_result": "{\n  \"ok\": true,\n  \"name\": \"20-mailer\",\n  \"path\": \"/home/hermes/.hermes/copy_hooks.d/20-mailer\",\n  \"command\": \"python3 ~/mailer/copy_hook.py\"\n}",
+      "notes": "A box that first starts as a copy runs every copy hook once, in name order, before any service starts, with OTENY_COPY_KIND (new_bot, restore or test), OTENY_COPY_FROM_AT and OTENY_BOT_REF set. A non-zero exit stops the copy. The output stays in a log in the box."
+    },
+    {
+      "name": "unregister_copy_hook",
+      "requestable_name": "unregister_copy_hook",
+      "request_via": "tools.required",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free",
+      "description": "Remove a copy hook you registered. Removes ~/.hermes/copy_hooks.d/<name>. Use only when the software it covers is gone from this box.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The copy hook name to remove."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "result": "{ok, name, removed} — removed is true when a file was present.",
+      "errors": "{ok: false, error: 'pass `name` of the copy hook to unregister.'}",
+      "example_request": "{\n  \"name\": \"20-mailer\"\n}",
+      "example_result": "{\n  \"ok\": true,\n  \"name\": \"20-mailer\",\n  \"removed\": true\n}",
+      "notes": ""
+    },
+    {
+      "name": "list_copy_hooks",
+      "requestable_name": "list_copy_hooks",
+      "request_via": "tools.required",
+      "group": "Local services",
+      "status": "coming",
+      "cost": "free",
+      "description": "List the copy hooks a copy of this bot runs (name and command, in run order). Side-effect-free. `00-odoo` is the platform's own hook for the Odoo in this box; leave it alone.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "result": "{ok, copy_hooks: [{name, command}, …]} — side-effect-free, in run order.",
+      "errors": "None on the happy path.",
+      "example_request": "{}",
+      "example_result": "{\n  \"ok\": true,\n  \"copy_hooks\": [\n    {\n      \"name\": \"00-odoo\",\n      \"command\": \"exec python3 \\\"$HOME/.hermes/copy_hooks.lib/odoo_copy_hook.py\\\"\"\n    }\n  ]\n}",
+      "notes": ""
+    },
+    {
       "name": "publish_file",
       "requestable_name": "publish_file",
       "request_via": "tools.required",
