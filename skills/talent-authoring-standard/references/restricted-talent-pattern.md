@@ -1176,9 +1176,17 @@ label makes you assume.
   required markers: the DOM label reads `Start date *` while the accessibility tree spells the
   requirement out as a word (`Start date Required`, in the site's own language). The automation engine
   matches the **accessible** name, and the raw `role=…[name="…"]` form is **exact and
-  case-sensitive** — only the higher-level helper relaxes it to a substring. So write the semantic rung
-  as `role=<role>[name=/…/i]` (the observe-mode rule below), keep both strings in the runbook, and
-  never "fix" one into the other: the mismatch belongs to the page, it is not a typo in your notes.
+  case-sensitive**. So write the semantic rung as `role=<role>[name="…"]` with the accessible name
+  copied whole from the tree, keep both strings in the runbook, and never "fix" one into the other:
+  the mismatch belongs to the page, it is not a typo in your notes.
+- **Never write a `/pattern/` name.** The Oteny browser tool does not evaluate it as a regular
+  expression. `/^X$/` and `/^\s*X\s*$/` mean the exact name `X`. Any other pattern is searched as a
+  literal, case-sensitive piece of text, and an `/i` flag has no effect. So `/reeds.*aangevraagd/i`
+  can never match. The literal search also reads only the label, title, placeholder, text and legend,
+  so it misses a group whose name comes from another element through `aria-labelledby`. Four such
+  aims missed on a production portal in October 2026, while the exact names of the same groups
+  landed. The exact name needs no pattern for spacing, because the comparison normalizes whitespace.
+  The tree's own hint on each control prints the exact form; copy it.
 - **Drive a dependent cascade one step at a time.** Where one choice repopulates the next
   (sector → subsector → code), the later options do not exist until the earlier write has landed. This
   is the §6 "never batch across a server round-trip" rule in its most common shape: one action, one
@@ -1406,7 +1414,8 @@ Then reconcile, iterating four steps until the diff is clean:
 1. **Observe** — the belt-armed bot walks the real site; pull `traces --ref <bot>` (account key).
    Look at `browser_summary.pages_captured` / `controls_captured` and each `page_snapshot`'s
    `form_inventory` — that is your selector ground truth. **If a control has empty `id`/`name`,
-   lock with `role=<role>[name=/…/i]` from `role` + `aria`/`label`/`text` — do not invent `#ids`.**
+   lock with `role=<role>[name="…"]` from `role` + the exact accessible name the tree prints — do
+   not invent `#ids`, and do not write a `/pattern/` name (see "Never write a `/pattern/` name").**
 2. **Diff** — `browser-diff --manifest <file> --ref <bot>` (or `--observed <traces.json>`) scores
    the observed reality against your manifest (RENAMED / AMBIGUOUS / MISSED / …).
 3. **Harden** — apply each proposed fix to **your own** selector map + manifest, **and back-port the
