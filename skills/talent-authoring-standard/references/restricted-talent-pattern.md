@@ -1187,6 +1187,18 @@ label makes you assume.
   aims missed on a production portal in October 2026, while the exact names of the same groups
   landed. The exact name needs no pattern for spacing, because the comparison normalizes whitespace.
   The tree's own hint on each control prints the exact form; copy it.
+- **A portal keeps its flow across your runs, so leave it at its home page.** Each work item is a
+  fresh, isolated turn, but the portal's own server session is not. A form that one run leaves open
+  is the page the next run lands on, even at the portal's base URL. A bot that does not expect it
+  can take that page for a sign-in wall, park the work as "needs login" while the portal is signed
+  in, or fill the leftover form. So write two rules into the Talent. First, a hand-back ends by
+  abandoning the form through the portal's own exit (its "close without saving", and the confirm
+  dialog) until the home page shows. Find the exit on every page that can hold a hand-back,
+  because a result page often has no footer and needs a step back first. Second, a run that opens
+  on a form page treats it as signed in: it abandons that form and starts from the home page.
+  Only a real sign-in screen means a sign-in wall. Give your stub double the same memory, and keep a
+  scenario that starts on a leftover form. A production pilot of October 2026 parked a signed-in
+  service on "needs login" this way, after every hand-back had left the form open.
 - **Drive a dependent cascade one step at a time.** Where one choice repopulates the next
   (sector → subsector → code), the later options do not exist until the earlier write has landed. This
   is the §6 "never batch across a server round-trip" rule in its most common shape: one action, one
