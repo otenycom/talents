@@ -713,6 +713,17 @@ Ship the migration the normal way (append a `migrations.yaml` entry + a
   gateway error stream — a dropped uplink/tunnel, a restart loop) and its token/model-call counters,
   recorded independently of the transcript. Fix the cause (restore the uplink/tunnel, clear the stuck
   process), don't re-run blind.
+- **A Discuss bot's Bot Activity row closes as an error within seconds, with `model call failed:
+  HTTP <status> (<reason>)`, and the record is back where it was before the hand-off.** The
+  model provider refused a model call that the agent framework does not retry. A billing refusal
+  (HTTP 402) is the common case. The platform then gives the record back through the bridge at
+  once, with that reason, so the record does not stay claimed until your engine's timeout. The
+  framework's own error text is in the channel too. This is a platform or provider condition,
+  not a Talent bug. Do not add a retry or a fallback to the Talent. Tell the platform
+  maintainer, and hand the record to the bot again when the provider answers. If your engine
+  starts the next queued record each time one leaves the bot, each queued record meets the same
+  refusal in turn while it lasts. The detail `the run ended without an answer`, with no model
+  error, means that the turn ended empty or was interrupted: read `traces --ref <bot>`.
 - **Discuss mute / Hand-to-Barney gets no reply; `traces` → `uplink_status: auth_failed`** — the
   box's ERP uplink key was revoked (mint always rotates). Re-run the client
   repo's provisioner for that tier (it probes `/json/2/` with the fresh mint and
