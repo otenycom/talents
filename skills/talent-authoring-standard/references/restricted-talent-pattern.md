@@ -1988,6 +1988,21 @@ below builder, prove it: **N consecutive graded greens including every red scena
 the target tier, within a declared variance bound, at the **current** Talent version.
 Absent that measurement, the builder floor stands.
 
+**The floor is the strongest model, not the name `builder`.** A tier name is a router
+persona, and Oteny changes the model behind a persona over time. When this rule was
+written, `builder` (Claude Sonnet) was the strongest persona. In November 2026 `lite`
+moved to gemini-4-hydrogen, which Oteny rates stronger, and the first business bot on
+the platform moved its floor to `lite` (Talent changelog, 2026-11-17). So read which
+model each persona runs today before you pick, and pick the strongest one. A move to
+another persona is still a tier change, so it still needs the graded scenarios above
+on the new tier: the same Talent can behave differently on a different model.
+
+**Prefer a persona with a fallback.** A persona whose model comes from one supplier
+with no fallback stops your bot the moment that supplier refuses a call (for example
+a billing refusal on the provider account). The bot then hands each record back with
+an error, and no retry in the Talent helps. When two personas are equally strong,
+pick the one with a second route.
+
 ### Declare the run's turn budget — `agent_max_turns` for a long job
 
 A dispatched turn runs under a **tool-turn budget** — the max number of tool calls the agent
