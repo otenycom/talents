@@ -220,6 +220,14 @@ the platform turns the memory store and the memory tool off for it, so the
 bot keeps no cross-session state of its own. An unrestricted Talent remembers
 as before. Declare `memory` only where the Talent is unrestricted.
 
+*A restricted bot does not offer to build a user profile.* Hermes offers it
+once, on the first message a new bot ever receives. The platform turns the
+offer off wherever memory is off. A dispatched work item is also told not to
+introduce itself or mention `/help`, so the first filing reply of a new bot
+is the work only. A person who chats with the same bot in a room still gets a
+greeting. So do not write "do not introduce yourself" into your Talent; the
+platform does it for work items.
+
 ## 2b. Your scope contract is adversarially gated — keep it coherent
 
 Your `agent-profile.yaml` **is** the scope contract, and Oteny runs an **adversarial probe
